@@ -1,40 +1,22 @@
 {
-  "name": "dabao",
+  "name": "shadcn-ui-monorepo",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "clean:modules": "pnpm dlx rimraf node_modules apps/*/node_modules packages/*/node_modules",
-    "clean:cache": "pnpm dlx rimraf .next .turbo",
-    "clean": "pnpm run clean:modules && pnpm run clean:cache",
-    "test": "npx jest"
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "prettier": "^3.5.1",
-    "rimraf": "^6.0.1",
     "turbo": "^2.4.2",
     "typescript": "5.7.3"
   },
-  "packageManager": "pnpm@9.15.5",
+  "packageManager": "pnpm@10.4.1",
   "engines": {
-    "pnpm": ">=9",
-    "node": ">=22"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "dependencies": {
-    "@types/react-virtualized": "^9.22.2",
-    "framer-motion": "^12.9.2",
-    "grammy": "^1.36.1",
-    "react-markdown": "^10.1.0",
-    "react-virtualized": "^9.22.6",
-    "remark-gfm": "^4.0.1"
+    "node": ">=20"
   }
 }
