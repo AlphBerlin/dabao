@@ -4,7 +4,6 @@
 node_modules
 .pnp
 .pnp.js
-.idea
 
 # Local env files
 .env
@@ -35,4 +34,3 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
-*.log
