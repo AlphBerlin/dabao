@@ -51,7 +51,7 @@ export function ProfileStats() {
                 <span className="text-tn-blue font-medium">Progress to Gold</span>
                 <span className="text-mid-gray">1250 / 1500</span>
               </div>
-              <Progress value={83} className="h-2 bg-gray-100" indicatorClassName="bg-accent-teal" />
+              <Progress value={83} className="h-2 bg-gray-100" />
             </div>
           </div>
         </div>
