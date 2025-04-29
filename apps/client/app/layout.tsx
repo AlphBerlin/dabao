@@ -1,7 +1,8 @@
-import type React from "react"
+// import type React from "react"
 import type { Metadata } from "next"
 import { Poppins } from "next/font/google"
 import './globals.css'
+// import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@workspace/ui/components/theme-provider"
 
 const poppins = Poppins({

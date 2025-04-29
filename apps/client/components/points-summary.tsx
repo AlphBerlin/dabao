@@ -44,7 +44,7 @@ export function PointsSummary({ onPointsEarned }: PointsSummaryProps) {
               </div>
 
               <div className="relative">
-                <Progress value={progress} className="h-3 bg-gray-100" indicatorClassName="bg-accent-teal" />
+                <Progress value={progress} className="h-3 bg-gray-100" />
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                   <div
                     className={cn(
