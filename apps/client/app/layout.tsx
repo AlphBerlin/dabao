@@ -1,18 +1,19 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import type React from "react"
+import type { Metadata } from "next"
+import { Poppins } from "next/font/google"
+import './globals.css'
+import { ThemeProvider } from "@workspace/ui/components/theme-provider"
 
-import "@workspace/ui/globals.css"
-import { Providers } from "@/components/providers"
-import { Button } from "@workspace/ui/components/button"
-
-const fontSans = Geist({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
 })
 
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+export const metadata: Metadata = {
+  title: "Daboa Loyalty",
+  description: "Gamified loyalty program",
+}
 
 export default function RootLayout({
   children,
@@ -21,10 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
-      >
-        <Providers>{children}</Providers>
+      <body className={`${poppins.variable} font-sans`}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )
