@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/av
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "next-themes"
-import { useAuth } from "@/lib/auth-provider"
+import { useAuth } from "@workspace/auth/contexts/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
