@@ -25,6 +25,23 @@
   --input: 240 5.9% 90%;
   --ring: 262.1 83.3% 57.8%;
   --radius: 0.75rem;
+
+  /* Chart colors */
+  --chart-1: 215 100% 50%;
+  --chart-2: 262.1 83.3% 57.8%;
+  --chart-3: 291 70% 60%;
+  --chart-4: 322 75% 46%;
+  --chart-5: 175 84% 32%;
+
+  /* Sidebar variables */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 240 10% 3.9%;
+  --sidebar-primary: 262.1 83.3% 57.8%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 240 5.9% 90%;
+  --sidebar-ring: 262.1 83.3% 57.8%;
 }
 
 .dark {
@@ -48,6 +65,23 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 263.4 70% 50.4%;
+  
+  /* Chart colors */
+  --chart-1: 215 100% 50%;
+  --chart-2: 263.4 70% 50.4%;
+  --chart-3: 291 70% 60%;
+  --chart-4: 322 75% 46%;
+  --chart-5: 175 84% 32%;
+  
+  /* Sidebar variables */
+  --sidebar-background: 240 10% 3.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 263.4 70% 50.4%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 263.4 70% 50.4%;
 }
 
 @theme {

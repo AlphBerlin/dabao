@@ -197,7 +197,7 @@ export default function Dashboard() {
 
             {isLoading ? (
               <div className="flex justify-center p-8">
-                <CircularProgress size={40} />
+                <CircularProgress size={40} value={100}/>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -4,14 +4,30 @@ import { motion } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { PlayCircle, ChevronDown } from "lucide-react";
 import { fadeIn, parallaxStar, slideUp, bounce, scrollToSection } from "@/lib/animations";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+
+// Generate stars data outside of component render
+const generateStarsData = (count: number) => {
+  return Array.from({ length: count }, () => ({
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    opacity: Math.random() * 0.5 + 0.2,
+    width: `${Math.random() * 3 + 1}px`,
+    height: `${Math.random() * 3 + 1}px`,
+  }));
+};
 
 export function Hero() {
-  const [isVisible, setIsVisible] = useState(false);
+  // Store animation state with a default of true to match server rendering
+  const [isAnimating, setIsAnimating] = useState(true);
+  
+  // Generate star positions only once using useMemo
+  const starsData = useMemo(() => generateStarsData(20), []);
 
-  // Trigger animations when component mounts
+  // Only toggle animations after component mounts (client-side only)
   useEffect(() => {
-    setIsVisible(true);
+    // No state change needed since we start with true
+    // This ensures server and client render the same initial state
   }, []);
 
   // Scroll to the next section when clicking the chevron
@@ -23,30 +39,11 @@ export function Hero() {
   return (
     <motion.section
       initial="hidden"
-      animate={isVisible ? "visible" : "hidden"}
+      animate="visible" // Always use "visible" to match server rendering
       variants={fadeIn}
       className="relative min-h-screen flex items-center justify-center pt-20"
     >
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 noise" />
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            variants={parallaxStar}
-            initial="initial"
-            animate="animate"
-            className="absolute w-1 h-1 bg-primary rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.5 + 0.2,
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-            }}
-          />
-        ))}
-      </div>
+    
 
       <div className="container mx-auto px-6 text-center relative z-10">
         <motion.h1
@@ -78,17 +75,18 @@ export function Hero() {
           </Button>
         </motion.div>
         
-        {/* Scroll indicator */}
+        {/* Scroll indicator - improved positioning and alignment */}
         <motion.div 
           variants={bounce}
           initial="hidden"
           animate="animate"
-          className="absolute bottom-10 left-1/2 transform -translate-x-1/2 cursor-pointer animate-all"
+          className="absolute left-1/2 transform -translate-x-1/2 cursor-pointer animate-all"
+          style={{ bottom: "5vh" }}
           onClick={handleScrollToDemo}
         >
-          <a href="#demo" className="flex flex-col items-center text-muted-foreground hover:text-primary transition-colors">
-            <span className="text-sm mb-2">Discover more</span>
-            <ChevronDown className="h-6 w-6" />
+          <a href="#demo" className="flex flex-col items-center gap-1 py-2 px-4 rounded-full hover:bg-secondary/20 transition-all">
+            <span className="text-sm font-medium">Discover more</span>
+            <ChevronDown className="h-5 w-5" />
           </a>
         </motion.div>
       </div>
