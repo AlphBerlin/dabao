@@ -11,42 +11,42 @@
   --card-foreground: 146 10% 15%;
   --popover: 0 0% 100%;
   --popover-foreground: 146 10% 15%;
-  
+
   /* Primary - Grab green */
   --primary: 142 76% 36%;
   --primary-foreground: 0 0% 100%;
-  
+
   /* Secondary - complementary shade */
   --secondary: 143 55% 95%;
   --secondary-foreground: 146 30% 20%;
-  
+
   /* Muted */
   --muted: 143 40% 92%;
   --muted-foreground: 146 10% 40%;
-  
+
   /* Accent */
   --accent: 150 60% 90%;
   --accent-foreground: 146 30% 20%;
-  
+
   /* Destructive */
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  
+
   /* Borders and inputs */
   --border: 143 30% 86%;
   --input: 143 30% 86%;
   --ring: 142 76% 36%;
-  
+
   /* Charts */
   --chart-1: 142 76% 36%;
   --chart-2: 160 70% 40%;
   --chart-3: 125 65% 45%;
   --chart-4: 170 60% 50%;
   --chart-5: 100 55% 55%;
-  
+
   /* Radius */
   --radius: 0.5rem;
-  
+
   /* Sidebar */
   --sidebar-background: 143 55% 97%;
   --sidebar-foreground: 146 15% 25%;
@@ -56,6 +56,7 @@
   --sidebar-accent-foreground: 146 30% 20%;
   --sidebar-border: 143 30% 86%;
   --sidebar-ring: 142 76% 36%;
+  --sidebar: hsl(0 0% 98%);
 }
 
 .dark {
@@ -66,39 +67,39 @@
   --card-foreground: 143 15% 95%;
   --popover: 146 20% 8%;
   --popover-foreground: 143 15% 95%;
-  
+
   /* Primary - Grab green */
   --primary: 142 70% 45%;
   --primary-foreground: 0 0% 100%;
-  
+
   /* Secondary */
   --secondary: 146 15% 18%;
   --secondary-foreground: 143 15% 95%;
-  
+
   /* Muted */
   --muted: 146 15% 18%;
   --muted-foreground: 143 10% 75%;
-  
+
   /* Accent */
   --accent: 146 15% 25%;
   --accent-foreground: 143 15% 95%;
-  
+
   /* Destructive */
   --destructive: 0 65% 35%;
   --destructive-foreground: 0 0% 98%;
-  
+
   /* Borders and inputs */
   --border: 146 15% 18%;
   --input: 146 15% 18%;
   --ring: 142 70% 45%;
-  
+
   /* Charts */
   --chart-1: 142 70% 45%;
   --chart-2: 160 65% 40%;
   --chart-3: 125 60% 35%;
   --chart-4: 170 55% 50%;
   --chart-5: 100 50% 45%;
-  
+
   /* Sidebar */
   --sidebar-background: 146 25% 12%;
   --sidebar-foreground: 143 15% 95%;
@@ -108,6 +109,7 @@
   --sidebar-accent-foreground: 143 15% 95%;
   --sidebar-border: 146 20% 20%;
   --sidebar-ring: 142 70% 45%;
+  --sidebar: hsl(240 5.9% 10%);
 }
 
 @theme {
@@ -299,12 +301,12 @@ section {
   body {
     font-family: Arial, Helvetica, sans-serif;
   }
-  
+
   /* Improved animation curve for all animated elements */
   .animate-all {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
   /* Scroll snap container for section-based scrolling */
   .snap-container {
     scroll-snap-type: y mandatory;
@@ -312,7 +314,7 @@ section {
     height: 100vh;
     scroll-behavior: smooth;
   }
-  
+
   .snap-section {
     scroll-snap-align: start;
     height: 100vh;
@@ -325,6 +327,26 @@ section {
 @layer base {
   * {
     @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
