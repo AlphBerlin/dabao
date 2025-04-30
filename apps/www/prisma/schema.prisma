@@ -1,0 +1,150 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["dabao", "dabao_tenant"]
+}
+
+// Shared enum for user roles across the control-plane and tenant apps
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+
+  @@schema("dabao")
+}
+
+// -----------------------------
+// Control-plane models (Organization & Admin)
+// -----------------------------
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  ownerId      String   @map("owner_id")
+  billingEmail String   @map("billing_email")
+  address      String?
+  logo         String?
+  settings     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  projects Project[]
+  users    UserOrganization[]
+
+  @@map("organizations")
+  @@schema("dabao")
+}
+
+model UserOrganization {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+  role           UserRole @default(MEMBER)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("user_organizations")
+  @@schema("dabao")
+}
+
+// -----------------------------
+// Tenant models (Project scope)
+// -----------------------------
+model Project {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  organizationId String   @map("organization_id")
+  active         Boolean  @default(true)
+  customDomain   String?  @unique @map("custom_domain")
+  settings       Json? // Free-form tenant config
+  theme          Json? // e.g. Tailwind theme overrides
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys      ApiKey[]
+  invites      ProjectInvite[]
+
+  @@map("projects")
+  @@schema("dabao_tenant")
+}
+
+model ProjectInvite {
+  id        String   @id @default(cuid())
+  email     String
+  projectId String   @map("project_id")
+  role      UserRole @default(MEMBER)
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relation
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([email, projectId])
+  @@map("project_invites")
+  @@schema("dabao_tenant")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  key        String    @unique
+  projectId  String    @map("project_id")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relation
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+  @@schema("dabao_tenant")
+}
+
+// -----------------------------
+// Authentication / Shared user
+// -----------------------------
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  supabaseUserId String?  @unique @map("supabase_user_id")
+  name           String?
+  image          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organizations UserOrganization[]
+
+  @@map("users")
+  @@schema("dabao")
+}
+
+// -----------------------------
+// Indexes & Additional Enhancements
+// -----------------------------
+// • Added @@schema to separate control-plane and tenant schemas
+// • Mapped all timestamp columns to snake_case for consistency
+// • Ensured cascade deletes on foreign keys
+// • Kept enums centralized for roles
+
+// Remember: in Postgres, after migrating:
+//   SET search_path = dabao, public;
+// you can enable RLS on `projects`, `project_invites`, etc., and use
+// `current_setting('jwt.claims.project_id')::uuid` in policies.
