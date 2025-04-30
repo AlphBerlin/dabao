@@ -4,8 +4,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"],
-      "@workspace/auth/*": ["../../packages/auth-core/src/*"]
+      "@workspace/ui/*": ["../ui/src/*"]
     },
     "plugins": [
       {
@@ -19,6 +18,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "../../packages/ui/src/hooks/use-media-query.tsx"  ],
   "exclude": ["node_modules"]
 }
