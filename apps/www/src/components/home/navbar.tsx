@@ -9,8 +9,6 @@ import Link from "next/link";
 import { fadeIn, slideIn } from "@/lib/animations";
 
 export function Navbar() {
-  const { xp, level } = useGamify();
-  const progress = (xp % 1000) / 10; // Convert to percentage
 
   return (
     <motion.header
@@ -33,10 +31,6 @@ export function Navbar() {
           </motion.div>
 
           <motion.div variants={slideIn} className="flex items-center gap-x-4">
-            <div className="hidden md:flex items-center gap-x-2 bg-secondary/50 px-3 py-1.5 rounded-full">
-              <span className="text-xs font-medium">Level {level}</span>
-              <Progress value={progress} className="w-20 h-2" />
-            </div>
             
             <Link href="/pricing">
               <Button variant="ghost" size="icon" className="relative">

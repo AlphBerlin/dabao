@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "6.7.0",
     "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
     "@workspace/auth": "workspace:*",
     "@workspace/ui": "workspace:*",
     "next": "15.3.1",
