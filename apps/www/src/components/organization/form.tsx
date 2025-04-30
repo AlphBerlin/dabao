@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
 import {
   Form,
   FormField,
@@ -21,7 +24,16 @@ import {
 import { Button } from '@workspace/ui/components/button';
 import { Switch } from '@workspace/ui/components/switch';
 import { createOrganization, CreateOrganizationData } from '@/lib/api';
-import { useToast } from '@workspace/ui/hooks/use-toast';
+
+// Define validation schema with Zod
+const organizationSchema = z.object({
+  name: z.string().min(2, { message: "Organization name must be at least 2 characters" }).max(100),
+  type: z.string().min(1, { message: "Please select an organization type" }),
+  plan: z.string().min(1, { message: "Please select a plan" }),
+  billingEmail: z.string().email({ message: "Please enter a valid email address" }),
+});
+
+type FormValues = z.infer<typeof organizationSchema>;
 
 interface OrganizationFormProps {
   typeOptions?: string[];
@@ -29,13 +41,6 @@ interface OrganizationFormProps {
   onSubmit?: (data: CreateOrganizationData) => void;
   showHelpText?: boolean;
 }
-
-type FormValues = {
-  name: string;
-  type: string;
-  plan: string;
-  billingEmail: string;
-};
 
 export const OrganizationForm: React.FC<OrganizationFormProps> = ({
   typeOptions = ['Personal', 'Team', 'Enterprise'],
@@ -49,10 +54,10 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
+    resolver: zodResolver(organizationSchema),
     defaultValues: {
       name: '',
       type: typeOptions[0],
@@ -69,27 +74,28 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     try {
       setIsSubmitting(true);
       
+      // Create a toast id for updating the toast status
+      const toastId = toast.loading('Creating organization...');
+      
       // Use the provided onSubmit handler if available, otherwise use the default API
       if (onSubmit) {
-        onSubmit(data);
+        await onSubmit(data);
+        toast.success('Organization created successfully', { id: toastId });
       } else {
         const organization = await createOrganization(data);
         
-        toast({
-          title: 'Organization created',
-          description: `${organization?.name} has been created successfully.`,
-        });
+        if (!organization) {
+          throw new Error('Failed to create organization');
+        }
+        
+        toast.success(`${organization.name} has been created successfully`, { id: toastId });
         
         // Redirect to the dashboard
         router.push('/dashboard');
       }
     } catch (error) {
       console.error('Error creating organization:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create organization',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to create organization');
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +123,6 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           <FormField
             control={form.control}
             name="name"
-            rules={{ required: 'Organization name is required' }}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
@@ -133,13 +138,6 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
           <FormField
             control={form.control}
             name="billingEmail"
-            rules={{ 
-              required: 'Billing email is required',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address',
-              }
-            }}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Billing Email</FormLabel>
@@ -172,6 +170,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                     </SelectContent>
                   </Select>
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -197,6 +196,7 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                     </SelectContent>
                   </Select>
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />

@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bell, Search, Menu, X, Moon, Sun, LogOut } from "lucide-react"
+import { Bell, Search, Menu, X, Moon, Sun, LogOut, ChevronDown, Plus, Building } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "next-themes"
 import { useAuth } from "@workspace/auth/contexts/auth-context"
+import { useOrganizationContext } from "@/contexts/organization-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,12 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const { user, loading, signOut } = useAuth()
+  const { 
+    organizations, 
+    currentOrganization, 
+    setCurrentOrganization, 
+    isLoading: isLoadingOrgs 
+  } = useOrganizationContext()
 
   const unreadNotifications = mockNotifications.filter((notification) => !notification.read)
 
@@ -76,7 +83,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and branding */}
-          <div className="flex-shrink-0 flex items-center">
+          <div className="flex-shrink-0 flex items-center space-x-4">
             <Link href="/" className="flex items-center">
               <div className="bg-primary text-white p-2 rounded-lg mr-2">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -87,6 +94,44 @@ export function Header() {
               </div>
               <span className="font-semibold text-xl text-neutral-900 dark:text-white">Daboa Loyalty</span>
             </Link>
+            
+            {/* Organization Selector */}
+            {user && !isLoadingOrgs && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-4 flex items-center gap-2">
+                    {currentOrganization?.name || "Select Organization"}
+                    <ChevronDown size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-60">
+                  <DropdownMenuLabel>Switch Organization</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {organizations.length > 0 ? (
+                    organizations.map((org) => (
+                      <DropdownMenuItem 
+                        key={org.id}
+                        onClick={() => setCurrentOrganization(org)}
+                        className={currentOrganization?.id === org.id ? "bg-neutral-100 dark:bg-neutral-800" : ""}
+                      >
+                        {org.name}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>No organizations found</DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="cursor-pointer flex items-center gap-2">
+                    <Link href="/create-organization">
+                      <Plus size={16} />
+                      <span>New organization</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Desktop Nav */}
@@ -100,7 +145,7 @@ export function Header() {
                   Dashboard
                 </Link>
                 <Link
-                  href="/projects"
+                  href="/dashboard/projects"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
                 >
                   Projects
@@ -159,6 +204,14 @@ export function Header() {
               <>
                 <Button variant="ghost" size="icon" className="text-neutral-500 dark:text-neutral-400" aria-label="Search">
                   <Search size={20} />
+                </Button>
+
+                {/* Create New Project Button */}
+                <Button size="sm" asChild className="flex items-center gap-2">
+                  <Link href="/dashboard/projects/new">
+                    <Plus size={16} />
+                    <span>New Project</span>
+                  </Link>
                 </Button>
 
                 {/* Notifications */}
@@ -245,14 +298,15 @@ export function Header() {
                 </div>
 
                 {/* User Profile */}
-                <div className="relative">
+                <div className="relative flex items-center justify-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="p-0 rounded-full">
-                        <Avatar>
+                      <Button variant="ghost" className="p-0 h-8 w-8 rounded-full overflow-hidden">
+                        <Avatar className="h-8 w-8">
                           <AvatarImage
                             src={user.user_metadata?.avatar_url || "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
                             alt="User Profile"
+                            className="h-full w-full object-cover"
                           />
                           <AvatarFallback>{user.email?.substring(0, 2).toUpperCase() || "US"}</AvatarFallback>
                         </Avatar>
@@ -318,36 +372,79 @@ export function Header() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {user ? (
                 <>
-                  <Link
-                    href="/dashboard"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/projects"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
-                    Projects
-                  </Link>
-                  <Link
-                    href="/billing"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
-                    Billing
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 dark:text-red-400 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                  >
-                    Sign out
-                  </button>
+                  {/* Organization Selector for Mobile */}
+                  {!isLoadingOrgs && (
+                    <div className="px-3 py-2 mb-2">
+                      <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Current Organization</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-medium text-neutral-900 dark:text-white">
+                          {currentOrganization?.name || "Select Organization"}
+                        </span>
+                        <Link
+                          href="/create-organization"
+                          className="text-primary text-sm flex items-center gap-1"
+                        >
+                          <Plus size={14} />
+                          New
+                        </Link>
+                      </div>
+                      
+                      {organizations.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {organizations.map((org) => (
+                            <button
+                              key={org.id}
+                              onClick={() => {
+                                setCurrentOrganization(org);
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className={`flex items-center w-full text-left px-2 py-1.5 rounded-md text-sm font-medium ${
+                                currentOrganization?.id === org.id 
+                                ? "bg-neutral-100 dark:bg-neutral-800 text-primary" 
+                                : "text-neutral-700 dark:text-neutral-300"
+                              }`}
+                            >
+                              <Building size={14} className="mr-2" />
+                              {org.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-2 border-t border-neutral-200 dark:border-neutral-800 pt-2">
+                    <Link
+                      href="/dashboard"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/dashboard/projects"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      Projects
+                    </Link>
+                    <Link
+                      href="/billing"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      Billing
+                    </Link>
+                    <Link
+                      href="/settings"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      Settings
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 dark:text-red-400 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      Sign out
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>

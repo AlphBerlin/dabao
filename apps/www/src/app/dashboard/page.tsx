@@ -188,7 +188,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Your Projects</h2>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/projects" className="flex items-center">
+                <Link href="/dashboard/projects" className="flex items-center">
                   View All
                   <ChevronRight size={16} className="ml-1" />
                 </Link>
