@@ -13,7 +13,6 @@
     "db:push": "prisma db push --skip-generate",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "dev": "tsup --watch",
     "format": "prisma format",
     "lint": "eslint .",
     "prisma:generate": "prisma generate"
