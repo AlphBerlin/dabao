@@ -4,48 +4,112 @@ import { motion } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { Progress } from "@workspace/ui/components/progress";
 import { useGamify } from "@/hooks/use-gamify";
-import { ApertureIcon as TreasureIcon } from "lucide-react";
+import { ApertureIcon as TreasureIcon, Award, Star } from "lucide-react";
 import Link from "next/link";
 import { fadeIn, slideIn } from "@/lib/animations";
+import { useAuth } from "@workspace/auth/contexts/auth-context";
+import { useEffect, useState } from "react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
 
 export function Navbar() {
+  const { user } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+  const { xp, level, progress, badges } = useGamify();
+
+  // Handle scroll event for navbar transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (sectionId: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <motion.header
       initial="hidden"
       animate="visible"
       variants={fadeIn}
-      className="fixed top-0 left-0 right-0 z-50"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? "backdrop-blur-lg bg-background/70" : "bg-transparent"
+      }`}
     >
-      <nav className="glass mx-auto px-6 py-4">
+      <nav className={`mx-auto px-6 py-4 ${scrolled ? "shadow-sm" : ""}`}>
         <div className="container mx-auto flex items-center justify-between">
           <motion.div variants={slideIn} className="flex items-center gap-x-8">
-            <Link href="/" className="text-2xl font-bold text-gradient">
+            <Link href="/" className="text-2xl font-bold text-gradient glow-effect">
               Dabao
             </Link>
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/#pricing" className="text-sm text-muted-foreground hover:text-primary transition">
+              <a 
+                href="#hero" 
+                onClick={scrollToSection("hero")}
+                className="text-sm text-muted-foreground hover:text-primary transition animate-all"
+              >
+                Home
+              </a>
+              <a 
+                href="#demo" 
+                onClick={scrollToSection("demo")}
+                className="text-sm text-muted-foreground hover:text-primary transition animate-all"
+              >
+                Features
+              </a>
+              <a 
+                href="#testimonials" 
+                onClick={scrollToSection("testimonials")}
+                className="text-sm text-muted-foreground hover:text-primary transition animate-all"
+              >
+                Testimonials
+              </a>
+              <a 
+                href="#pricing" 
+                onClick={scrollToSection("pricing")}
+                className="text-sm text-muted-foreground hover:text-primary transition animate-all"
+              >
                 Pricing
-              </Link>
+              </a>
             </div>
           </motion.div>
 
           <motion.div variants={slideIn} className="flex items-center gap-x-4">
-            
-            <Link href="/pricing">
-              <Button variant="ghost" size="icon" className="relative">
-                <TreasureIcon className="w-5 h-5 text-primary animate-pulse" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full" />
-              </Button>
-            </Link>
+            {/* Gamification UI */}
+      
+            {user ? (
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm" className="glow-effect">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="sm" className="animate-all">
+                    Login
+                  </Button>
+                </Link>
 
-            <Link href="/login">
-              <Button variant="ghost" size="sm">Login</Button>
-            </Link>
-            
-            <Link href="/signup">
-              <Button size="sm">Get Started →</Button>
-            </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm" className="glow-effect animate-all">
+                    Get Started →
+                  </Button>
+                </Link>
+              </>
+            )}
           </motion.div>
         </div>
       </nav>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import '@workspace/ui/globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
-import { AuthProvider } from '@/lib/auth-provider'
+import { AuthProvider } from '@workspace/auth/contexts/auth-context'
 
 export const metadata: Metadata = {
   title: 'Dabao Studio',
