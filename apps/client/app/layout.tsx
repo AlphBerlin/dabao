@@ -1,33 +1,30 @@
-// import type React from "react"
-import type { Metadata } from "next"
-import { Poppins } from "next/font/google"
-import './globals.css'
-// import "@workspace/ui/globals.css"
-import { ThemeProvider } from "@workspace/ui/components/theme-provider"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "@/lib/theme-provider";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
-})
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Daboa Loyalty",
-  description: "Gamified loyalty program",
-}
+  title: {
+    template: "%s | Loyalty Rewards",
+    default: "Loyalty Rewards",
+  },
+  description: "A multi-tenant loyalty and rewards platform",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} font-sans`}>
-        <ThemeProvider attribute="class" defaultTheme="light">
+      <body className={`${inter.variable} font-sans`}>
+        <ThemeProvider>
           {children}
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

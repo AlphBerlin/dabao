@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization/Admin models (used by www and studio apps)
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  ownerId       String    @map("owner_id")
+  billingEmail  String    @map("billing_email")
+  address       String?
+  logo          String?
+  settings      Json?
+  
+  // Relationships
+  projects      Project[]
+  users         UserOrganization[]
+
+  @@map("organizations")
+}
+
+model UserOrganization {
+  id            String       @id @default(cuid())
+  userId        String       @map("user_id")
+  organizationId String      @map("organization_id")
+  role          UserRole     @default(MEMBER)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  
+  // Relationships
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("user_organizations")
+}
+
+// Project models (tenant configuration)
+model Project {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  organizationId String   @map("organization_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  active        Boolean   @default(true)
+  customDomain  String?   @unique @map("custom_domain")
+  settings      Json?
+  theme         Json?     // Tailwind theme configuration
+  
+  // Relationships
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys       ApiKey[]
+  invites       ProjectInvite[]
+
+  @@map("projects")
+}
+
+model ProjectInvite {
+  id          String    @id @default(cuid())
+  email       String
+  projectId   String    @map("project_id")
+  role        UserRole  @default(MEMBER)
+  token       String    @unique
+  expires     DateTime
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // Relationships
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([email, projectId])
+  @@map("project_invites")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  key         String    @unique
+  projectId   String    @map("project_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  
+  // Relationships
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// User Authentication model (shared)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  supabaseUserId String?  @unique @map("supabase_user_id")
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relationships
+  organizations UserOrganization[]
+
+  @@map("users")
+}
+
+// Enum definitions
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}

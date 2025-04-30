@@ -1,0 +1,114 @@
+_format_version: "2.1"
+_transform: true
+
+###
+### Consumers / Users
+###
+consumers:
+  - username: DASHBOARD
+  - username: anon
+    keyauth_credentials:
+      - key: $SUPABASE_ANON_KEY
+  - username: service_role
+    keyauth_credentials:
+      - key: $SUPABASE_SERVICE_KEY
+
+
+###
+### Access Control List
+###
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: admin
+services:
+  # WWW service (public landing pages + dashboard)
+  - name: www-service
+    url: http://www:3000
+    routes:
+      - name: www-route
+        paths:
+          - /
+          - /
+        strip_path: false
+        preserve_host: true
+
+  # Studio service (project console)
+  - name: studio-service
+    url: http://studio:3000
+    routes:
+      - name: studio-route
+        paths:
+          - /dashboard/project
+        strip_path: true
+        preserve_host: true
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+
+  # Client service (tenant-specific dashboards)
+  - name: client-service
+    url: http://client:3000
+    routes:
+      - name: client-route
+        paths:
+          - /app
+        strip_path: true
+        preserve_host: true
+    plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          claims_to_verify:
+            - exp
+          key_claim_name: kid
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "X-Tenant-ID:${tenant_id}"
+
+
+
+plugins:
+  # Global rate limiting
+  - name: rate-limiting
+    config:
+      minute: 60
+      policy: local
+
+  # CORS configuration
+  - name: cors
+    config:
+      origins:
+        - http://localhost:3000
+        - http://localhost:3001
+        - http://localhost:3002
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        - PATCH
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - Origin
+        - X-Tenant-ID
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  # Request ID plugin
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
