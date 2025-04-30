@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
   // Create Supabase client
   const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req: request, res });
   
   // Determine the tenant slug from hostname or path
   const hostname = request.headers.get('host') || '';
@@ -33,9 +32,6 @@ export async function middleware(request: NextRequest) {
     return res;
   }
   
-  // Get the current user session
-  const { data: { session } } = await supabase.auth.getSession();
-  
   // No project slug detected, redirect to main site
   if (!projectSlug) {
     return NextResponse.redirect(new URL('/', request.url));
@@ -44,14 +40,7 @@ export async function middleware(request: NextRequest) {
   // Add tenant information to headers for the API routes to access
   res.headers.set('x-tenant-id', projectSlug);
   
-  // Check if user is authenticated for protected routes
-  if (!session && !request.nextUrl.pathname.startsWith(`/${projectSlug}/auth`)) {
-    // Redirect to login page with return URL
-    const redirectUrl = new URL(`/${projectSlug}/auth/login`, request.url);
-    redirectUrl.searchParams.set('returnUrl', request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-  
+  // return await updateSession(request);
   return res;
 }
 

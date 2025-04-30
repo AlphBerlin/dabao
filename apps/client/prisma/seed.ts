@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, UserRole } from 'cd';
 import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
