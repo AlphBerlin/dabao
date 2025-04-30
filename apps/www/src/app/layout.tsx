@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '@workspace/ui/globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@workspace/auth/contexts/auth-context'
+import { TooltipProvider } from '@workspace/ui/components/tooltip'
 
 export const metadata: Metadata = {
   title: 'Dabao Studio',
@@ -17,9 +18,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
