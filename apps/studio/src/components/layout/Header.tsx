@@ -79,7 +79,7 @@ export function Header() {
               Dashboard
             </Link>
             <Link
-              href="/projects"
+              href="/dashboard/projects"
               className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
             >
               Projects
@@ -245,7 +245,7 @@ export function Header() {
                 Dashboard
               </Link>
               <Link
-                href="/projects"
+                href="/dashboard/projects"
                 className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
               >
                 Projects

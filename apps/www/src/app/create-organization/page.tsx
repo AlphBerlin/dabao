@@ -1,30 +1,69 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useOrganization } from "@/lib/hooks";
+import { useRouter } from "next/navigation";
+import { useOrganizationContext } from "@/contexts/organization-context";
 import { OrganizationForm } from "@/components/organization/form";
+import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import { CreateOrganizationData } from "@/lib/api";
 
 export default function CreateOrganizationPage() {
   const [isClient, setIsClient] = useState(false);
-  const { isLoading, hasOrganizations, error } = useOrganization({
-    redirectIfFound: true,
-  });
+  const router = useRouter();
+  const { isLoading, organizations, error, refreshOrganizations } = useOrganizationContext();
 
   // Prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const handleFormSubmit = async (data: CreateOrganizationData) => {
+    try {
+      // The form component will handle the API call,
+      // we just need to refresh the organizations list here
+      const refreshToastId = toast.loading('Refreshing organizations...');
+      await refreshOrganizations();
+      toast.success('Organization list updated', { id: refreshToastId });
+      
+      // Short delay before redirecting to ensure context is updated
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
+    } catch (error) {
+      console.error('Error refreshing organizations:', error);
+      toast.error('Failed to refresh organization list');
+    }
+  };
+
   if (!isClient) {
     return null;
   }
 
+  const isFirstOrganization = organizations.length === 0;
+
   return (
     <div className="container mx-auto py-10">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">Welcome to Dabao</h1>
+        {!isFirstOrganization && (
+          <div className="mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </Button>
+          </div>
+        )}
+
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          {isFirstOrganization ? "Welcome to Dabao" : "Create a New Organization"}
+        </h1>
         
         {isLoading ? (
           <Card>
@@ -52,9 +91,11 @@ export default function CreateOrganizationPage() {
         ) : (
           <>
             <p className="text-center text-muted-foreground mb-8">
-              To get started, please create your first organization.
+              {isFirstOrganization 
+                ? "To get started, please create your first organization." 
+                : "Create a new organization to manage different teams or projects."}
             </p>
-            <OrganizationForm />
+            <OrganizationForm onSubmit={handleFormSubmit} />
           </>
         )}
       </div>

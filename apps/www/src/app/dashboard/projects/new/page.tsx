@@ -29,7 +29,7 @@ export default function NewProjectPage() {
     e.preventDefault()
     // In a real app, you would create the project here
     console.log("Creating project:", formData)
-    router.push("/projects")
+    router.push("/dashboard/projects")
   }
 
   const steps = [
@@ -115,7 +115,7 @@ export default function NewProjectPage() {
             </form>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => router.push("/projects")}>
+            <Button variant="outline" onClick={() => router.push("/dashboard/projects")}>
               Cancel
             </Button>
             <Button onClick={handleSubmit}>Continue</Button>
