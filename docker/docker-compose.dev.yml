@@ -1,39 +1,69 @@
 version: '3.8'
 
 services:
-  # Kong API Gateway
+  # Kong API Gateway (DB-less, with Manager GUI enabled)
   kong:
     container_name: dabao-kong
     image: kong:3.9.0
     restart: unless-stopped
-    ports:
-      - ${KONG_HTTP_PORT}:8000/tcp
-      - ${KONG_HTTPS_PORT}:8443/tcp
-    volumes:
-      # Mount the kong.yml configuration directly
-      - ./kong/config/kong.yml:/home/kong/kong.yml:ro,z
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-      # https://github.com/supabase/cli/issues/14
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,rate-limiting,correlation-id,jwt
-      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-      KONG_LOG_LEVEL: debug  # Add debug logging
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
-      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # Use the standard Kong start command
-    command: /docker-entrypoint.sh kong docker-start
 
-  # Mail service for development (catches all outgoing emails)
+    ports:
+      # Public proxy ports
+      - "${KONG_HTTP_PORT:-8000}:8000"   # HTTP
+      - "${KONG_HTTPS_PORT:-8443}:8443" # HTTPS
+      # Admin API & Kong Manager GUI
+      - "8001:8001"                      # Admin API
+      - "8002:8002"                      # Manager GUI
+
+    volumes:
+      # Mount your declarative config
+      - ./kong/config/kong.yml:/etc/kong/kong.yml:ro
+
+    environment:
+      # DB-less declarative mode
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: "/etc/kong/kong.yml"
+
+      # DNS ordering tweak
+      KONG_DNS_ORDER: "LAST,A,CNAME"
+
+      # Enabled plugins
+      KONG_PLUGINS: "request-transformer,cors,key-auth,acl,basic-auth,rate-limiting,correlation-id,jwt"
+
+      # NGINX tuning (optional)
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: "160k"
+      KONG_NGINX_PROXY_PROXY_BUFFERS: "64 160k"
+
+      # Logging
+      KONG_LOG_LEVEL: "debug"
+
+      # Your custom envs (passed through to plugins or your upstream)
+      SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY}"
+      SUPABASE_SERVICE_KEY: "${SERVICE_ROLE_KEY}"
+      DASHBOARD_USERNAME: "${DASHBOARD_USERNAME}"
+      DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
+
+      # Admin API & Manager GUI listeners
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_MANAGER_GUI_LISTEN: "0.0.0.0:8002"
+
+      # Proxy listeners
+      KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+
+      # Turn on the Enterprise Manager GUI
+      KONG_MANAGER_GUI: "on"
+
+    command: ["/docker-entrypoint.sh", "kong", "docker-start"]
+    networks:
+      - dabao-network
+
+  # Mailcatcher for dev (SMTP + web UI)
   mail:
     image: mailhog/mailhog
+    restart: unless-stopped
     ports:
       - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
+      - "8025:8025"  # HTTP UI
     networks:
       - dabao-network
 

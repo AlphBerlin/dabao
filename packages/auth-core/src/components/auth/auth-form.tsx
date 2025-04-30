@@ -7,8 +7,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@workspace/ui/lib/utils"
 import { ProgressBadge } from "./progress-badge"
 import { ConfettiTrigger } from "./confetti-trigger"
-import { Sun, Moon } from "lucide-react"
-import { useTheme } from "next-themes"
 
 type AuthFormProps = {
   children: React.ReactNode
@@ -31,7 +29,6 @@ export function AuthForm({
   onConfettiComplete,
   className,
 }: AuthFormProps) {
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   // Prevent hydration mismatch
@@ -39,9 +36,6 @@ export function AuthForm({
     setMounted(true)
   }, [])
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark")
-  }
 
   return (
     <motion.div
@@ -50,17 +44,6 @@ export function AuthForm({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      {/* Theme toggle */}
-      {mounted && (
-        <motion.button
-          className="absolute top-4 right-4 p-2 rounded-full bg-secondary/20 text-foreground"
-          onClick={toggleTheme}
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-        </motion.button>
-      )}
 
       {/* Progress indicator */}
       {currentStep && totalSteps > 1 && (

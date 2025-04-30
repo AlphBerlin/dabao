@@ -1,10 +1,11 @@
 // Dynamic auth page that handles different modes (login, signup, forgot-password)
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 
 // Define valid auth modes
 const validModes = ["login", "signup", "forgot-password"];
 
-export default async function AuthPage({ params }: { params: { mode: string } }) {
+export default async function AuthPage({ params, searchParams }: { params: { mode: string }, searchParams: any }) {
   const { mode } = params;
   
   // Validate the mode parameter
@@ -26,6 +27,12 @@ export default async function AuthPage({ params }: { params: { mode: string } })
       return <SignupPage />;
     }
     
+    // For forgot-password mode
+    if (mode === "auth-code-error") {
+      const ForgotPasswordPage = (await import("@workspace/auth/app/auth/auth-code-error/page")).default;
+      return <ForgotPasswordPage />;
+    }
+  
     // For forgot-password mode
     if (mode === "forgot-password") {
       const ForgotPasswordPage = (await import("@workspace/auth/app/auth/forgot-password/page")).default;
