@@ -1,0 +1,25 @@
+# Database Development Dockerfile
+FROM node:18-alpine AS base
+
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Install development dependencies
+COPY package.json pnpm-lock.yaml* ./
+
+# Install all dependencies
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --no-frozen-lockfile
+
+# Copy the rest of the application
+COPY . .
+
+# Generate Prisma client
+RUN pnpm prisma generate
+
+# Expose Prisma Studio port
+EXPOSE 5555
+
+# Default command is to run migrations, but can be overridden in docker-compose
+CMD ["pnpm", "prisma", "migrate", "dev"]

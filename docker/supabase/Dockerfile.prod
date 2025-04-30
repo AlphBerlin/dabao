@@ -1,0 +1,22 @@
+# Supabase - Production Dockerfile
+FROM supabase/postgres:15.1.0.73
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-contrib \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy initialization scripts
+COPY ./init/ /docker-entrypoint-initdb.d/
+
+# Set environment variables from secrets (to be provided at runtime)
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+ENV POSTGRES_USER=${POSTGRES_USER}
+ENV POSTGRES_DB=${POSTGRES_DB}
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Healthcheck to verify PostgreSQL is running properly
+HEALTHCHECK --interval=5s --timeout=5s --retries=5 \
+    CMD pg_isready -U postgres || exit 1
