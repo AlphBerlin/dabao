@@ -3,7 +3,7 @@ _transform: true
 
 # update the host file for locals
 services:
-  - name: dashboard-service
+  - name: studio-service
     url: http://dabao-app-local:3001
 
   - name: client-service
@@ -13,44 +13,35 @@ services:
     url: http://dabao-app-local:3000
 
 routes:
-  # 1) /dashboard/project/*
-  - name: dashboard-route
-    service: dashboard-service
-    protocols:
-      - http
-      - https
-    paths:
-      - /dashboard/project
+  # 1) /dashboard/project/* → http://localhost:3001
+  - name: studio-route
+    service: studio-service
+    protocols: [ http, https ]
+    paths: [ /dashboard/project/ ]
     strip_path: false
+    preserve_host: true
 
-  # 2a) Host-based: *.domain.com
+  # 2a) Host-based: *.domain.com → http://localhost:3002
   - name: client-host-route
     service: client-service
-    protocols:
-      - http
-      - https
-    hosts:
-      - '*.dabao.app'
+    protocols: [ http, https ]
+    hosts: [ 'client.dabao-app-local' ]
     strip_path: false
+    preserve_host: true
 
-  # 2b) Header-based: any request that has X-client-id
-  # Kong will only do exact-value matching here; to match 'any' value we use a catch-all regex.
+  # 2b) Header-based: X-client-id exists → http://localhost:3002
   - name: client-header-route
     service: client-service
-    protocols:
-      - http
-      - https
+    protocols: [ http, https ]
     headers:
-      X-client-id:
-        - ".+"  
+      X-client-id: [ "*" ]
     strip_path: false
+    preserve_host: true
 
-  # 3) everything else
+  # 3) All other traffic → http://localhost:3000
   - name: default-route
     service: default-service
-    protocols:
-      - http
-      - https
-    paths:
-      - /  
+    protocols: [ http, https ]
+    paths: [ / ]
     strip_path: false
+    preserve_host: true
