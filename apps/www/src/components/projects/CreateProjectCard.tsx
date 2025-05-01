@@ -1,31 +1,26 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { Plus } from "lucide-react"
-import { Card } from "@workspace/ui/components/card"
+import { Plus } from "lucide-react";
+import { Card } from "@workspace/ui/components/card";
+import Link from "next/link";
 
 export function CreateProjectCard() {
-  const router = useRouter()
-
   return (
-    <Card
-      className="h-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer transition-colors"
-      onClick={() => router.push("/dashboard/projects/new")}
-    >
-      <motion.div
-        whileHover={{ y: -8 }}
-        whileTap={{ scale: 0.97 }}
-        className="flex flex-col items-center justify-center p-6 h-full"
+    <Card className="flex h-full min-h-[220px] flex-col items-center justify-center border-2 border-dashed border-neutral-200 bg-transparent p-8 text-center hover:border-primary-400 hover:bg-primary-50 dark:border-neutral-800 dark:hover:border-primary-800 dark:hover:bg-primary-950/20">
+      <Link
+        href="/dashboard/projects/new"
+        className="flex h-full w-full flex-col items-center justify-center"
       >
-        <div className="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
-          <Plus size={24} className="text-primary-600 dark:text-primary-400" />
+        <div className="rounded-full bg-neutral-100 p-3 dark:bg-neutral-800">
+          <Plus className="h-6 w-6 text-neutral-500 dark:text-neutral-400" />
         </div>
-        <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">Create New Project</h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
-          Start a new loyalty program for your brand
+        <h3 className="mt-4 text-lg font-medium text-neutral-900 dark:text-white">
+          Create a new project
+        </h3>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          Set up a new loyalty program for your business
         </p>
-      </motion.div>
+      </Link>
     </Card>
-  )
+  );
 }

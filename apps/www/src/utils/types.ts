@@ -1,13 +1,4 @@
-export interface Project {
-  id: string
-  name: string
-  description: string
-  status: "active" | "pending" | "completed" | "archived"
-  progress: number
-  teamSize: number
-  createdAt: string
-  updatedAt: string
-}
+export {type Project} from "@prisma/client"
 
 export interface Achievement {
   id: string
@@ -20,11 +11,3 @@ export interface Achievement {
   completedAt?: string
 }
 
-export interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "manager" | "user"
-  avatar?: string
-  createdAt: string
-}

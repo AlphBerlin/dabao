@@ -1,83 +1,169 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Organization, getUserOrganizations } from '@/lib/api';
-import { toast } from 'sonner';
+"use client";
 
-interface OrganizationContextType {
-  organizations: Organization[];
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
+import { useRouter } from "next/navigation";
+
+// Organization interface
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  role?: string;
+}
+
+// Organization context interface
+interface OrganizationContextProps {
   currentOrganization: Organization | null;
+  organizations: Organization[];
   isLoading: boolean;
   error: string | null;
-  setCurrentOrganization: (org: Organization) => void;
+  setCurrentOrganization: (organization: Organization) => void;
   refreshOrganizations: () => Promise<void>;
 }
 
-const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
+// Create the context
+const OrganizationContext = createContext<OrganizationContextProps | undefined>(
+  undefined
+);
 
-export function OrganizationProvider({ children }: { children: ReactNode }) {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Provider props interface
+interface OrganizationProviderProps {
+  children: React.ReactNode;
+  initialOrganization?: Organization | null;
+  initialOrganizations?: Organization[];
+}
+
+/**
+ * Organization context provider
+ */
+export function OrganizationProvider({
+  children,
+  initialOrganization = null,
+  initialOrganizations = [],
+}: OrganizationProviderProps) {
+  const [currentOrganization, setCurrentOrgState] = useState<Organization | null>(
+    initialOrganization
+  );
+  const [organizations, setOrganizations] = useState<Organization[]>(
+    initialOrganizations
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  const refreshOrganizations = async () => {
+  // Fetch organizations from the API
+  const fetchOrganizations = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Add a cache-busting query parameter to avoid browser caching
-      const orgs = await getUserOrganizations();
-      
-      if (orgs.length === 0) {
-        console.log('No organizations found');
-      } else {
-        console.log(`Found ${orgs.length} organizations`);
+      const response = await fetch("/api/user/organizations", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch organizations: ${response.status}`);
       }
+
+      const data = await response.json();
+      setOrganizations(data);
       
-      setOrganizations(orgs);
-      
-      // Set current organization to the first one if not already set
-      // or if the current organization is not in the list anymore
-      if (orgs.length > 0) {
-        if (!currentOrganization || !orgs.find(org => org.id === currentOrganization.id)) {
-          const savedOrgId = localStorage.getItem('currentOrganizationId');
-          const savedOrg = savedOrgId ? orgs.find(org => org.id === savedOrgId) : null;
-          setCurrentOrganization(savedOrg || orgs[0]);
-        }
-      } else {
-        // If no organizations, reset current organization
-        setCurrentOrganization(null);
+      // If no current org is set but we have orgs, set the first one
+      if (!currentOrganization && data.length > 0) {
+        setCurrentOrgState(data[0]);
+        await updateOrgIdCookie(data[0].id);
       }
-      
-      return orgs;
+
+      return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch organizations';
-      setError(errorMessage);
-      console.error('Error fetching organizations:', err);
-      toast.error(`Error loading organizations: ${errorMessage}`);
-      throw err;
+      setError(err instanceof Error ? err.message : "Failed to fetch organizations");
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSetCurrentOrganization = (org: Organization) => {
-    setCurrentOrganization(org);
-    localStorage.setItem('currentOrganizationId', org.id);
-    toast.success(`Switched to ${org.name}`);
+  // Update org ID cookie and headers
+  const updateOrgIdCookie = async (orgId: string) => {
+    // Set the cookie
+    setCookie("orgId", orgId, { path: "/" });
+    
+    // Refresh the router to ensure server components get updated context
+    router.refresh();
+    
+    // Also update API context for any future API calls
+    try {
+      const response = await fetch("/api/user/context", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ organizationId: orgId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update organization context: ${response.status}`);
+      }
+    } catch (err) {
+      console.error("Error updating organization context:", err);
+    }
   };
 
+  // Handle organization change
+  const setCurrentOrganization = async (org: Organization) => {
+    setCurrentOrgState(org);
+    await updateOrgIdCookie(org.id);
+  };
+
+  // Load organizations on mount
   useEffect(() => {
-    refreshOrganizations();
+    const initializeContext = async () => {
+      // If we have initial organizations but no current org, try to get from cookie
+      if (organizations.length > 0 && !currentOrganization) {
+        const orgIdFromCookie = await getCookie("orgId");
+        
+        if (orgIdFromCookie) {
+          const matchingOrg = organizations.find(org => org.id === orgIdFromCookie);
+          if (matchingOrg) {
+            setCurrentOrgState(matchingOrg);
+            return;
+          }
+        }
+        
+        // If no match or no cookie, set the first org as default
+        setCurrentOrgState(organizations[0]);
+        await updateOrgIdCookie(organizations[0].id);
+        return;
+      }
+      
+      // If we don't have organizations yet, fetch them
+      if (organizations.length === 0) {
+        await fetchOrganizations();
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    initializeContext();
   }, []);
+
+  // Provide refresh function to force update of organizations
+  const refreshOrganizations = async () => {
+    return fetchOrganizations();
+  };
 
   return (
     <OrganizationContext.Provider
       value={{
-        organizations,
         currentOrganization,
+        organizations,
         isLoading,
         error,
-        setCurrentOrganization: handleSetCurrentOrganization,
+        setCurrentOrganization,
         refreshOrganizations,
       }}
     >
@@ -86,10 +172,17 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook to use the organization context
+ */
 export function useOrganizationContext() {
   const context = useContext(OrganizationContext);
+  
   if (context === undefined) {
-    throw new Error('useOrganizationContext must be used within an OrganizationProvider');
+    throw new Error(
+      "useOrganizationContext must be used within an OrganizationProvider"
+    );
   }
+  
   return context;
 }

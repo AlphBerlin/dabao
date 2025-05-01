@@ -94,6 +94,53 @@ export async function middleware(request: NextRequest) {
         
         return redirectResponse;
       }
+      
+      // Handle organization ID propagation
+      // Get organization ID from the header or cookie
+      let orgId = request.headers.get('x-org-id') || request.cookies.get('orgId')?.value;
+      
+      // If no organization ID is provided but the user has organizations, use the first one
+      if (!orgId && organizations.length > 0) {
+        orgId = organizations[0].id;
+      }
+      
+      // Create a new response that we'll modify with the organization ID
+      const response1 = NextResponse.next();
+      
+      // Add the organization ID as a cookie if it's not already there or different
+      const currentOrgIdCookie = request.cookies.get('orgId')?.value;
+      if (orgId && (!currentOrgIdCookie || currentOrgIdCookie !== orgId)) {
+        response1.cookies.set('orgId', orgId, {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+        });
+      }
+      
+      // Clone the response from Supabase but add our organization header
+      const finalResponse = NextResponse.next({
+        request: {
+          headers: request.headers,
+        },
+      });
+      
+      // Add the x-org-id header to outgoing requests
+      if (orgId) {
+        finalResponse.headers.set('x-org-id', orgId);
+      }
+      
+      // Copy all cookies from Supabase response
+      supabaseResponse.cookies.getAll().forEach(cookie => {
+        finalResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
+      
+      // Copy any cookies we set in our response
+      response1.cookies.getAll().forEach(cookie => {
+        finalResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
+      
+      return finalResponse;
     } catch (error) {
       console.error('Error in organization middleware:', error);
       // On error, let them proceed but the client-side check will handle redirection

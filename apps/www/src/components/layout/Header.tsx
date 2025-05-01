@@ -10,6 +10,7 @@ import { Button } from "@workspace/ui/components/button"
 import { useTheme } from "next-themes"
 import { useAuth } from "@workspace/auth/contexts/auth-context"
 import { useOrganizationContext } from "@/contexts/organization-context"
+import { OrganizationSwitcher } from "@/components/organization-switcher"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,12 +61,7 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const { user, loading, signOut } = useAuth()
-  const { 
-    organizations, 
-    currentOrganization, 
-    setCurrentOrganization, 
-    isLoading: isLoadingOrgs 
-  } = useOrganizationContext()
+  const { isLoading: isLoadingOrgs } = useOrganizationContext()
 
   const unreadNotifications = mockNotifications.filter((notification) => !notification.read)
 
@@ -95,42 +91,11 @@ export function Header() {
               <span className="font-semibold text-xl text-neutral-900 dark:text-white">Daboa Loyalty</span>
             </Link>
             
-            {/* Organization Selector */}
+            {/* Organization Switcher - Using our improved component */}
             {user && !isLoadingOrgs && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="ml-4 flex items-center gap-2">
-                    {currentOrganization?.name || "Select Organization"}
-                    <ChevronDown size={16} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-60">
-                  <DropdownMenuLabel>Switch Organization</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  {organizations.length > 0 ? (
-                    organizations.map((org) => (
-                      <DropdownMenuItem 
-                        key={org.id}
-                        onClick={() => setCurrentOrganization(org)}
-                        className={currentOrganization?.id === org.id ? "bg-neutral-100 dark:bg-neutral-800" : ""}
-                      >
-                        {org.name}
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>No organizations found</DropdownMenuItem>
-                  )}
-                  
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer flex items-center gap-2">
-                    <Link href="/create-organization">
-                      <Plus size={16} />
-                      <span>New organization</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="hidden md:block ml-4">
+                <OrganizationSwitcher />
+              </div>
             )}
           </div>
 
@@ -337,9 +302,10 @@ export function Header() {
                 <Button variant="ghost" asChild>
                   <Link href="/auth/login">Login</Link>
                 </Button>
-                <Button asChild>
-                  <Link href="/auth/signup">Get Started</Link>
-                </Button>
+                
+                  <Link href="/auth/signup"><Button asChild>Get Started
+                  </Button>
+                </Link>
               </>
             )}
 
@@ -372,44 +338,11 @@ export function Header() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {user ? (
                 <>
-                  {/* Organization Selector for Mobile */}
+                  {/* Organization Switcher for Mobile - improved version */}
                   {!isLoadingOrgs && (
                     <div className="px-3 py-2 mb-2">
-                      <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Current Organization</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-medium text-neutral-900 dark:text-white">
-                          {currentOrganization?.name || "Select Organization"}
-                        </span>
-                        <Link
-                          href="/create-organization"
-                          className="text-primary text-sm flex items-center gap-1"
-                        >
-                          <Plus size={14} />
-                          New
-                        </Link>
-                      </div>
-                      
-                      {organizations.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {organizations.map((org) => (
-                            <button
-                              key={org.id}
-                              onClick={() => {
-                                setCurrentOrganization(org);
-                                setIsMobileMenuOpen(false);
-                              }}
-                              className={`flex items-center w-full text-left px-2 py-1.5 rounded-md text-sm font-medium ${
-                                currentOrganization?.id === org.id 
-                                ? "bg-neutral-100 dark:bg-neutral-800 text-primary" 
-                                : "text-neutral-700 dark:text-neutral-300"
-                              }`}
-                            >
-                              <Building size={14} className="mr-2" />
-                              {org.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">Current Organization</p>
+                      <OrganizationSwitcher align="start" className="w-full" />
                     </div>
                   )}
 

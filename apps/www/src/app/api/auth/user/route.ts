@@ -1,4 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
  * Authentication check endpoint that returns user information if authenticated
  */
 export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
   
   const { data: { user }, error } = await supabase.auth.getUser()
   

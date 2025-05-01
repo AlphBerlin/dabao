@@ -4,6 +4,16 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { generateSlug } from '@/lib/utils';
 
+// Schema for pagination query parameters
+const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(50).default(10),
+  search: z.string().optional(),
+  status: z.string().optional(),
+  sortBy: z.string().default('updatedAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
 // Schema for project creation
 const projectCreateSchema = z.object({
   name: z.string().min(1, "Project name is required").max(64),
@@ -26,7 +36,7 @@ const projectCreateSchema = z.object({
   }).optional(),
 });
 
-// Get all projects for the authenticated user
+// Get all projects for the authenticated user with pagination
 export async function GET(req: NextRequest) {
   try {
     // Get authenticated user from Supabase
@@ -37,57 +47,111 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Parse query parameters for pagination and filtering
+    const url = new URL(req.url);
+    let projectStatus = url.searchParams.get('status') || undefined;
+    if(projectStatus && ['null','all'].includes(projectStatus)) {
+      projectStatus = undefined
+    }
+
+
+    const queryParams = {
+      page: url.searchParams.get('page') || '1',
+      pageSize: url.searchParams.get('pageSize') || '10',
+      search: url.searchParams.get('search') || undefined,
+      status: projectStatus,
+      sortBy: url.searchParams.get('sortBy') || 'updatedAt',
+      sortOrder: url.searchParams.get('sortOrder') || 'desc',
+    };
+    
+    const validatedParams = paginationQuerySchema.safeParse(queryParams);
+    if (!validatedParams.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: validatedParams.error.format() }, 
+        { status: 400 }
+      );
+    }
+    
+    const { page, pageSize, search, status, sortBy, sortOrder } = validatedParams.data;
+    
+    // Get organization ID from header or cookie
+    const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
+    
+    if (!orgId) {
+      return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
+    }
+    
     // Get user from database
     const dbUser = await db.user.findUnique({
       where: { supabaseUserId: user.id },
+      include: {
+        organizations: {
+          where: {
+            
+            organizationId: orgId
+          }
+        }
+      }
     });
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // Get all projects the user has access to
-    const userProjects = await supabase.rpc('get_user_projects', {
-      p_user_id: user.id,
-    });
-
-    if (userProjects.error) {
-      console.error('Error fetching user projects:', userProjects.error);
-      return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
-    }
-
-    const projectIds = userProjects.data.map((p: any) => p.project_id);
     
-    // If no projects, return empty array
-    if (projectIds.length === 0) {
-      return NextResponse.json({ projects: [] });
+    // Check if user has access to the organization
+    const userHasAccess = dbUser.organizations.some(org => org.organizationId === orgId);
+    
+    if (!userHasAccess) {
+      return NextResponse.json({ error: 'You do not have access to this organization' }, { status: 403 });
     }
 
-    // Get project details
+    // Construct the filter with search and status
+    const filter: any = { organizationId: orgId };
+    
+    if (search) {
+      filter.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+    
+    if (status) {
+      filter.status = status;
+    }
+    
+    // Calculate pagination values
+    const skip = (page - 1) * pageSize;
+    
+    // Determine the sort field and direction
+    const orderBy: any = {};
+    orderBy[sortBy] = sortOrder;
+    
+    // Get total count for pagination info
+    const totalProjects = await db.project.count({ where: filter });
+    
+    // Get project details with pagination
     const projects = await db.project.findMany({
-      where: {
-        id: { in: projectIds },
-      },
+      where: filter,
       include: {
-        organization: {
-          select: {
-            name: true,
-            slug: true,
-          }
-        },
         preferences: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      }
+      orderBy,
+      skip,
+      take: pageSize,
     });
 
+    // Calculate total pages
+    const totalPages = Math.ceil(totalProjects / pageSize);
+
     return NextResponse.json({
-      projects: projects.map(project => ({
-        ...project,
-        // Add the user's role for each project
-        role: userProjects.data.find((p: any) => p.project_id === project.id)?.role || 'VIEWER',
-      })),
+      data: projects,
+      meta: {
+        total: totalProjects,
+        page,
+        pageSize,
+        totalPages,
+      }
     });
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -106,17 +170,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database
+    // Get organization ID from header or cookie
+    const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
+    
+    if (!orgId) {
+      return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
+    }
+
+    // Get user from database with organization access check
     const dbUser = await db.user.findUnique({
       where: { supabaseUserId: user.id },
       include: {
         organizations: {
-          include: {
-            organization: true,
-          },
           where: {
-            role: 'OWNER',
-          },
+            organizationId: orgId,
+            role: { in: ['OWNER', 'ADMIN'] }
+          }
         },
       },
     });
@@ -125,20 +194,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if user has an organization
+    // Check if user has permission to create projects in this organization
     if (dbUser.organizations.length === 0) {
-      return NextResponse.json({ error: 'You need to create an organization first' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'You do not have permission to create projects in this organization' 
+      }, { status: 403 });
     }
-
-    // Use the first organization where the user is an owner
-    const organization = dbUser.organizations[0];
 
     // Parse and validate request body
     const body = await req.json();
     const validationResult = projectCreateSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json({ error: 'Validation error', details: validationResult.error.format() }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Validation error', 
+        details: validationResult.error.format() 
+      }, { status: 400 });
     }
 
     const { name, domain, description, theme, preferences } = validationResult.data;
@@ -153,9 +224,10 @@ export async function POST(req: NextRequest) {
         data: {
           name,
           slug,
+          status: 'draft',
           customDomain: domain || null,
           description: description || null,
-          organizationId: organization?.id,
+          organizationId: orgId,
           active: true,
           theme: theme || {
             primaryColor: '#6366F1', // Default indigo
@@ -179,13 +251,6 @@ export async function POST(req: NextRequest) {
           enableTiers: preferences?.enableTiers ?? false,
           enableGameification: preferences?.enableGameification ?? false,
         },
-      });
-
-      // Add the user as an owner of this project
-      await supabase.rpc('add_user_project_permissions', {
-        p_user_id: user.id,
-        p_project_id: newProject.id,
-        p_role: 'OWNER',
       });
 
       return newProject;

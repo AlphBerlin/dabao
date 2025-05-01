@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@workspace/auth/contexts/auth-context'
 import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { Providers } from '@/components/providers'
+import { OrganizationProviders } from '@/components/organization-providers'
 
 export const metadata: Metadata = {
   title: 'Dabao Studio',
@@ -21,9 +22,11 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>
             <AuthProvider>
-              <Providers>
-                {children}
-              </Providers>
+              <OrganizationProviders>
+                <Providers>
+                  {children}
+                </Providers>
+              </OrganizationProviders>
             </AuthProvider>
           </TooltipProvider>
         </ThemeProvider>

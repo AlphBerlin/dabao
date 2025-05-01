@@ -156,7 +156,7 @@ export default function NewProjectPage() {
           </Button>
         </div>
 
-        <Card className="m-6">
+        <Card>
           <CardHeader>
             <CardTitle>Project Setup</CardTitle>
             <CardDescription>

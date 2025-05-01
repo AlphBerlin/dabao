@@ -9,9 +9,9 @@ import { Switch } from "@workspace/ui/components/switch"
 import { Input } from "@workspace/ui/components/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@workspace/ui/components/accordion"
-import { toast } from "sonner"
+import toast  from "sonner"
 import { getUserSettings, updateUserSettings, updatePassword, UserSettings } from "@/lib/api/user-settings"
-import { getProjects, Project, updateProjectSettings } from "@/lib/api/project"
+import { getProjects, type Project, updateProjectSettings } from "@/lib/api/project"
 import { Loader2 } from "lucide-react"
 
 export function AccountSettingsForm() {
@@ -47,7 +47,7 @@ export function AccountSettingsForm() {
         const userProjects = await getProjects()
         setProjects(userProjects)
         if (userProjects.length > 0) {
-          setActiveProject(userProjects[0].id)
+          setActiveProject(userProjects[0]!.id)
         }
       } catch (error) {
         toast.error("Failed to load your settings")

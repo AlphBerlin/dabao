@@ -120,6 +120,7 @@ model Project {
   name           String
   description    String?
   slug           String   @unique
+  status         String?  
   organizationId String   @map("organization_id")
   active         Boolean  @default(true)
   customDomain   String?  @unique @map("custom_domain")
