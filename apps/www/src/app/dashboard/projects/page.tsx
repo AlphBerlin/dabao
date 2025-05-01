@@ -103,11 +103,6 @@ export default function ProjectsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button asChild>
-              <Link href="/projects/new">
-                <Plus className="mr-2 h-4 w-4" /> New Project
-              </Link>
-            </Button>
           </div>
         </div>
 
@@ -129,7 +124,7 @@ export default function ProjectsPage() {
             <h3 className="text-lg font-medium mb-2">No projects found</h3>
             <p className="text-muted-foreground mb-4">Try adjusting your search or create a new project.</p>
             <Button asChild>
-              <Link href="/projects/new">
+              <Link href="/dashboard/projects/new">
                 <Plus className="mr-2 h-4 w-4" /> Create New Project
               </Link>
             </Button>

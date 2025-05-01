@@ -114,15 +114,6 @@ export default function Dashboard() {
                 Manage your loyalty programs and monitor their performance
               </p>
             </div>
-
-            <div className="mt-4 md:mt-0">
-              <Button asChild>
-                <Link href="/projects/new">
-                  <Plus size={16} className="mr-2" />
-                  New Project
-                </Link>
-              </Button>
-            </div>
           </div>
 
           {/* Stats Overview */}

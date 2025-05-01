@@ -2,6 +2,8 @@
 
 @import "tw-animate-css";
 
+@import './preflight.css' layer(base);
+
 @custom-variant dark (&:is(.dark *));
 :root {
   /* Base colors */
@@ -199,10 +201,6 @@
   }
 }
 
-/* Improved scrolling and smooth transitions */
-html {
-  scroll-behavior: smooth;
-}
 
 /* Enhanced glass effect */
 .glass {
