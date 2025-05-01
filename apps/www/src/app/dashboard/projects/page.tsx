@@ -183,12 +183,6 @@ export default function ProjectsPage() {
                 Manage all your loyalty programs
               </p>
             </div>
-            <Button asChild className="mt-4 md:mt-0">
-              <Link href="/dashboard/projects/new">
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Link>
-            </Button>
           </div>
 
           {/* Filters & Search */}
