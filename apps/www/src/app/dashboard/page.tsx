@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Plus, TrendingUp, Users, Award, ChevronRight } from "lucide-react"
+import { Plus, TrendingUp, Users, Award, ChevronRight, Search } from "lucide-react"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { CircularProgress } from "@workspace/ui/components/CircularProgress"
 import { ProjectCard } from "@/components/projects/ProjectCard"
 import { CreateProjectCard } from "@/components/projects/CreateProjectCard"
@@ -12,42 +13,10 @@ import { AchievementCard } from "@/components/achievements/AchievementCard"
 import { AIAssistant } from "@/components/ai/AIAssistant"
 import { MainLayout } from "@/components/layout/MainLayout"
 import Link from "next/link"
+import { Project } from "@prisma/client"
+import { getProjects, PaginationParams } from "@/lib/api/project"
 
-// Mock data
-const mockProjects = [
-  {
-    id: "proj-1",
-    name: "Coffee Rewards",
-    status: "live",
-    domain: "coffee-rewards.app",
-    logo: "/placeholder.svg?height=40&width=40",
-    stats: {
-      customers: 1245,
-      pointsIssued: 45678,
-    },
-  },
-  {
-    id: "proj-2",
-    name: "Bookstore Loyalty",
-    status: "trial",
-    domain: "bookstore-loyalty.app",
-    trialEndsAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    stats: {
-      customers: 342,
-      pointsIssued: 12890,
-    },
-  },
-  {
-    id: "proj-3",
-    name: "Fitness Club",
-    status: "setup",
-    stats: {
-      customers: 0,
-      pointsIssued: 0,
-    },
-  },
-]
-
+// Mock data for achievements - we'll keep this for now
 const mockAchievements = [
   {
     id: "ach-1",
@@ -89,19 +58,64 @@ const mockAchievements = [
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [totalProjects, setTotalProjects] = useState(0)
+  const [totalCustomers, setTotalCustomers] = useState(0)
+  const [totalPointsIssued, setTotalPointsIssued] = useState(0)
   const [showAllAchievements, setShowAllAchievements] = useState(false)
 
   const recentAchievements = mockAchievements.filter((a) => a.earned).slice(0, 3)
   const displayedAchievements = showAllAchievements ? mockAchievements.filter((a) => a.earned) : recentAchievements
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+    // Fetch projects when component mounts or search query changes
+    const fetchProjects = async () => {
+      setIsLoading(true)
+      try {
+        const params: PaginationParams = {
+          page: 1,
+          pageSize: 6, // Show 6 most recent projects on the dashboard
+          search: searchQuery,
+          sortBy: 'updatedAt',
+          sortOrder: 'desc'
+        }
+        
+        const response = await getProjects(params)
+        setProjects(response.data)
+        setTotalProjects(response.meta.total)
+        
+        // Calculate stats from projects
+        let customers = 0
+        let points = 0
+        
+        // In a real app, you might have these aggregated values from the backend
+        // This is just a placeholder calculation
+        response.data.forEach(project => {
+          // Assuming project.settings might contain these stats, adjust as needed
+          const settings = project.settings as any || {}
+          customers += settings.totalCustomers || 0
+          points += settings.totalPointsIssued || 0
+        })
+        
+        setTotalCustomers(customers)
+        setTotalPointsIssued(points)
+      } catch (error) {
+        console.error('Error fetching projects:', error)
+        // Fallback to empty projects
+        setProjects([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-    return () => clearTimeout(timer)
-  }, [])
+    // Use a debounced fetch for search
+    const debounceTimer = setTimeout(() => {
+      fetchProjects()
+    }, 300)
+
+    return () => clearTimeout(debounceTimer)
+  }, [searchQuery])
 
   return (
     <MainLayout>
@@ -123,14 +137,14 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Projects</p>
-                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">{mockProjects.length}</h3>
+                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">{totalProjects}</h3>
                   </div>
                   <div className="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-lg">
                     <TrendingUp size={24} className="text-primary-600 dark:text-primary-400" />
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-green-500">
-                  {mockProjects.filter((p) => p.status === "live").length} active
+                  {projects.filter(p => p.status === 'live').length} active
                 </div>
               </CardContent>
             </Card>
@@ -141,9 +155,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Customers</p>
                     <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {mockProjects
-                        .reduce((total, project) => total + (project.stats?.customers || 0), 0)
-                        .toLocaleString()}
+                      {totalCustomers.toLocaleString()}
                     </h3>
                   </div>
                   <div className="bg-secondary-100 dark:bg-secondary-900/30 p-3 rounded-lg">
@@ -160,9 +172,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Points Issued</p>
                     <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {mockProjects
-                        .reduce((total, project) => total + (project.stats?.pointsIssued || 0), 0)
-                        .toLocaleString()}
+                      {totalPointsIssued.toLocaleString()}
                     </h3>
                   </div>
                   <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg">
@@ -176,14 +186,25 @@ export default function Dashboard() {
 
           {/* Your Projects */}
           <div className="mb-10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Your Projects</h2>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/projects" className="flex items-center">
-                  View All
-                  <ChevronRight size={16} className="ml-1" />
-                </Link>
-              </Button>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-4 sm:mb-0">Your Projects</h2>
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
+                  <Input
+                    placeholder="Search projects..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/dashboard/projects" className="flex items-center">
+                    View All
+                    <ChevronRight size={16} className="ml-1" />
+                  </Link>
+                </Button>
+              </div>
             </div>
 
             {isLoading ? (
@@ -192,7 +213,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockProjects.map((project) => (
+                {projects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
                 <CreateProjectCard />
