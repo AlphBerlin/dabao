@@ -15,38 +15,38 @@ export function Sidebar({ projectId }: SidebarProps) {
   const sidebarItems = [
     {
       name: "Overview",
-      path: `/projects/${projectId}`,
+      path: `/dashboard/projects/${projectId}`,
       icon: <BarChart2 size={20} />,
       exact: true,
     },
     {
       name: "Customers",
-      path: `/projects/${projectId}/customers`,
+      path: `/dashboard/projects/${projectId}/customers`,
       icon: <Users size={20} />,
     },
     {
       name: "Points & Rewards",
-      path: `/projects/${projectId}/rewards`,
+      path: `/dashboard/projects/${projectId}/rewards`,
       icon: <Award size={20} />,
     },
     {
       name: "Domain & Branding",
-      path: `/projects/${projectId}/domain`,
+      path: `/dashboard/projects/${projectId}/domain`,
       icon: <Globe size={20} />,
     },
     {
       name: "AI Assistant",
-      path: `/projects/${projectId}/assistant`,
+      path: `/dashboard/projects/${projectId}/assistant`,
       icon: <MessageSquare size={20} />,
     },
     {
       name: "Billing & Trial",
-      path: `/projects/${projectId}/billing`,
+      path: `/dashboard/projects/${projectId}/billing`,
       icon: <CreditCard size={20} />,
     },
     {
       name: "Settings",
-      path: `/projects/${projectId}/settings`,
+      path: `/dashboard/projects/${projectId}/settings`,
       icon: <Settings size={20} />,
     },
   ]

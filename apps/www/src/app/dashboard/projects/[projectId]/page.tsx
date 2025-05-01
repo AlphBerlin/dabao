@@ -1,385 +1,314 @@
-"use client"
+"use client";
 
-import { useParams } from "next/navigation"
-import { motion } from "framer-motion"
-import {
-  BarChart2,
-  TrendingUp,
-  Users,
+import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { 
+  UsersRound, 
+  Gift, 
+  TrendingUp, 
+  Calendar, 
   Award,
-  Activity,
+  ShoppingBag,
+  CircleDollarSign,
   ArrowUpRight,
-  ExternalLink,
-  Calendar,
-  CreditCard,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
-import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/badge"
-import { ProgressBar } from "@workspace/ui/components/ProgressBar"
-import { CircularProgress } from "@workspace/ui/components/CircularProgress"
-import { ProjectLayout } from "@/components/layout/ProjectLayout"
+  ArrowDownRight
+} from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
-// Mock customer data
-const mockCustomers = [
-  {
-    id: "cust-1",
-    name: "Emma Wilson",
-    email: "emma@example.com",
-    pointsBalance: 2450,
-    tier: "Platinum",
-    lastActive: "2023-07-20T14:30:00Z",
-  },
-  {
-    id: "cust-2",
-    name: "James Miller",
-    email: "james@example.com",
-    pointsBalance: 1870,
-    tier: "Gold",
-    lastActive: "2023-07-19T09:15:00Z",
-  },
-  {
-    id: "cust-3",
-    name: "Olivia Brown",
-    email: "olivia@example.com",
-    pointsBalance: 1340,
-    tier: "Silver",
-    lastActive: "2023-07-18T16:45:00Z",
-  },
-  {
-    id: "cust-4",
-    name: "Noah Davis",
-    email: "noah@example.com",
-    pointsBalance: 980,
-    tier: "Bronze",
-    lastActive: "2023-07-17T11:20:00Z",
-  },
-  {
-    id: "cust-5",
-    name: "Sophia Martinez",
-    email: "sophia@example.com",
-    pointsBalance: 750,
-    tier: "Bronze",
-    lastActive: "2023-07-16T13:10:00Z",
-  },
-]
+interface ProjectStats {
+  totalCustomers: number;
+  customerGrowth: number;
+  activeCustomers: number;
+  totalRewards: number;
+  redeemedRewards: number;
+  totalPointsIssued: number;
+  totalRewardValue: number;
+  conversionRate: number;
+}
 
-export default function ProjectDetailPage() {
-  const params = useParams()
-  const projectId = params.projectId as string
+export default function ProjectOverviewPage() {
+  const params = useParams();
+  const projectId = params.projectId as string;
+  
+  const [stats, setStats] = useState<ProjectStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState("7d");
 
-  // In a real app, you would fetch project data based on the ID
-  const project = {
-    id: projectId,
-    name: "Coffee Rewards",
-    status: "live",
-    domain: "coffee-rewards.app",
-    createdAt: "2023-06-15",
-    stats: {
-      customers: 1245,
-      pointsIssued: 45678,
-      activeUsers: 876,
-      redemptions: 320,
-      revenue: 12500,
-    },
-    trialEndsAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-  }
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        // In a real application, fetch data from an API endpoint
+        const response = await fetch(`/api/projects/${projectId}/stats?timeframe=${timeframe}`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to load project stats");
+        }
+        
+        const data = await response.json();
+        setStats(data.stats);
+      } catch (error) {
+        console.error("Error loading project stats:", error);
+        // Use placeholder data for demonstration
+        setStats({
+          totalCustomers: 1254,
+          customerGrowth: 12.5,
+          activeCustomers: 867,
+          totalRewards: 45,
+          redeemedRewards: 342,
+          totalPointsIssued: 254600,
+          totalRewardValue: 12450,
+          conversionRate: 23.4
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStats();
+  }, [projectId, timeframe]);
 
   return (
-    <ProjectLayout>
-      <div className="p-6 md:p-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-            <div className="flex items-center">
-              <div className="h-12 w-12 rounded-lg mr-4 bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                <span className="text-primary-700 dark:text-primary-300 font-semibold text-lg">
-                  {project.name.substring(0, 1).toUpperCase()}
-                </span>
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">{project.name}</h1>
-                <div className="flex items-center mt-1">
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400">{project.domain}</span>
-                  {project.status === "live" && <Badge className="ml-2 bg-green-500 text-white">Live</Badge>}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 md:mt-0 flex">
-              <Button variant="outline" className="mr-2" asChild>
-                <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink size={16} className="mr-2" />
-                  Visit Site
-                </a>
-              </Button>
-
-              <Button>Manage Program</Button>
-            </div>
-          </div>
-
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Customers</p>
-                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {project.stats?.customers.toLocaleString() || 0}
-                    </h3>
-                  </div>
-                  <div className="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-lg">
-                    <Users size={24} className="text-primary-600 dark:text-primary-400" />
-                  </div>
-                </div>
-                <div className="mt-2 text-sm text-green-500">+32 this week</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm">Points Issued</p>
-                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {project.stats?.pointsIssued.toLocaleString() || 0}
-                    </h3>
-                  </div>
-                  <div className="bg-secondary-100 dark:bg-secondary-900/30 p-3 rounded-lg">
-                    <Award size={24} className="text-secondary-600 dark:text-secondary-400" />
-                  </div>
-                </div>
-                <div className="mt-2 text-sm text-green-500">+755 this week</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm">Active Users</p>
-                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {project.stats?.activeUsers.toLocaleString() || 0}
-                    </h3>
-                  </div>
-                  <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg">
-                    <Activity size={24} className="text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                </div>
-                <div className="mt-2 text-sm text-green-500">+128 this week</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column */}
-            <div className="col-span-2 space-y-6">
-              {/* Activity Graph */}
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Recent Activity</CardTitle>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="h-8">
-                        Day
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8">
-                        Week
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8">
-                        Month
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64 flex items-center justify-center bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <BarChart2 size={32} className="text-neutral-300 dark:text-neutral-600" />
-                    <span className="ml-2 text-neutral-400 dark:text-neutral-500">Activity chart will appear here</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top Customers */}
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Top Customers</CardTitle>
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      View All
-                      <ArrowUpRight size={14} />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="text-left text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                          <th className="px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-l-lg">Customer</th>
-                          <th className="px-4 py-3 bg-neutral-50 dark:bg-neutral-800">Points</th>
-                          <th className="px-4 py-3 bg-neutral-50 dark:bg-neutral-800">Tier</th>
-                          <th className="px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-r-lg">Last Active</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                        {mockCustomers.map((customer) => (
-                          <tr key={customer.id}>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-medium">
-                                  {customer.name.charAt(0)}
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                                    {customer.name}
-                                  </p>
-                                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{customer.email}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-700 dark:text-neutral-300">
-                              {customer.pointsBalance.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <Badge
-                                className={`${
-                                  customer.tier === "Platinum"
-                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300"
-                                    : customer.tier === "Gold"
-                                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300"
-                                      : customer.tier === "Silver"
-                                        ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                                        : "bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300"
-                                }`}
-                              >
-                                {customer.tier}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
-                              {new Date(customer.lastActive).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Usage Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Usage</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center mb-6">
-                    <CircularProgress value={62} size={120} strokeWidth={8} />
-                    <p className="mt-4 font-medium">API Usage</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm text-neutral-700 dark:text-neutral-300 mb-1">
-                        <span>Storage</span>
-                        <span>1.2 GB / 5 GB</span>
-                      </div>
-                      <ProgressBar value={24} max={100} variant="secondary" size="sm" />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-sm text-neutral-700 dark:text-neutral-300 mb-1">
-                        <span>Customers</span>
-                        <span>{project.stats?.customers || 0} / 2,000</span>
-                      </div>
-                      <ProgressBar
-                        value={project.stats?.customers || 0}
-                        max={2000}
-                        variant={project.stats && project.stats.customers > 1500 ? "warning" : "success"}
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Trial Status */}
-              {project.trialEndsAt && (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full mb-3">
-                        <TrendingUp size={24} className="text-yellow-600 dark:text-yellow-400" />
-                      </div>
-
-                      <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-1">Trial Status</h2>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                        Your trial ends in{" "}
-                        {Math.ceil(
-                          (new Date(project.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                        )}{" "}
-                        days
-                      </p>
-
-                      <ProgressBar
-                        value={
-                          30 -
-                          Math.ceil(
-                            (new Date(project.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                          )
-                        }
-                        max={30}
-                        variant="warning"
-                        className="mb-6"
-                      />
-
-                      <Button>Upgrade Now</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users size={16} className="mr-2" />
-                    Add Customers
-                  </Button>
-
-                  <Button variant="outline" className="w-full justify-start">
-                    <Award size={16} className="mr-2" />
-                    Issue Points
-                  </Button>
-
-                  <Button variant="outline" className="w-full justify-start">
-                    <BarChart2 size={16} className="mr-2" />
-                    View Analytics
-                  </Button>
-
-                  <Button variant="outline" className="w-full justify-start">
-                    <Calendar size={16} className="mr-2" />
-                    Schedule Campaign
-                  </Button>
-
-                  <Button variant="outline" className="w-full justify-start">
-                    <CreditCard size={16} className="mr-2" />
-                    Manage Billing
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </motion.div>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Project Overview</h1>
+        <Tabs defaultValue={timeframe} onValueChange={setTimeframe} className="w-[400px]">
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="7d">7 days</TabsTrigger>
+            <TabsTrigger value="30d">30 days</TabsTrigger>
+            <TabsTrigger value="90d">90 days</TabsTrigger>
+            <TabsTrigger value="all">All time</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
-    </ProjectLayout>
-  )
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Total Customers"
+          value={stats?.totalCustomers}
+          description={`${stats?.customerGrowth}% from previous period`}
+          trend={stats?.customerGrowth && stats.customerGrowth > 0 ? "up" : "down"}
+          icon={<UsersRound className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+        />
+        <StatsCard
+          title="Active Customers"
+          value={stats?.activeCustomers}
+          description={`${stats?.activeCustomers && stats?.totalCustomers ? Math.round((stats.activeCustomers / stats.totalCustomers) * 100) : 0}% of total customers`}
+          icon={<Award className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+        />
+        <StatsCard
+          title="Total Rewards"
+          value={stats?.totalRewards}
+          description={`${stats?.redeemedRewards} redeemed`}
+          icon={<Gift className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+        />
+        <StatsCard
+          title="Points Issued"
+          value={stats?.totalPointsIssued?.toLocaleString()}
+          description="Total loyalty points"
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          loading={loading}
+        />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Customer Activity</CardTitle>
+            <CardDescription>Daily active customers over time</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px] flex items-center justify-center">
+            {loading ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <div className="text-muted-foreground text-sm">
+                [Activity chart will be rendered here]
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Events</CardTitle>
+            <CardDescription>Latest activity in your project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <ul className="space-y-4">
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ShoppingBag className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">New purchase</p>
+                    <p className="text-muted-foreground">Customer #1234 made a purchase</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">2m ago</div>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Award className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Reward redemption</p>
+                    <p className="text-muted-foreground">Customer #5678 redeemed Free Coffee</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">15m ago</div>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UsersRound className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">New customer</p>
+                    <p className="text-muted-foreground">Customer #9012 joined the program</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">1h ago</div>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CircleDollarSign className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Points awarded</p>
+                    <p className="text-muted-foreground">Customer #3456 earned 500 points</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">2h ago</div>
+                </li>
+                <li className="flex items-center gap-3 text-sm">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Campaign started</p>
+                    <p className="text-muted-foreground">Summer Promotion is now active</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">3h ago</div>
+                </li>
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Quick Actions</h2>
+        <Button variant="outline" size="sm">
+          View All Actions
+        </Button>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <ActionCard
+          title="Add Customer"
+          description="Add a new customer to your loyalty program"
+          icon={<UsersRound className="h-5 w-5" />}
+          href={`/dashboard/projects/${projectId}/customers/new`}
+        />
+        <ActionCard
+          title="Create Reward"
+          description="Set up a new reward for your customers"
+          icon={<Gift className="h-5 w-5" />}
+          href={`/dashboard/projects/${projectId}/rewards/new`}
+        />
+        <ActionCard
+          title="Launch Campaign"
+          description="Start a new marketing campaign"
+          icon={<TrendingUp className="h-5 w-5" />}
+          href={`/dashboard/projects/${projectId}/campaigns/new`}
+        />
+        <ActionCard
+          title="Schedule Event"
+          description="Create a special event for your customers"
+          icon={<Calendar className="h-5 w-5" />}
+          href={`/dashboard/projects/${projectId}/events/new`}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface StatsCardProps {
+  title: string;
+  value?: number | string;
+  description: string;
+  icon: React.ReactNode;
+  trend?: "up" | "down";
+  loading?: boolean;
+}
+
+function StatsCard({ title, value, description, icon, trend, loading }: StatsCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value}</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1">
+              {trend && (
+                <>
+                  {trend === "up" ? (
+                    <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
+                  )}
+                </>
+              )}
+              {description}
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface ActionCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  href: string;
+}
+
+function ActionCard({ title, description, icon, href }: ActionCardProps) {
+  return (
+    <Card className="hover:border-primary/50 transition-all cursor-pointer">
+      <CardHeader>
+        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+          {icon}
+        </div>
+        <CardTitle className="text-md">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="ghost" size="sm" className="mt-2" asChild>
+          <a href={href}>Get Started</a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
