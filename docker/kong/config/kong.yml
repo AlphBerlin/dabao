@@ -3,9 +3,6 @@ _transform: true
 
 # update the host file for locals
 services:
-  - name: studio-service
-    url: http://dabao-app-local:3001
-
   - name: client-service
     url: http://dabao-app-local:3002
 
@@ -13,13 +10,6 @@ services:
     url: http://dabao-app-local:3000
 
 routes:
-  # 1) /dashboard/project/* → http://localhost:3001
-  - name: studio-route
-    service: studio-service
-    protocols: [ http, https ]
-    paths: [ /dashboard/project/ ]
-    strip_path: false
-    preserve_host: true
 
   # 2a) Host-based: *.domain.com → http://localhost:3002
   - name: client-host-route

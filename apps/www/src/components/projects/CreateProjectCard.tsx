@@ -11,7 +11,7 @@ export function CreateProjectCard() {
   return (
     <Card
       className="h-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer transition-colors"
-      onClick={() => router.push("/projects/new")}
+      onClick={() => router.push("/dashboard/projects/new")}
     >
       <motion.div
         whileHover={{ y: -8 }}

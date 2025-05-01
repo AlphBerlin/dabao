@@ -1,0 +1,93 @@
+@layer tw.base {
+
+    /* Base font styles */
+    html {
+        line-height: 1.5;
+        -webkit-text-size-adjust: 100%;
+        tab-size: 4;
+        font-family: theme('fontFamily.sans');
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        scroll-behavior: smooth;
+    }
+
+    /* Box sizing rules */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    /* Reset margins for specific elements only (not universal) */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    figure,
+    blockquote,
+    dl,
+    dd,
+    ul,
+    ol {
+        margin: 0;
+    }
+
+    /* Typography */
+    body {
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
+
+    /* Media Defaults */
+    img,
+    picture,
+    video,
+    canvas,
+    svg {
+        display: block;
+        max-width: 100%;
+    }
+
+    img {
+        max-inline-size: 100%;
+    }
+
+    /* Form Elements */
+    input,
+    button,
+    textarea,
+    select {
+        font: inherit;
+    }
+
+    /* Text Overflow */
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        overflow-wrap: break-word;
+        font-size: inherit;
+        font-weight: inherit;
+    }
+
+    /* List styling */
+    ol[role="list"],
+    ul[role="list"] {
+        list-style: none;
+        padding-inline: 0;
+    }
+
+    section {
+        position: relative;
+        transition: all 0.5s ease-in-out;
+        scroll-margin-top: 80px;
+    }
+}
