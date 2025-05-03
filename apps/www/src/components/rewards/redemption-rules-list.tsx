@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { PlusCircle, Edit, Trash2, Gift } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Gift, Scroll } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -60,27 +60,40 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@workspace/ui/components/tooltip';
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@workspace/ui/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@workspace/ui/components/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover";
 
 // Define schema for redemption rule
 const redemptionRuleSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
-  rewardType: z.enum(['POINTS', 'DISCOUNT', 'FREEBIE', 'CASH_BACK', 'TIER_UPGRADE', 'CUSTOM']),
-  pointsCost: z.coerce.number().int().min(0, 'Must be non-negative'),
-  stampsCost: z.coerce.number().int().min(0, 'Must be non-negative'),
-  monetaryValue: z.coerce.number().min(0, 'Must be non-negative').optional(),
-  minimumSpend: z.coerce.number().min(0, 'Must be non-negative'),
-  maxRedemptionsPerCustomer: z.coerce.number().int().min(0, 'Must be non-negative').optional(),
-  maxTotalRedemptions: z.coerce.number().int().min(0, 'Must be non-negative').optional(),
+  description: z.string().min(1, 'Description is required').optional(),
+  ruleType: z.enum(['POINTS_TO_VOUCHER', 'STAMPS_TO_VOUCHER', 'POINTS_TO_PRODUCT', 'STAMPS_TO_TIER_UPGRADE']),
+  pointsRequired: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
+  stampsRequired: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
+  outputType: z.enum(['VOUCHER', 'PRODUCT', 'TIER_UPGRADE']),
+  voucherId: z.string().optional(),
+  productId: z.string().optional(),
+  tierUpgradeId: z.string().optional(),
+  minimumSpend: z.coerce.number().min(0, 'Must be non-negative').default(0),
   isActive: z.boolean().default(true),
-  applicationMethod: z.enum(['AUTOMATIC', 'CODE', 'QR_CODE']),
-  membershipTierId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof redemptionRuleSchema>;
 
 type RedemptionRule = FormValues & {
-  id: string;
+  id: string; 
   createdAt: string;
   updatedAt: string;
   redemptionCount: number;
@@ -105,33 +118,35 @@ export default function RedemptionRulesList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(redemptionRuleSchema),
     defaultValues: {
       name: '',
       description: '',
-      rewardType: 'DISCOUNT',
-      pointsCost: 0,
-      stampsCost: 0,
-      monetaryValue: 0,
+      ruleType: 'POINTS_TO_VOUCHER',
+      pointsRequired: 0,
+      stampsRequired: 0,
+      outputType: 'VOUCHER',
+      voucherId: undefined,
+      productId: undefined,
+      tierUpgradeId: undefined,
       minimumSpend: 0,
-      maxRedemptionsPerCustomer: undefined,
-      maxTotalRedemptions: undefined,
       isActive: true,
-      applicationMethod: 'AUTOMATIC',
-      membershipTierId: undefined,
     },
   });
 
   // Form field watches
-  const rewardType = form.watch('rewardType');
-  const applicationMethod = form.watch('applicationMethod');
+  const ruleType = form.watch('ruleType');
+  const outputType = form.watch('outputType');
 
-  // Fetch redemption rules and membership tiers on component mount
+  // Fetch redemption rules and related data on component mount
   useEffect(() => {
     fetchRedemptionRules();
     fetchMembershipTiers();
+    fetchVouchers();
   }, [projectId]);
 
   const fetchRedemptionRules = async () => {
@@ -155,21 +170,29 @@ export default function RedemptionRulesList({
       console.error('Failed to fetch membership tiers:', error);
     }
   };
+  
+  const fetchVouchers = async () => {
+    try {
+      const response = await axios.get(`/api/projects/${projectId}/vouchers`);
+      setVouchers(response.data.vouchers);
+    } catch (error) {
+      console.error('Failed to fetch vouchers:', error);
+    }
+  };
 
   const openCreateDialog = () => {
     form.reset({
       name: '',
       description: '',
-      rewardType: 'DISCOUNT',
-      pointsCost: rewardSystemType !== 'STAMPS' ? 100 : 0,
-      stampsCost: rewardSystemType !== 'POINTS' ? 1 : 0,
-      monetaryValue: 0,
+      ruleType: 'POINTS_TO_VOUCHER',
+      pointsRequired: rewardSystemType !== 'STAMPS' ? 100 : 0,
+      stampsRequired: rewardSystemType !== 'POINTS' ? 1 : 0,
+      outputType: 'VOUCHER',
+      voucherId: undefined,
+      productId: undefined,
+      tierUpgradeId: undefined,
       minimumSpend: 0,
-      maxRedemptionsPerCustomer: undefined,
-      maxTotalRedemptions: undefined,
       isActive: true,
-      applicationMethod: 'AUTOMATIC',
-      membershipTierId: undefined,
     });
     setCurrentRule(null);
     setIsDialogOpen(true);
@@ -179,16 +202,15 @@ export default function RedemptionRulesList({
     form.reset({
       name: rule.name,
       description: rule.description,
-      rewardType: rule.rewardType,
-      pointsCost: rule.pointsCost,
-      stampsCost: rule.stampsCost,
-      monetaryValue: rule.monetaryValue,
+      ruleType: rule.ruleType,
+      pointsRequired: rule.pointsRequired,
+      stampsRequired: rule.stampsRequired,
+      outputType: rule.outputType,
+      voucherId: rule.voucherId,
+      productId: rule.productId,
+      tierUpgradeId: rule.tierUpgradeId,
       minimumSpend: rule.minimumSpend,
-      maxRedemptionsPerCustomer: rule.maxRedemptionsPerCustomer,
-      maxTotalRedemptions: rule.maxTotalRedemptions,
       isActive: rule.isActive,
-      applicationMethod: rule.applicationMethod,
-      membershipTierId: rule.membershipTierId,
     });
     setCurrentRule(rule);
     setIsDialogOpen(true);
@@ -216,37 +238,50 @@ export default function RedemptionRulesList({
     setIsDeleteDialogOpen(true);
   };
 
-  const getRewardTypeLabel = (type: string) => {
+  const getRuleTypeLabel = (type: string) => {
     switch (type) {
-      case 'POINTS': return 'Points';
-      case 'DISCOUNT': return 'Discount';
-      case 'FREEBIE': return 'Free Item';
-      case 'CASH_BACK': return 'Cash Back';
-      case 'TIER_UPGRADE': return 'Tier Upgrade';
-      case 'CUSTOM': return 'Custom Reward';
+      case 'POINTS_TO_VOUCHER': return 'Points to Voucher';
+      case 'STAMPS_TO_VOUCHER': return 'Stamps to Voucher';
+      case 'POINTS_TO_PRODUCT': return 'Points to Product';
+      case 'STAMPS_TO_TIER_UPGRADE': return 'Stamps to Tier Upgrade';
       default: return type;
     }
   };
 
-  const getApplicationMethodLabel = (method: string) => {
-    switch (method) {
-      case 'AUTOMATIC': return 'Automatic';
-      case 'CODE': return 'Code Entry';
-      case 'QR_CODE': return 'QR Code';
-      default: return method;
+  const getOutputTypeLabel = (type: string) => {
+    switch (type) {
+      case 'VOUCHER': return 'Voucher';
+      case 'PRODUCT': return 'Product';
+      case 'TIER_UPGRADE': return 'Tier Upgrade';
+      default: return type;
     }
   };
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
+      // Make sure we're correctly mapping rule type and output type
+      const formData = {
+        ...data,
+        // Ensure we always send the required fields
+        ruleType: data.ruleType,
+        outputType: data.outputType,
+        // Set points or stamps based on rule type
+        pointsRequired: data.ruleType.includes('POINTS') ? data.pointsRequired : undefined,
+        stampsRequired: data.ruleType.includes('STAMPS') ? data.stampsRequired : undefined,
+        // Set the appropriate ID based on output type
+        voucherId: data.outputType === 'VOUCHER' ? data.voucherId : undefined,
+        productId: data.outputType === 'PRODUCT' ? data.productId : undefined,
+        tierUpgradeId: data.outputType === 'TIER_UPGRADE' ? data.tierUpgradeId : undefined,
+      };
+      
       if (currentRule) {
         // Update existing redemption rule
-        await axios.patch(`/api/projects/${projectId}/redemption-rules/${currentRule.id}`, data);
+        await axios.patch(`/api/projects/${projectId}/redemption-rules/${currentRule.id}`, formData);
         toast.success(`${data.name} redemption rule updated successfully`);
       } else {
         // Create new redemption rule
-        await axios.post(`/api/projects/${projectId}/redemption-rules`, data);
+        await axios.post(`/api/projects/${projectId}/redemption-rules`, formData);
         toast.success(`${data.name} redemption rule created successfully`);
       }
       
@@ -299,7 +334,7 @@ export default function RedemptionRulesList({
                       <th className="p-2 pl-4 font-medium">Name</th>
                       <th className="p-2 font-medium">Type</th>
                       <th className="p-2 font-medium">Cost</th>
-                      <th className="p-2 font-medium">Method</th>
+                      <th className="p-2 font-medium">Output</th>
                       <th className="p-2 font-medium">Min. Spend</th>
                       <th className="p-2 font-medium">Status</th>
                       <th className="p-2 font-medium">Actions</th>
@@ -316,23 +351,23 @@ export default function RedemptionRulesList({
                         </td>
                         <td className="p-2">
                           <Badge variant="outline">
-                            {getRewardTypeLabel(rule.rewardType)}
+                            {getRuleTypeLabel(rule.ruleType)}
                           </Badge>
                         </td>
                         <td className="p-2">
                           {rewardSystemType === 'POINTS' || rewardSystemType === 'BOTH' ? (
-                            <div className="whitespace-nowrap">{rule.pointsCost} points</div>
+                            <div className="whitespace-nowrap">{rule.pointsRequired} points</div>
                           ) : rewardSystemType === 'STAMPS' ? (
-                            <div className="whitespace-nowrap">{rule.stampsCost} stamps</div>
+                            <div className="whitespace-nowrap">{rule.stampsRequired} stamps</div>
                           ) : (
                             <div className="whitespace-nowrap">
-                              {rule.pointsCost} points / {rule.stampsCost} stamps
+                              {rule.pointsRequired} points / {rule.stampsRequired} stamps
                             </div>
                           )}
                         </td>
                         <td className="p-2">
                           <Badge variant="secondary">
-                            {getApplicationMethodLabel(rule.applicationMethod)}
+                            {getOutputTypeLabel(rule.outputType)}
                           </Badge>
                         </td>
                         <td className="p-2">
@@ -373,7 +408,7 @@ export default function RedemptionRulesList({
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {currentRule ? `Edit ${currentRule.name}` : 'Create a New Redemption Rule'}
@@ -419,30 +454,28 @@ export default function RedemptionRulesList({
               
               <FormField
                 control={form.control}
-                name="rewardType"
+                name="ruleType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reward Type</FormLabel>
+                    <FormLabel>Rule Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select reward type" />
+                          <SelectValue placeholder="Select rule type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="DISCOUNT">Discount</SelectItem>
-                        <SelectItem value="FREEBIE">Free Item</SelectItem>
-                        <SelectItem value="CASH_BACK">Cash Back</SelectItem>
-                        <SelectItem value="POINTS">Points</SelectItem>
-                        <SelectItem value="TIER_UPGRADE">Tier Upgrade</SelectItem>
-                        <SelectItem value="CUSTOM">Custom Reward</SelectItem>
+                        <SelectItem value="POINTS_TO_VOUCHER">Points to Voucher</SelectItem>
+                        <SelectItem value="STAMPS_TO_VOUCHER">Stamps to Voucher</SelectItem>
+                        <SelectItem value="POINTS_TO_PRODUCT">Points to Product</SelectItem>
+                        <SelectItem value="STAMPS_TO_TIER_UPGRADE">Stamps to Tier Upgrade</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      What kind of reward will the customer receive
+                      What kind of rule will be applied
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -453,10 +486,10 @@ export default function RedemptionRulesList({
                 {(rewardSystemType === 'POINTS' || rewardSystemType === 'BOTH') && (
                   <FormField
                     control={form.control}
-                    name="pointsCost"
+                    name="pointsRequired"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Points Cost</FormLabel>
+                        <FormLabel>Points Required</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -477,10 +510,10 @@ export default function RedemptionRulesList({
                 {(rewardSystemType === 'STAMPS' || rewardSystemType === 'BOTH') && (
                   <FormField
                     control={form.control}
-                    name="stampsCost"
+                    name="stampsRequired"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stamps Cost</FormLabel>
+                        <FormLabel>Stamps Required</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -499,28 +532,172 @@ export default function RedemptionRulesList({
                 )}
               </div>
               
-              {(rewardType === 'DISCOUNT' || rewardType === 'CASH_BACK') && (
+              <FormField
+                control={form.control}
+                name="outputType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Output Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select output type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="VOUCHER">Voucher</SelectItem>
+                        <SelectItem value="PRODUCT">Product</SelectItem>
+                        <SelectItem value="TIER_UPGRADE">Tier Upgrade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      What kind of output will the customer receive
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {outputType === 'VOUCHER' && (
                 <FormField
                   control={form.control}
-                  name="monetaryValue"
+                  name="voucherId"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Select Voucher</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? vouchers.find((voucher) => voucher.id === field.value)?.name || "Select voucher"
+                                : "Select voucher"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search vouchers..." />
+                            <CommandEmpty>No voucher found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {vouchers.map((voucher) => (
+                                <CommandItem
+                                  value={voucher.name}
+                                  key={voucher.id}
+                                  onSelect={() => {
+                                    form.setValue("voucherId", voucher.id);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      voucher.id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {voucher.name} ({voucher.code})
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>
+                        Select which voucher will be granted
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {outputType === 'PRODUCT' && (
+                <FormField
+                  control={form.control}
+                  name="productId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        {rewardType === 'DISCOUNT' ? 'Discount Amount' : 'Cash Back Amount'}
-                      </FormLabel>
+                      <FormLabel>Product ID</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...field}
-                          />
-                          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                            $
-                          </div>
-                        </div>
+                        <Input
+                          placeholder="Enter product ID"
+                          {...field}
+                        />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {outputType === 'TIER_UPGRADE' && (
+                <FormField
+                  control={form.control}
+                  name="tierUpgradeId"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Select Membership Tier</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? membershipTiers.find((tier) => tier.id === field.value)?.name || "Select membership tier"
+                                : "Select membership tier"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search tiers..." />
+                            <CommandEmpty>No membership tier found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {membershipTiers.map((tier) => (
+                                <CommandItem
+                                  value={tier.name}
+                                  key={tier.id}
+                                  onSelect={() => {
+                                    form.setValue("tierUpgradeId", tier.id);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      tier.id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {tier.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>
+                        Select which membership tier the customer will be upgraded to
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -553,125 +730,6 @@ export default function RedemptionRulesList({
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="applicationMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Application Method</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select application method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="AUTOMATIC">Apply Automatically</SelectItem>
-                        <SelectItem value="CODE">Code Entry Required</SelectItem>
-                        <SelectItem value="QR_CODE">QR Code Scan Required</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      How this reward will be applied
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="maxRedemptionsPerCustomer"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Per Customer</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="1"
-                          min="0"
-                          placeholder="Unlimited"
-                          value={field.value || ''}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Max redemptions per customer
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="maxTotalRedemptions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Total Redemptions</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="1"
-                          min="0"
-                          placeholder="Unlimited"
-                          value={field.value || ''}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Overall redemption limit
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {membershipTiers.length > 0 && (
-                <FormField
-                  control={form.control}
-                  name="membershipTierId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Required Membership Tier</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ''}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Available to all tiers" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="">Available to all tiers</SelectItem>
-                          {membershipTiers.map((tier) => (
-                            <SelectItem key={tier.id} value={tier.id}>
-                              {tier.name} and above
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Restrict this redemption rule to specific membership tier(s)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
               
               <FormField
                 control={form.control}
