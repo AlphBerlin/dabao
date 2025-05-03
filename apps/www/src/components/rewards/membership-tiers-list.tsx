@@ -58,16 +58,15 @@ const membershipTierSchema = z.object({
   thresholdPoints: z.coerce.number().int().min(0, 'Must be a non-negative number'),
   thresholdSpend: z.coerce.number().min(0, 'Must be a non-negative number'),
   multiplier: z.coerce.number().min(1, 'Multiplier must be at least 1'),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6})$/, 'Must be a valid hex color'),
   benefits: z.array(z.string()).optional(),
-  isDefault: z.boolean().default(false),
-  isActive: z.boolean().default(true),
 });
 
 type MembershipTier = z.infer<typeof membershipTierSchema> & { 
   id: string;
   createdAt: string;
   updatedAt: string;
+  level?: number;
+  memberCount?: number;
 };
 
 export default function MembershipTiersList({
@@ -93,10 +92,7 @@ export default function MembershipTiersList({
       thresholdPoints: 0,
       thresholdSpend: 0,
       multiplier: 1,
-      color: '#3B82F6',
       benefits: [''],
-      isDefault: false,
-      isActive: true,
     },
   });
 
@@ -109,7 +105,19 @@ export default function MembershipTiersList({
     setLoadingState('loading');
     try {
       const response = await axios.get(`/api/projects/${projectId}/memberships/tiers`);
-      setTiers(response.data.tiers);
+      
+      // Ensure we have the data in the correct format
+      if (response.data.tiers) {
+        const formattedTiers = response.data.tiers.map((tier: any) => {
+          return {
+            ...tier,
+            benefits: Array.isArray(tier.benefits) ? tier.benefits : [],
+          };
+        });
+        setTiers(formattedTiers);
+      } else {
+        setTiers([]);
+      }
       setLoadingState('success');
     } catch (error) {
       console.error('Failed to fetch membership tiers:', error);
@@ -125,10 +133,7 @@ export default function MembershipTiersList({
       thresholdPoints: 0,
       thresholdSpend: 0,
       multiplier: 1,
-      color: '#3B82F6',
-      benefits: [''],
-      isDefault: false,
-      isActive: true,
+      benefits: ['']
     });
     setBenefits(['']);
     setCurrentTier(null);
@@ -136,18 +141,18 @@ export default function MembershipTiersList({
   };
 
   const openEditDialog = (tier: MembershipTier) => {
+    // Ensure benefits is an array
+    const tierBenefits = Array.isArray(tier.benefits) ? tier.benefits : [];
+    
     form.reset({
       name: tier.name,
       description: tier.description,
       thresholdPoints: tier.thresholdPoints,
       thresholdSpend: tier.thresholdSpend,
       multiplier: tier.multiplier,
-      color: tier.color,
-      benefits: tier.benefits || [''],
-      isDefault: tier.isDefault,
-      isActive: tier.isActive,
+      benefits: tierBenefits.length > 0 ? tierBenefits : ['']
     });
-    setBenefits(tier.benefits || ['']);
+    setBenefits(tierBenefits.length > 0 ? tierBenefits : ['']);
     setCurrentTier(tier);
     setIsDialogOpen(true);
   };
@@ -161,9 +166,9 @@ export default function MembershipTiersList({
       // Refresh data
       fetchMembershipTiers();
       setIsDeleteDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete membership tier:', error);
-      toast.error('Failed to delete membership tier');
+      toast.error(error.response?.data?.error || 'Failed to delete membership tier');
     } finally {
       setIsLoading(false);
     }
@@ -188,33 +193,45 @@ export default function MembershipTiersList({
     const newBenefits = [...benefits];
     newBenefits[index] = value;
     setBenefits(newBenefits);
+    
+    // Update the form value as well
+    const currentBenefits = form.getValues().benefits || [];
+    const updatedBenefits = [...currentBenefits];
+    updatedBenefits[index] = value;
+    form.setValue('benefits', updatedBenefits);
   };
 
   const moveUp = async (index: number) => {
     if (index <= 0) return;
     try {
+      setIsLoading(true);
       await axios.post(`/api/projects/${projectId}/memberships/tiers/reorder`, {
         tierId: tiers[index].id,
         direction: 'up'
       });
       fetchMembershipTiers();
       toast.success('Membership tier order updated');
-    } catch (error) {
-      toast.error('Failed to update tier order');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update tier order');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const moveDown = async (index: number) => {
     if (index >= tiers.length - 1) return;
     try {
+      setIsLoading(true);
       await axios.post(`/api/projects/${projectId}/memberships/tiers/reorder`, {
         tierId: tiers[index].id,
         direction: 'down'
       });
       fetchMembershipTiers();
       toast.success('Membership tier order updated');
-    } catch (error) {
-      toast.error('Failed to update tier order');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update tier order');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -227,11 +244,11 @@ export default function MembershipTiersList({
     try {
       if (currentTier) {
         // Update existing tier
-        await axios.patch(`/api/projects/${projectId}/memberships/tiers/${currentTier.id}`, finalData);
+        const response = await axios.patch(`/api/projects/${projectId}/memberships/tiers/${currentTier.id}`, finalData);
         toast.success(`${finalData.name} membership tier updated`);
       } else {
         // Create new tier
-        await axios.post(`/api/projects/${projectId}/memberships/tiers`, finalData);
+        const response = await axios.post(`/api/projects/${projectId}/memberships/tiers`, finalData);
         toast.success(`${finalData.name} membership tier created`);
       }
       
@@ -240,7 +257,22 @@ export default function MembershipTiersList({
       setIsDialogOpen(false);
     } catch (error: any) {
       console.error('Failed to save membership tier:', error);
-      toast.error(error.response?.data?.error || 'Failed to save membership tier');
+      const errorMessage = error.response?.data?.error || 
+        (error.response?.data?.details && 'Validation error. Please check your inputs.') || 
+        'Failed to save membership tier';
+      toast.error(errorMessage);
+      
+      // Show detailed validation errors if available
+      if (error.response?.data?.details) {
+        const details = error.response.data.details;
+        for (const field in details) {
+          if (details[field]?._errors) {
+            details[field]._errors.forEach((err: string) => {
+              toast.error(`${field}: ${err}`);
+            });
+          }
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -281,13 +313,11 @@ export default function MembershipTiersList({
                 <div
                   key={tier.id}
                   className="flex items-center justify-between p-4 border rounded-lg"
-                  style={{ borderLeftColor: tier.color, borderLeftWidth: '4px' }}
+                  style={{ borderLeftWidth: '4px' }}
                 >
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{tier.name}</h3>
-                      {tier.isDefault && <Badge variant="outline">Default</Badge>}
-                      {!tier.isActive && <Badge variant="outline">Inactive</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">{tier.description}</p>
                     <div className="mt-2 text-sm">
@@ -320,7 +350,7 @@ export default function MembershipTiersList({
                         variant="ghost"
                         size="icon"
                         onClick={() => moveUp(index)}
-                        disabled={index === 0}
+                        disabled={index === 0 || isLoading}
                       >
                         <ChevronUp className="h-4 w-4" />
                       </Button>
@@ -328,7 +358,7 @@ export default function MembershipTiersList({
                         variant="ghost"
                         size="icon"
                         onClick={() => moveDown(index)}
-                        disabled={index === tiers.length - 1}
+                        disabled={index === tiers.length - 1 || isLoading}
                       >
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -337,6 +367,7 @@ export default function MembershipTiersList({
                       variant="ghost"
                       size="icon"
                       onClick={() => openEditDialog(tier)}
+                      disabled={isLoading}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -344,7 +375,7 @@ export default function MembershipTiersList({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDeleteDialogOpen(tier)}
-                      disabled={tier.isDefault}
+                      disabled={ isLoading}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -455,27 +486,9 @@ export default function MembershipTiersList({
                     </FormItem>
                   )}
                 />
+                </div>
                 
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Color</FormLabel>
-                      <div className="flex gap-2">
-                        <div 
-                          className="w-8 h-8 rounded-full border"
-                          style={{ backgroundColor: field.value }}
-                        />
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                
               
               <div className="space-y-2">
                 <Label>Benefits</Label>
@@ -510,49 +523,7 @@ export default function MembershipTiersList({
                 </Button>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="isDefault"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Default Tier</FormLabel>
-                        <FormDescription>
-                          Set as the starting tier for new customers
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
-                        <FormDescription>
-                          Enable or disable this tier
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+            
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
