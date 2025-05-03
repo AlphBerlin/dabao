@@ -83,39 +83,48 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
         </Button>
         
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-4 w-4" />
-              </div>
-              <span className="font-medium">Account</span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/dashboard/profile" className="cursor-pointer w-full flex items-center">
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="/dashboard/settings" className="cursor-pointer w-full flex items-center">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/api/auth/signout" className="cursor-pointer w-full flex items-center text-red-500 focus:text-red-500">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
-              </a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-4 w-4" />
+          </div>
+          <span className="font-medium">Account</span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <a 
+            href="/dashboard/profile" 
+            className="cursor-pointer w-full flex items-center no-underline"
+          >
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a 
+            href="/dashboard/settings" 
+            className="cursor-pointer w-full flex items-center no-underline"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild variant="destructive">
+          <a 
+            href="/api/auth/signout" 
+            className="cursor-pointer w-full flex items-center text-red-500 hover:text-red-600 no-underline"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
       </div>
     </header>
   );

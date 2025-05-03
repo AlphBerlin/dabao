@@ -2,161 +2,173 @@
 
 @import "tw-animate-css";
 
-@import './preflight.css' layer(base);
-
 @custom-variant dark (&:is(.dark *));
+
+@layer base {
+  *,::before,::after,::backdrop {
+    --tw-shadow: 0 2 #fd383800;
+    --tw-shadow-color: initial;
+    --tw-inset-shadow: 0 0 #0000;
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: initial;
+  }
+}
+
 :root {
   /* Base colors */
-  --background: 0 0% 100%;
-  --foreground: 146 10% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 146 10% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 146 10% 15%;
+  --background: 100% 0 0;
+  --foreground: 0.3 0.015 146;
+  --card: 100% 0 0;
+  --card-foreground: 0.3 0.015 146;
+  --popover: 100% 0 0;
+  --popover-foreground: 0.3 0.015 146;
 
   /* Primary - Grab green */
-  --primary: 142 76% 36%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 0.7 0.15 142;
+  --primary-foreground: 100% 0 0;
 
   /* Secondary - complementary shade */
-  --secondary: 143 55% 95%;
-  --secondary-foreground: 146 30% 20%;
+  --secondary: 0.97 0.03 143;
+  --secondary-foreground: 0.35 0.04 146;
 
   /* Muted */
-  --muted: 143 40% 92%;
-  --muted-foreground: 146 10% 40%;
+  --muted: 0.94 0.02 143;
+  --muted-foreground: 0.5 0.02 146;
 
   /* Accent */
-  --accent: 150 60% 90%;
-  --accent-foreground: 146 30% 20%;
+  --accent: 0.92 0.04 150;
+  --accent-foreground: 0.35 0.04 146;
 
   /* Destructive */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0.65 0.2 0;
+  --destructive-foreground: 0.98 0 0;
 
   /* Borders and inputs */
-  --border: 143 30% 86%;
-  --input: 143 30% 86%;
-  --ring: 142 76% 36%;
+  --border: 0.88 0.01 143;
+  --input: 0.88 0.01 143;
+  --ring: 0.7 0.15 142;
 
   /* Charts */
-  --chart-1: 142 76% 36%;
-  --chart-2: 160 70% 40%;
-  --chart-3: 125 65% 45%;
-  --chart-4: 170 60% 50%;
-  --chart-5: 100 55% 55%;
+  --chart-1: 0.7 0.15 142;
+  --chart-2: 0.68 0.13 160;
+  --chart-3: 0.72 0.14 125;
+  --chart-4: 0.7 0.1 170;
+  --chart-5: 0.75 0.16 100;
 
   /* Radius */
   --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar-background: 143 55% 97%;
-  --sidebar-foreground: 146 15% 25%;
-  --sidebar-primary: 142 76% 36%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 143 40% 92%;
-  --sidebar-accent-foreground: 146 30% 20%;
-  --sidebar-border: 143 30% 86%;
-  --sidebar-ring: 142 76% 36%;
-  --sidebar: hsl(0 0% 98%);
+  --sidebar-background: 0.97 0.03 143;
+  --sidebar-foreground: 0.35 0.025 146;
+  --sidebar-primary: 0.7 0.15 142;
+  --sidebar-primary-foreground: 100% 0 0;
+  --sidebar-accent: 0.94 0.02 143;
+  --sidebar-accent-foreground: 0.35 0.04 146;
+  --sidebar-border: 0.88 0.01 143;
+  --sidebar-ring: 0.7 0.15 142;
+  --sidebar: oklch(0.98 0 0);
 }
 
 .dark {
   /* Base colors */
-  --background: 146 20% 8%;
-  --foreground: 143 15% 95%;
-  --card: 146 20% 10%;
-  --card-foreground: 143 15% 95%;
-  --popover: 146 20% 8%;
-  --popover-foreground: 143 15% 95%;
+  --background: 0.16 0.025 146;
+  --foreground: 0.92 0.02 143;
+  --card: 0.18 0.025 146;
+  --card-foreground: 0.92 0.02 143;
+  --popover: 0.16 0.025 146;
+  --popover-foreground: 0.92 0.02 143;
 
   /* Primary - Grab green */
-  --primary: 142 70% 45%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 0.75 0.15 142;
+  --primary-foreground: 100% 0 0;
 
   /* Secondary */
-  --secondary: 146 15% 18%;
-  --secondary-foreground: 143 15% 95%;
+  --secondary: 0.25 0.02 146;
+  --secondary-foreground: 0.92 0.02 143;
 
   /* Muted */
-  --muted: 146 15% 18%;
-  --muted-foreground: 143 10% 75%;
+  --muted: 0.25 0.02 146;
+  --muted-foreground: 0.8 0.015 143;
 
   /* Accent */
-  --accent: 146 15% 25%;
-  --accent-foreground: 143 15% 95%;
+  --accent: 0.3 0.03 146;
+  --accent-foreground: 0.92 0.02 143;
 
   /* Destructive */
-  --destructive: 0 65% 35%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0.4 0.15 0;
+  --destructive-foreground: 0.98 0 0;
 
   /* Borders and inputs */
-  --border: 146 15% 18%;
-  --input: 146 15% 18%;
-  --ring: 142 70% 45%;
+  --border: 0.25 0.02 146;
+  --input: 0.25 0.02 146;
+  --ring: 0.75 0.15 142;
 
   /* Charts */
-  --chart-1: 142 70% 45%;
-  --chart-2: 160 65% 40%;
-  --chart-3: 125 60% 35%;
-  --chart-4: 170 55% 50%;
-  --chart-5: 100 50% 45%;
+  --chart-1: 0.75 0.15 142;
+  --chart-2: 0.68 0.12 160;
+  --chart-3: 0.65 0.13 125;
+  --chart-4: 0.7 0.09 170;
+  --chart-5: 0.65 0.14 100;
 
   /* Sidebar */
-  --sidebar-background: 146 25% 12%;
-  --sidebar-foreground: 143 15% 95%;
-  --sidebar-primary: 142 70% 45%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 146 20% 20%;
-  --sidebar-accent-foreground: 143 15% 95%;
-  --sidebar-border: 146 20% 20%;
-  --sidebar-ring: 142 70% 45%;
-  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-background: 0.2 0.03 146;
+  --sidebar-foreground: 0.92 0.02 143;
+  --sidebar-primary: 0.75 0.15 142;
+  --sidebar-primary-foreground: 100% 0 0;
+  --sidebar-accent: 0.28 0.025 146;
+  --sidebar-accent-foreground: 0.92 0.02 143;
+  --sidebar-border: 0.28 0.025 146;
+  --sidebar-ring: 0.75 0.15 142;
+  --sidebar: oklch(0.13 0.01 240);
 }
 
-@theme {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+@theme inline {
+  --color-background: oklch(var(--background));
+  --color-foreground: oklch(var(--foreground));
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card: oklch(var(--card));
+  --color-card-foreground: oklch(var(--card-foreground));
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover: oklch(var(--popover));
+  --color-popover-foreground: oklch(var(--popover-foreground));
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary: oklch(var(--primary));
+  --color-primary-foreground: oklch(var(--primary-foreground));
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary: oklch(var(--secondary));
+  --color-secondary-foreground: oklch(var(--secondary-foreground));
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted: oklch(var(--muted));
+  --color-muted-foreground: oklch(var(--muted-foreground));
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent: oklch(var(--accent));
+  --color-accent-foreground: oklch(var(--accent-foreground));
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive: oklch(var(--destructive));
+  --color-destructive-foreground: oklch(var(--destructive-foreground));
 
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  --color-border: oklch(var(--border));
+  --color-input: oklch(var(--input));
+  --color-ring: oklch(var(--ring));
 
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
+  --color-chart-1: oklch(var(--chart-1));
+  --color-chart-2: oklch(var(--chart-2));
+  --color-chart-3: oklch(var(--chart-3));
+  --color-chart-4: oklch(var(--chart-4));
+  --color-chart-5: oklch(var(--chart-5));
 
-  --color-sidebar: hsl(var(--sidebar-background));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-sidebar: oklch(var(--sidebar-background));
+  --color-sidebar-foreground: oklch(var(--sidebar-foreground));
+  --color-sidebar-primary: oklch(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: oklch(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: oklch(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: oklch(var(--sidebar-accent-foreground));
+  --color-sidebar-border: oklch(var(--sidebar-border));
+  --color-sidebar-ring: oklch(var(--sidebar-ring));
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -184,7 +196,7 @@
 }
 
 /*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  The default border color has changed to currentColor in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
   looks the same as it did with Tailwind CSS v3.
 
@@ -197,23 +209,22 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-border, currentColor);
   }
 }
 
-
 /* Enhanced glass effect */
 .glass {
-  background: rgba(255, 255, 255, 0.1);
+  background: oklch(100% 0 0 / 0.1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid oklch(100% 0 0 / 0.1);
+  box-shadow: 0 4px 30px oklch(0% 0 0 / 0.05);
 }
 
 .dark .glass {
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: oklch(0% 0 0 / 0.2);
+  border-bottom: 1px solid oklch(100% 0 0 / 0.05);
 }
 
 /* Section transitions */
@@ -225,7 +236,7 @@ section {
 
 /* Gradient text effect */
 .text-gradient {
-  background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--chart-2)));
+  background-image: linear-gradient(90deg, oklch(var(--primary)), oklch(var(--chart-2)));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -248,8 +259,8 @@ section {
   height: 200%;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0) 70%
+    oklch(100% 0 0 / 0.1) 0%,
+    oklch(100% 0 0 / 0) 70%
   );
   opacity: 0;
   transform: scale(0.5);
@@ -297,7 +308,7 @@ section {
 
 @layer utilities {
   body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   /* Improved animation curve for all animated elements */
