@@ -28,10 +28,19 @@ import {
 import { Input } from '@workspace/ui/components/input';
 import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
 import { Switch } from '@workspace/ui/components/switch';
+import { Badge } from '@workspace/ui/components/badge';
+import { Separator } from '@workspace/ui/components/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select';
 
 // Schema for reward system form
 const rewardPreferencesSchema = z.object({
-  rewardSystemType: z.enum(['POINTS', 'STAMPS']),
+  rewardSystemType: z.enum(['POINTS', 'STAMPS', 'BOTH']),
   pointsName: z.string().min(1, 'Points name is required').max(50).optional(),
   pointsAbbreviation: z.string().min(1, 'Abbreviation is required').max(10).optional(),
   pointsToStampRatio: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
@@ -81,11 +90,16 @@ export default function RewardSystemSettings({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Reward System Configuration</CardTitle>
-        <CardDescription>
-          Choose between a point-based or stamp-based reward system for your customers.
-          You can only select one system type per project.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Reward System Configuration</CardTitle>
+            <CardDescription>
+              Choose between a point-based or stamp-based reward system for your customers.
+              You can only select one system type per project.
+            </CardDescription>
+          </div>
+          {preferences && <Badge variant="outline">Active</Badge>}
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -94,46 +108,36 @@ export default function RewardSystemSettings({
               control={form.control}
               name="rewardSystemType"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormLabel>Reward System Type</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="POINTS" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Point-based System
-                        </FormLabel>
-                        <FormDescription className="text-xs">
-                          Customers earn points with purchases and can redeem them for rewards
-                        </FormDescription>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="STAMPS" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Stamp-based System
-                        </FormLabel>
-                        <FormDescription className="text-xs">
-                          Customers collect stamps on a card and redeem completed cards for rewards
-                        </FormDescription>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reward system type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="POINTS">Points Only</SelectItem>
+                      <SelectItem value="STAMPS">Stamps Only</SelectItem>
+                      <SelectItem value="BOTH">Both Points & Stamps</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Choose whether to use points, stamps, or both for your rewards program
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {rewardSystemType === 'POINTS' && (
+            {(rewardSystemType === 'POINTS' || rewardSystemType === 'BOTH') && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Separator />
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="pointsName"
@@ -141,10 +145,10 @@ export default function RewardSystemSettings({
                       <FormItem>
                         <FormLabel>Points Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Points" {...field} />
+                          <Input placeholder="Points" {...field} disabled={isLoading} />
                         </FormControl>
                         <FormDescription>
-                          What you call your loyalty points (e.g. Stars, Coins)
+                          What to call your points (e.g., Stars, Credits, Coins)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -158,10 +162,10 @@ export default function RewardSystemSettings({
                       <FormItem>
                         <FormLabel>Points Abbreviation</FormLabel>
                         <FormControl>
-                          <Input placeholder="pts" {...field} />
+                          <Input placeholder="pts" {...field} disabled={isLoading} />
                         </FormControl>
                         <FormDescription>
-                          Short form (e.g. pts, ★)
+                          Short form of your points name (e.g., pts, ★)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -174,22 +178,18 @@ export default function RewardSystemSettings({
                   name="pointsExpiryDays"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Points Expiry</FormLabel>
+                      <FormLabel>Points Expiry (Days)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          min="0"
                           placeholder="365"
                           {...field}
-                          value={field.value === null ? '' : field.value}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? null : parseInt(e.target.value);
-                            field.onChange(value);
-                          }}
+                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))}
+                          disabled={isLoading}
                         />
                       </FormControl>
                       <FormDescription>
-                        Number of days until points expire (leave empty for no expiry)
+                        Number of days after which points expire (leave empty for no expiry)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -198,58 +198,54 @@ export default function RewardSystemSettings({
               </>
             )}
 
-            {rewardSystemType === 'STAMPS' && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="stampsPerCard"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stamps Per Card</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="100"
-                          placeholder="10"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Number of stamps needed to complete a card
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            {(rewardSystemType === 'STAMPS' || rewardSystemType === 'BOTH') && (
+              <>
+                <Separator />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="stampsPerCard"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stamps Per Card</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="10" {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormDescription>
+                          Number of stamps needed to complete a card
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="pointsToStampRatio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Points to Stamp Ratio</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="10"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        How many points equal one stamp (for conversion)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                  {rewardSystemType === 'BOTH' && (
+                    <FormField
+                      control={form.control}
+                      name="pointsToStampRatio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Points to Stamp Conversion Ratio</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="10" {...field} disabled={isLoading} />
+                          </FormControl>
+                          <FormDescription>
+                            How many points equal one stamp (e.g., 10 points = 1 stamp)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-              </div>
+                </div>
+              </>
             )}
 
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Settings'}
-            </Button>
+            <div className="pt-4">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

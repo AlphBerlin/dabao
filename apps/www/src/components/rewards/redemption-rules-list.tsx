@@ -1,23 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { PlusCircle, Edit, Trash2, RefreshCw, Settings2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { PlusCircle, Edit, Trash2, Gift } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
-import { Button } from '@workspace/ui/components/button';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
+import { Button } from '@workspace/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -25,8 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from '@workspace/ui/components/dialog';
 import {
   Form,
@@ -37,17 +33,20 @@ import {
   FormLabel,
   FormMessage,
 } from '@workspace/ui/components/form';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@workspace/ui/components/table';
 import { Input } from '@workspace/ui/components/input';
 import { Textarea } from '@workspace/ui/components/textarea';
+import { Switch } from '@workspace/ui/components/switch';
+import { Badge } from '@workspace/ui/components/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@workspace/ui/components/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -55,216 +54,557 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
-import { Badge } from '@workspace/ui/components/badge';
-import { EmptyState } from '@/components/empty-state';
-import { Switch } from '@workspace/ui/components/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@workspace/ui/components/tooltip';
 
-// Schema for redemption rule creation
+// Define schema for redemption rule
 const redemptionRuleSchema = z.object({
-  name: z.string().min(1, 'Rule name is required').max(100),
-  description: z.string().optional(),
-  ruleType: z.string(),
-  pointsRequired: z.coerce.number().int().min(1).optional(),
-  stampsRequired: z.coerce.number().int().min(1).optional(),
-  outputType: z.enum(['VOUCHER', 'PRODUCT', 'TIER_UPGRADE']),
-  voucherId: z.string().optional(),
-  productId: z.string().optional(),
-  tierUpgradeId: z.string().optional(),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(1, 'Description is required'),
+  rewardType: z.enum(['POINTS', 'DISCOUNT', 'FREEBIE', 'CASH_BACK', 'TIER_UPGRADE', 'CUSTOM']),
+  pointsCost: z.coerce.number().int().min(0, 'Must be non-negative'),
+  stampsCost: z.coerce.number().int().min(0, 'Must be non-negative'),
+  monetaryValue: z.coerce.number().min(0, 'Must be non-negative').optional(),
+  minimumSpend: z.coerce.number().min(0, 'Must be non-negative'),
+  maxRedemptionsPerCustomer: z.coerce.number().int().min(0, 'Must be non-negative').optional(),
+  maxTotalRedemptions: z.coerce.number().int().min(0, 'Must be non-negative').optional(),
   isActive: z.boolean().default(true),
+  applicationMethod: z.enum(['AUTOMATIC', 'CODE', 'QR_CODE']),
+  membershipTierId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof redemptionRuleSchema>;
 
+type RedemptionRule = FormValues & {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  redemptionCount: number;
+};
+
+type MembershipTier = {
+  id: string;
+  name: string;
+};
+
 export default function RedemptionRulesList({
   projectId,
-  rewardSystemType
+  rewardSystemType,
 }: {
   projectId: string;
   rewardSystemType: string;
 }) {
-  const router = useRouter();
-  const [rules, setRules] = useState<any[]>([]);
-  const [vouchers, setVouchers] = useState<any[]>([]);
-  const [tiers, setTiers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [rules, setRules] = useState<RedemptionRule[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentRule, setCurrentRule] = useState<RedemptionRule | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([]);
 
-  // Initialize form
   const form = useForm<FormValues>({
     resolver: zodResolver(redemptionRuleSchema),
     defaultValues: {
       name: '',
       description: '',
-      ruleType: rewardSystemType === 'POINTS' ? 'POINTS_TO_VOUCHER' : 'STAMPS_TO_VOUCHER',
-      pointsRequired: rewardSystemType === 'POINTS' ? 100 : undefined,
-      stampsRequired: rewardSystemType === 'STAMPS' ? 10 : undefined,
-      outputType: 'VOUCHER',
+      rewardType: 'DISCOUNT',
+      pointsCost: 0,
+      stampsCost: 0,
+      monetaryValue: 0,
+      minimumSpend: 0,
+      maxRedemptionsPerCustomer: undefined,
+      maxTotalRedemptions: undefined,
       isActive: true,
+      applicationMethod: 'AUTOMATIC',
+      membershipTierId: undefined,
     },
   });
 
-  // Load redemption rules
-  const loadRules = async () => {
-    setIsLoading(true);
+  // Form field watches
+  const rewardType = form.watch('rewardType');
+  const applicationMethod = form.watch('applicationMethod');
+
+  // Fetch redemption rules and membership tiers on component mount
+  useEffect(() => {
+    fetchRedemptionRules();
+    fetchMembershipTiers();
+  }, [projectId]);
+
+  const fetchRedemptionRules = async () => {
+    setLoadingState('loading');
     try {
       const response = await axios.get(`/api/projects/${projectId}/redemption-rules`);
-      setRules(response.data.rules || []);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to load redemption rules');
+      setRules(response.data.rules);
+      setLoadingState('success');
+    } catch (error) {
+      console.error('Failed to fetch redemption rules:', error);
+      toast.error('Failed to load redemption rules');
+      setLoadingState('error');
+    }
+  };
+
+  const fetchMembershipTiers = async () => {
+    try {
+      const response = await axios.get(`/api/projects/${projectId}/memberships/tiers`);
+      setMembershipTiers(response.data.tiers);
+    } catch (error) {
+      console.error('Failed to fetch membership tiers:', error);
+    }
+  };
+
+  const openCreateDialog = () => {
+    form.reset({
+      name: '',
+      description: '',
+      rewardType: 'DISCOUNT',
+      pointsCost: rewardSystemType !== 'STAMPS' ? 100 : 0,
+      stampsCost: rewardSystemType !== 'POINTS' ? 1 : 0,
+      monetaryValue: 0,
+      minimumSpend: 0,
+      maxRedemptionsPerCustomer: undefined,
+      maxTotalRedemptions: undefined,
+      isActive: true,
+      applicationMethod: 'AUTOMATIC',
+      membershipTierId: undefined,
+    });
+    setCurrentRule(null);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (rule: RedemptionRule) => {
+    form.reset({
+      name: rule.name,
+      description: rule.description,
+      rewardType: rule.rewardType,
+      pointsCost: rule.pointsCost,
+      stampsCost: rule.stampsCost,
+      monetaryValue: rule.monetaryValue,
+      minimumSpend: rule.minimumSpend,
+      maxRedemptionsPerCustomer: rule.maxRedemptionsPerCustomer,
+      maxTotalRedemptions: rule.maxTotalRedemptions,
+      isActive: rule.isActive,
+      applicationMethod: rule.applicationMethod,
+      membershipTierId: rule.membershipTierId,
+    });
+    setCurrentRule(rule);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteRule = async () => {
+    if (!currentRule) return;
+    setIsLoading(true);
+    try {
+      await axios.delete(`/api/projects/${projectId}/redemption-rules/${currentRule.id}`);
+      toast.success(`${currentRule.name} redemption rule deleted`);
+      // Refresh data
+      fetchRedemptionRules();
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to delete redemption rule:', error);
+      toast.error('Failed to delete redemption rule');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load vouchers
-  const loadVouchers = async () => {
-    try {
-      const response = await axios.get(`/api/projects/${projectId}/vouchers`);
-      setVouchers(response.data.vouchers || []);
-    } catch (error) {
-      console.error('Error loading vouchers', error);
+  const handleDeleteDialogOpen = (rule: RedemptionRule) => {
+    setCurrentRule(rule);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const getRewardTypeLabel = (type: string) => {
+    switch (type) {
+      case 'POINTS': return 'Points';
+      case 'DISCOUNT': return 'Discount';
+      case 'FREEBIE': return 'Free Item';
+      case 'CASH_BACK': return 'Cash Back';
+      case 'TIER_UPGRADE': return 'Tier Upgrade';
+      case 'CUSTOM': return 'Custom Reward';
+      default: return type;
     }
   };
 
-  // Load membership tiers
-  const loadTiers = async () => {
-    try {
-      const response = await axios.get(`/api/projects/${projectId}/memberships/tiers`);
-      setTiers(response.data.tiers || []);
-    } catch (error) {
-      console.error('Error loading membership tiers', error);
+  const getApplicationMethodLabel = (method: string) => {
+    switch (method) {
+      case 'AUTOMATIC': return 'Automatic';
+      case 'CODE': return 'Code Entry';
+      case 'QR_CODE': return 'QR Code';
+      default: return method;
     }
   };
 
-  // Set the correct rule type options based on reward system type
-  const getRuleTypeOptions = () => {
-    if (rewardSystemType === 'POINTS') {
-      return [
-        { value: 'POINTS_TO_VOUCHER', label: 'Points for Voucher' },
-        { value: 'POINTS_TO_PRODUCT', label: 'Points for Product' }
-      ];
-    } else {
-      return [
-        { value: 'STAMPS_TO_VOUCHER', label: 'Stamps for Voucher' },
-        { value: 'STAMPS_TO_TIER_UPGRADE', label: 'Stamps for Tier Upgrade' }
-      ];
-    }
-  };
-
-  // Load data on component mount
-  useEffect(() => {
-    loadRules();
-    loadVouchers();
-    loadTiers();
-  }, [projectId]);
-
-  // Handle rule type change
-  const handleRuleTypeChange = (value: string) => {
-    // Reset output-related fields when rule type changes
-    form.setValue('voucherId', undefined);
-    form.setValue('productId', undefined);
-    form.setValue('tierUpgradeId', undefined);
-    
-    // Set output type based on rule type
-    if (value === 'POINTS_TO_VOUCHER' || value === 'STAMPS_TO_VOUCHER') {
-      form.setValue('outputType', 'VOUCHER');
-    } else if (value === 'POINTS_TO_PRODUCT') {
-      form.setValue('outputType', 'PRODUCT');
-    } else if (value === 'STAMPS_TO_TIER_UPGRADE') {
-      form.setValue('outputType', 'TIER_UPGRADE');
-    }
-  };
-
-  // Handle form submission
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      // Validate that required fields are present based on output type
-      if (data.outputType === 'VOUCHER' && !data.voucherId) {
-        toast.error('Please select a voucher');
-        setIsLoading(false);
-        return;
+      if (currentRule) {
+        // Update existing redemption rule
+        await axios.patch(`/api/projects/${projectId}/redemption-rules/${currentRule.id}`, data);
+        toast.success(`${data.name} redemption rule updated successfully`);
+      } else {
+        // Create new redemption rule
+        await axios.post(`/api/projects/${projectId}/redemption-rules`, data);
+        toast.success(`${data.name} redemption rule created successfully`);
       }
       
-      if (data.outputType === 'TIER_UPGRADE' && !data.tierUpgradeId) {
-        toast.error('Please select a membership tier');
-        setIsLoading(false);
-        return;
-      }
-      
-      await axios.post(`/api/projects/${projectId}/redemption-rules`, data);
-      toast.success('Redemption rule created successfully');
+      // Refresh data and reset form
+      fetchRedemptionRules();
       setIsDialogOpen(false);
-      form.reset({
-        name: '',
-        description: '',
-        ruleType: rewardSystemType === 'POINTS' ? 'POINTS_TO_VOUCHER' : 'STAMPS_TO_VOUCHER',
-        pointsRequired: rewardSystemType === 'POINTS' ? 100 : undefined,
-        stampsRequired: rewardSystemType === 'STAMPS' ? 10 : undefined,
-        outputType: 'VOUCHER',
-        isActive: true,
-      });
-      loadRules();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create redemption rule');
+      console.error('Failed to save redemption rule:', error);
+      toast.error(error.response?.data?.error || 'Failed to save redemption rule');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get a readable description of what users get when redeeming
-  const getRewardDescription = (rule: any) => {
-    const inputAmount = rule.pointsRequired || rule.stampsRequired;
-    const inputType = rule.pointsRequired ? 'Points' : 'Stamps';
-    
-    if (rule.outputType === 'VOUCHER') {
-      const voucher = vouchers.find(v => v.id === rule.voucherId);
-      return voucher ? `${inputAmount} ${inputType} for ${voucher.name}` : `${inputAmount} ${inputType} for Voucher`;
-    } else if (rule.outputType === 'PRODUCT') {
-      return `${inputAmount} ${inputType} for Product`;
-    } else if (rule.outputType === 'TIER_UPGRADE') {
-      const tier = tiers.find(t => t.id === rule.tierUpgradeId);
-      return tier ? `${inputAmount} ${inputType} for ${tier.name} membership` : `${inputAmount} ${inputType} for Tier Upgrade`;
-    }
-    return 'Unknown reward';
-  };
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Redemption Rules</CardTitle>
-          <CardDescription>
-            Configure how customers can redeem their {rewardSystemType === 'POINTS' ? 'points' : 'stamps'} for rewards.
-          </CardDescription>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Rule
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[525px]">
-            <DialogHeader>
-              <DialogTitle>Create Redemption Rule</DialogTitle>
-              <DialogDescription>
-                Define how customers can redeem their {rewardSystemType === 'POINTS' ? 'points' : 'stamps'} for rewards.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Redemption Rules</CardTitle>
+            <CardDescription>
+              Define how customers can redeem their points or stamps for rewards
+            </CardDescription>
+          </div>
+          <Button onClick={openCreateDialog} variant="outline">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Rule
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingState === 'loading' ? (
+            <div className="py-8 text-center">Loading redemption rules...</div>
+          ) : loadingState === 'error' ? (
+            <div className="py-8 text-center text-red-500">
+              Failed to load redemption rules. Please try again.
+            </div>
+          ) : rules.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">No redemption rules created yet.</p>
+              <Button onClick={openCreateDialog} className="mt-4">
+                Create your first redemption rule
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50 text-left">
+                      <th className="p-2 pl-4 font-medium">Name</th>
+                      <th className="p-2 font-medium">Type</th>
+                      <th className="p-2 font-medium">Cost</th>
+                      <th className="p-2 font-medium">Method</th>
+                      <th className="p-2 font-medium">Min. Spend</th>
+                      <th className="p-2 font-medium">Status</th>
+                      <th className="p-2 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rules.map((rule) => (
+                      <tr key={rule.id} className="border-b">
+                        <td className="p-2 pl-4">
+                          <div>
+                            <div className="font-medium">{rule.name}</div>
+                            <div className="text-xs text-muted-foreground truncate max-w-xs">{rule.description}</div>
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <Badge variant="outline">
+                            {getRewardTypeLabel(rule.rewardType)}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          {rewardSystemType === 'POINTS' || rewardSystemType === 'BOTH' ? (
+                            <div className="whitespace-nowrap">{rule.pointsCost} points</div>
+                          ) : rewardSystemType === 'STAMPS' ? (
+                            <div className="whitespace-nowrap">{rule.stampsCost} stamps</div>
+                          ) : (
+                            <div className="whitespace-nowrap">
+                              {rule.pointsCost} points / {rule.stampsCost} stamps
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <Badge variant="secondary">
+                            {getApplicationMethodLabel(rule.applicationMethod)}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          {rule.minimumSpend > 0 ? `$${rule.minimumSpend.toFixed(2)}` : '-'}
+                        </td>
+                        <td className="p-2">
+                          <Badge variant={rule.isActive ? 'default' : 'secondary'}>
+                            {rule.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(rule)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteDialogOpen(rule)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {currentRule ? `Edit ${currentRule.name}` : 'Create a New Redemption Rule'}
+            </DialogTitle>
+            <DialogDescription>
+              {currentRule
+                ? 'Edit the details of this redemption rule'
+                : 'Define how customers can redeem their points or stamps'}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Free Coffee" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Get a free coffee when you redeem 10 stamps"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="rewardType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reward Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select reward type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="DISCOUNT">Discount</SelectItem>
+                        <SelectItem value="FREEBIE">Free Item</SelectItem>
+                        <SelectItem value="CASH_BACK">Cash Back</SelectItem>
+                        <SelectItem value="POINTS">Points</SelectItem>
+                        <SelectItem value="TIER_UPGRADE">Tier Upgrade</SelectItem>
+                        <SelectItem value="CUSTOM">Custom Reward</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      What kind of reward will the customer receive
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                {(rewardSystemType === 'POINTS' || rewardSystemType === 'BOTH') && (
+                  <FormField
+                    control={form.control}
+                    name="pointsCost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Points Cost</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Points needed to redeem
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                {(rewardSystemType === 'STAMPS' || rewardSystemType === 'BOTH') && (
+                  <FormField
+                    control={form.control}
+                    name="stampsCost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stamps Cost</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Stamps needed to redeem
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+              
+              {(rewardType === 'DISCOUNT' || rewardType === 'CASH_BACK') && (
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="monetaryValue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rule Name</FormLabel>
+                      <FormLabel>
+                        {rewardType === 'DISCOUNT' ? 'Discount Amount' : 'Cash Back Amount'}
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="Free Coffee Voucher" {...field} />
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                            $
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="minimumSpend"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Spend</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                          $
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Minimum purchase amount required (0 for no minimum)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="applicationMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Application Method</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select application method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="AUTOMATIC">Apply Automatically</SelectItem>
+                        <SelectItem value="CODE">Code Entry Required</SelectItem>
+                        <SelectItem value="QR_CODE">QR Code Scan Required</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      How this reward will be applied
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="maxRedemptionsPerCustomer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Per Customer</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          placeholder="Unlimited"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                            field.onChange(value);
+                          }}
+                        />
                       </FormControl>
                       <FormDescription>
-                        A clear name for this redemption rule
+                        Max redemptions per customer
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -273,270 +613,118 @@ export default function RedemptionRulesList({
                 
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="maxTotalRedemptions"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Max Total Redemptions</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Details about this redemption rule" 
-                          {...field}
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          placeholder="Unlimited"
                           value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                            field.onChange(value);
+                          }}
                         />
                       </FormControl>
+                      <FormDescription>
+                        Overall redemption limit
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              {membershipTiers.length > 0 && (
                 <FormField
                   control={form.control}
-                  name="ruleType"
+                  name="membershipTierId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rule Type</FormLabel>
+                      <FormLabel>Required Membership Tier</FormLabel>
                       <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          handleRuleTypeChange(value);
-                        }}
-                        defaultValue={field.value}
+                        onValueChange={field.onChange}
+                        value={field.value || ''}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select rule type" />
+                            <SelectValue placeholder="Available to all tiers" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {getRuleTypeOptions().map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                          <SelectItem value="">Available to all tiers</SelectItem>
+                          {membershipTiers.map((tier) => (
+                            <SelectItem key={tier.id} value={tier.id}>
+                              {tier.name} and above
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormDescription>
+                        Restrict this redemption rule to specific membership tier(s)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
-                {rewardSystemType === 'POINTS' && (
-                  <FormField
-                    control={form.control}
-                    name="pointsRequired"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Points Required</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="100"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Number of points needed for redemption
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              )}
+              
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Active</FormLabel>
+                      <FormDescription>
+                        Enable or disable this redemption rule
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
-                
-                {rewardSystemType === 'STAMPS' && (
-                  <FormField
-                    control={form.control}
-                    name="stampsRequired"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Stamps Required</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="10"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Number of stamps needed for redemption
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                {form.watch('outputType') === 'VOUCHER' && (
-                  <FormField
-                    control={form.control}
-                    name="voucherId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Voucher</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a voucher" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {vouchers.length === 0 ? (
-                              <SelectItem value="no_vouchers" disabled>
-                                No vouchers available
-                              </SelectItem>
-                            ) : (
-                              vouchers.map(voucher => (
-                                <SelectItem key={voucher.id} value={voucher.id}>
-                                  {voucher.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          {vouchers.length === 0 ? (
-                            <span className="text-red-500">Please create vouchers first</span>
-                          ) : (
-                            'The voucher to award when redeeming'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                {form.watch('outputType') === 'TIER_UPGRADE' && (
-                  <FormField
-                    control={form.control}
-                    name="tierUpgradeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Membership Tier</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a tier" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {tiers.length === 0 ? (
-                              <SelectItem value="no_tiers" disabled>
-                                No membership tiers available
-                              </SelectItem>
-                            ) : (
-                              tiers.map(tier => (
-                                <SelectItem key={tier.id} value={tier.id}>
-                                  {tier.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          {tiers.length === 0 ? (
-                            <span className="text-red-500">Please create membership tiers first</span>
-                          ) : (
-                            'The tier to upgrade customers to when redeeming'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
-                        <FormDescription>
-                          Make this rule available for customers to use
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              />
 
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Creating...' : 'Create Rule'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        {rules.length === 0 ? (
-          <EmptyState
-            icon={<Settings2 className="w-12 h-12 text-muted-foreground" />}
-            title="No redemption rules created"
-            description={`Create your first rule to let customers redeem their ${rewardSystemType === 'POINTS' ? 'points' : 'stamps'} for rewards.`}
-          />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Redemption</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rules.map((rule) => (
-                <TableRow key={rule.id}>
-                  <TableCell>
-                    <div className="font-medium">{rule.name}</div>
-                    {rule.description && (
-                      <div className="text-sm text-muted-foreground">{rule.description}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>{getRewardDescription(rule)}</TableCell>
-                  <TableCell>
-                    {rule.isActive ? (
-                      <Badge variant="default">Active</Badge>
-                    ) : (
-                      <Badge variant="outline">Inactive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : currentRule ? 'Update Rule' : 'Create Rule'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the "{currentRule?.name}" redemption rule.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRule} disabled={isLoading}>
+              {isLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

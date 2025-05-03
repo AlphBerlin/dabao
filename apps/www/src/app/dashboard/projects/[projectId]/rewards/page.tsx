@@ -18,7 +18,7 @@ export default async function RewardsPage({
 }: {
   params: { projectId: string };
 }) {
-  const { projectId } = params; // Fixed: removed unnecessary await
+  const { projectId } = await params;
   
   // Get project by ID instead of slug
   const project = await db.project.findUnique({
