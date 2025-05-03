@@ -137,6 +137,10 @@ model Project {
   rewards      Reward[]
   customers    Customer[]
   campaigns    Campaign[]
+  membershipTiers   MembershipTier[]
+  vouchers          Voucher[]
+  stampCards        StampCard[]
+  redemptionRules   RedemptionRule[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -144,17 +148,21 @@ model Project {
 
 // Project preferences for more structured settings
 model ProjectPreference {
-  id                String   @id @default(cuid())
-  projectId         String   @unique @map("project_id")
-  pointsName        String   @default("Points") @map("points_name")
-  pointsAbbreviation String  @default("pts") @map("points_abbreviation")
-  welcomeMessage    String?  @map("welcome_message")
-  defaultCurrency   Currency @default(USD) @map("default_currency")
-  enableReferrals   Boolean  @default(true) @map("enable_referrals")
-  enableTiers       Boolean  @default(false) @map("enable_tiers")
-  enableGameification Boolean @default(false) @map("enable_gameification")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  projectId           String   @unique @map("project_id")
+  pointsName          String   @default("Points") @map("points_name")
+  pointsAbbreviation  String   @default("pts") @map("points_abbreviation")
+  welcomeMessage      String?  @map("welcome_message")
+  defaultCurrency     Currency @default(USD) @map("default_currency")
+  enableReferrals     Boolean  @default(true) @map("enable_referrals")
+  enableTiers         Boolean  @default(false) @map("enable_tiers")
+  enableGameification Boolean  @default(false) @map("enable_gameification")
+  rewardSystemType    String   @default("POINTS") @map("reward_system_type") // "POINTS" or "STAMPS"
+  pointsToStampRatio  Int      @default(10) @map("points_to_stamp_ratio") // How many points equal one stamp
+  pointsExpiryDays    Int?     @map("points_expiry_days") // If points expire after X days, null means no expiry
+  stampsPerCard       Int      @default(10) @map("stamps_per_card") // Number of stamps needed for completion
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -213,6 +221,10 @@ model Customer {
   rewards    CustomerReward[]
   referrals  CustomerReferral[]
   activities CustomerActivity[]
+  customerMemberships CustomerMembership[]
+  stampCards StampCard[]
+  pointsTransactions CustomerPointsTransaction[]
+  voucherRedemptions VoucherRedemption[]
   
   @@unique([projectId, email])
   @@unique([projectId, externalId])
@@ -232,7 +244,7 @@ model Reward {
   active      Boolean    @default(true)
   image       String?
   expiresAt   DateTime?  @map("expires_at")
-  createdAt   DateTime   @default(now()) @map("created_at")
+  createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt @map("updated_at")
   
   // Relations
@@ -347,6 +359,184 @@ model CustomerActivity {
   customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
   @@map("customer_activities")
+  @@schema("dabao_tenant")
+}
+
+// MembershipTier model for defining membership levels
+model MembershipTier {
+  id                 String   @id @default(cuid())
+  projectId          String   @map("project_id")
+  name               String   // e.g. Bronze, Silver, Gold, Platinum
+  description        String?
+  level              Int      // 1, 2, 3, 4, etc. (higher number = higher tier)
+  pointsThreshold    Int?     @map("points_threshold") // Points needed to reach this tier (for points system)
+  stampsThreshold    Int?     @map("stamps_threshold") // Stamps needed to reach this tier (for stamps system)
+  spendThreshold     Decimal? @map("spend_threshold") // Amount spent to reach this tier
+  subscriptionFee    Decimal? @map("subscription_fee") // If this tier requires payment
+  benefits           Json?    // Benefits like free shipping, exclusive access, etc.
+  icon               String?
+  autoUpgrade        Boolean  @default(true) @map("auto_upgrade") // Automatically upgrade customers when eligible
+  pointsMultiplier   Decimal  @default(1.0) @map("points_multiplier") // Points earning multiplier for this tier
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project            Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  customerMemberships CustomerMembership[]
+
+  @@unique([projectId, level])
+  @@map("membership_tiers")
+  @@schema("dabao_tenant")
+}
+
+// CustomerMembership model for tracking customer tier status
+model CustomerMembership {
+  id               String   @id @default(cuid())
+  customerId       String   @map("customer_id")
+  membershipTierId String   @map("membership_tier_id")
+  startDate        DateTime @default(now()) @map("start_date")
+  endDate          DateTime? @map("end_date") // For time-limited memberships
+  isActive         Boolean  @default(true) @map("is_active")
+  subscriptionId   String?  @map("subscription_id") // For paid memberships
+  pointsBalance    Int      @default(0) @map("points_balance") // Current points balance
+  stampsBalance    Int      @default(0) @map("stamps_balance") // Current stamps balance
+  totalPointsEarned Int     @default(0) @map("total_points_earned")
+  totalStampsEarned Int     @default(0) @map("total_stamps_earned")
+  totalSpent       Decimal  @default(0) @map("total_spent")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  membershipTier   MembershipTier @relation(fields: [membershipTierId], references: [id], onDelete: Cascade)
+  
+  @@unique([customerId, membershipTierId])
+  @@map("customer_memberships")
+  @@schema("dabao_tenant")
+}
+
+// Voucher model for coupon/voucher management
+model Voucher {
+  id               String   @id @default(cuid())
+  projectId        String   @map("project_id")
+  code             String   // Unique code for redemption
+  name             String
+  description      String?
+  discountType     String   @map("discount_type") // PERCENTAGE, FIXED_AMOUNT, FREE_ITEM
+  discountValue    Decimal  @map("discount_value") // Percentage or fixed amount
+  minimumSpend     Decimal? @map("minimum_spend")
+  usageLimit       Int?     @map("usage_limit") // Total number of times this voucher can be used
+  perCustomerLimit Int?     @map("per_customer_limit") // How many times one customer can use it
+  startDate        DateTime @map("start_date")
+  endDate          DateTime @map("end_date")
+  isActive         Boolean  @default(true) @map("is_active")
+  requiredPoints   Int?     @map("required_points") // Points needed to redeem (for points-based system)
+  requiredStamps   Int?     @map("required_stamps") // Stamps needed to redeem (for stamp-based system)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  redemptions      VoucherRedemption[]
+
+  @@unique([projectId, code])
+  @@map("vouchers")
+  @@schema("dabao_tenant")
+}
+
+// VoucherRedemption model for tracking voucher usage
+model VoucherRedemption {
+  id         String   @id @default(cuid())
+  voucherId  String   @map("voucher_id")
+  customerId String   @map("customer_id")
+  orderId    String?  @map("order_id") // Optional reference to an order
+  usedAt     DateTime @default(now()) @map("used_at")
+  
+  // Relations
+  voucher    Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@unique([voucherId, customerId, orderId])
+  @@map("voucher_redemptions")
+  @@schema("dabao_tenant")
+}
+
+// CustomerPointsTransaction model for tracking points transactions
+model CustomerPointsTransaction {
+  id          String   @id @default(cuid())
+  customerId  String   @map("customer_id")
+  points      Int      // Can be positive (earning) or negative (redemption)
+  reason      String   // purchase, referral, redemption, etc.
+  description String?
+  orderId     String?  @map("order_id")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@map("customer_points_transactions")
+  @@schema("dabao_tenant")
+}
+
+// StampCard model for tracking stamp collections
+model StampCard {
+  id            String   @id @default(cuid())
+  customerId    String   @map("customer_id")
+  projectId     String   @map("project_id")
+  totalStamps   Int      @default(0) @map("total_stamps")
+  currentStamps Int      @default(0) @map("current_stamps")
+  completedAt   DateTime? @map("completed_at")
+  redeemed      Boolean  @default(false)
+  redeemedAt    DateTime? @map("redeemed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stamps        Stamp[]
+  
+  @@map("stamp_cards")
+  @@schema("dabao_tenant")
+}
+
+// Stamp model for individual stamps on a card
+model Stamp {
+  id           String   @id @default(cuid())
+  stampCardId  String   @map("stamp_card_id")
+  orderId      String?  @map("order_id")
+  reason       String   // purchase, referral, etc.
+  earnedAt     DateTime @default(now()) @map("earned_at")
+  
+  // Relations
+  stampCard    StampCard @relation(fields: [stampCardId], references: [id], onDelete: Cascade)
+  
+  @@map("stamps")
+  @@schema("dabao_tenant")
+}
+
+// RedemptionRule model for configuring point/stamp redemption rules
+model RedemptionRule {
+  id            String   @id @default(cuid())
+  projectId     String   @map("project_id")
+  name          String
+  description   String?
+  ruleType      String   @map("rule_type") // POINTS_TO_VOUCHER, STAMPS_TO_VOUCHER, POINTS_TO_PRODUCT
+  pointsRequired Int?    @map("points_required")
+  stampsRequired Int?    @map("stamps_required")
+  outputType    String   @map("output_type") // VOUCHER, PRODUCT, TIER_UPGRADE
+  voucherId     String?  @map("voucher_id")  // If awarding a specific voucher
+  productId     String?  @map("product_id")  // If awarding a specific product
+  tierUpgradeId String?  @map("tier_upgrade_id") // If upgrading to a specific tier
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("redemption_rules")
   @@schema("dabao_tenant")
 }
 
