@@ -7,15 +7,13 @@ import { db } from '@/lib/db';
 const membershipTierSchema = z.object({
   name: z.string().min(1, "Tier name is required").max(50),
   description: z.string().optional(),
-  level: z.number().int().min(1),
-  pointsThreshold: z.number().int().min(0).optional().nullable(),
-  stampsThreshold: z.number().int().min(0).optional().nullable(),
-  spendThreshold: z.number().min(0).optional().nullable(),
-  subscriptionFee: z.number().min(0).optional().nullable(),
-  benefits: z.record(z.any()).optional(),
-  icon: z.string().url().optional(),
-  autoUpgrade: z.boolean().optional().default(true),
-  pointsMultiplier: z.number().min(1).optional().default(1.0),
+  thresholdPoints: z.number().int().min(0, 'Must be a non-negative number'),
+  thresholdSpend: z.number().min(0, 'Must be a non-negative number'),
+  multiplier: z.number().min(1, 'Multiplier must be at least 1'),
+  color: z.string().regex(/^#([A-Fa-f0-9]{6})$/, 'Must be a valid hex color'),
+  benefits: z.array(z.string()).optional(),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
 });
 
 // Get membership tiers for a specific project
@@ -45,7 +43,7 @@ export async function GET(
     }
     
     // Get membership tiers with count of members
-    const tiers = await db.membershipTier.findMany({
+    const dbTiers = await db.membershipTier.findMany({
       where: { projectId },
       orderBy: { level: 'asc' },
       include: {
@@ -57,6 +55,32 @@ export async function GET(
           }
         }
       }
+    });
+    
+    // Transform the tiers to match the frontend expected format
+    const tiers = dbTiers.map(tier => {
+      // Extract benefits list from the JSONB column
+      let benefitsList: string[] = [];
+      if (tier.benefits && typeof tier.benefits === 'object' && 'list' in tier.benefits) {
+        benefitsList = Array.isArray(tier.benefits.list) ? tier.benefits.list : [];
+      }
+
+      return {
+        id: tier.id,
+        name: tier.name,
+        description: tier.description || '',
+        thresholdPoints: tier.pointsThreshold,
+        thresholdSpend: tier.spendThreshold,
+        multiplier: tier.pointsMultiplier,
+        color: tier.color || '#3B82F6',
+        benefits: benefitsList,
+        isDefault: tier.isDefault,
+        isActive: tier.isActive,
+        createdAt: tier.createdAt.toISOString(),
+        updatedAt: tier.updatedAt.toISOString(),
+        level: tier.level,
+        memberCount: tier._count.customerMemberships
+      };
     });
     
     return NextResponse.json({ tiers });
@@ -106,38 +130,33 @@ export async function POST(
     const { 
       name, 
       description, 
-      level, 
-      pointsThreshold, 
-      stampsThreshold,
-      spendThreshold,
-      subscriptionFee, 
-      benefits, 
-      icon,
-      autoUpgrade,
-      pointsMultiplier
+      thresholdPoints, 
+      thresholdSpend,
+      multiplier,
+      color,
+      benefits,
+      isDefault,
+      isActive
     } = validationResult.data;
     
-    // Check if level already exists for this project
-    const existingTier = await db.membershipTier.findUnique({
-      where: {
-        projectId_level: {
-          projectId,
-          level
-        }
-      }
+    // Find the highest level to use for new tier
+    const highestTier = await db.membershipTier.findFirst({
+      where: { projectId },
+      orderBy: { level: 'desc' },
+      select: { level: true }
     });
     
-    if (existingTier) {
-      return NextResponse.json({ 
-        error: 'A membership tier with this level already exists'
-      }, { status: 400 });
-    }
-    
-    // Verify that at least one threshold type is provided
-    if (!pointsThreshold && !stampsThreshold && !spendThreshold && !subscriptionFee) {
-      return NextResponse.json({ 
-        error: 'At least one threshold type (points, stamps, spend) or subscription fee must be provided'
-      }, { status: 400 });
+    const level = highestTier ? highestTier.level + 1 : 1;
+
+    // If this tier is set as default, make sure other tiers are not default
+    if (isDefault) {
+      await db.membershipTier.updateMany({
+        where: { 
+          projectId,
+          isDefault: true 
+        },
+        data: { isDefault: false }
+      });
     }
     
     // Create the membership tier
@@ -147,18 +166,33 @@ export async function POST(
         name,
         description,
         level,
-        pointsThreshold,
-        stampsThreshold,
-        spendThreshold,
-        subscriptionFee,
-        benefits,
-        icon,
-        autoUpgrade,
-        pointsMultiplier,
+        pointsThreshold: thresholdPoints,
+        spendThreshold: thresholdSpend,
+        pointsMultiplier: multiplier,
+        benefits: benefits ? { list: benefits } : undefined,
+        autoUpgrade: true, // Default value
       }
     });
 
-    return NextResponse.json({ tier }, { status: 201 });
+    // Transform the tier to match the frontend expected format
+    const transformedTier = {
+      id: tier.id,
+      name: tier.name,
+      description: tier.description || '',
+      thresholdPoints: tier.pointsThreshold,
+      thresholdSpend: tier.spendThreshold,
+      multiplier: tier.pointsMultiplier,
+      color: tier.color || '#3B82F6',
+      benefits: benefits || [],
+      isDefault: tier.isDefault,
+      isActive: tier.isActive,
+      createdAt: tier.createdAt.toISOString(),
+      updatedAt: tier.updatedAt.toISOString(),
+      level: tier.level,
+      memberCount: 0
+    };
+
+    return NextResponse.json({ tier: transformedTier }, { status: 201 });
   } catch (error) {
     console.error('Error creating membership tier:', error);
     return NextResponse.json({ error: 'Failed to create membership tier' }, { status: 500 });
