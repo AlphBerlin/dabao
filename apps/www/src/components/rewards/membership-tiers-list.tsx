@@ -1,15 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { PlusCircle, Edit, Trash2, ChevronUp, ChevronDown, Award } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { PlusCircle, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
-import { Button } from '@workspace/ui/components/button';
 import {
   Card,
   CardContent,
@@ -18,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
+import { Button } from '@workspace/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from '@workspace/ui/components/dialog';
 import {
   Form,
@@ -37,415 +35,556 @@ import {
   FormLabel,
   FormMessage,
 } from '@workspace/ui/components/form';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@workspace/ui/components/table';
 import { Input } from '@workspace/ui/components/input';
 import { Textarea } from '@workspace/ui/components/textarea';
 import { Switch } from '@workspace/ui/components/switch';
-import { Checkbox } from '@workspace/ui/components/checkbox';
 import { Badge } from '@workspace/ui/components/badge';
-import { EmptyState } from '@/components/empty-state';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@workspace/ui/components/alert-dialog';
+import { Label } from '@workspace/ui/components/label';
 
-// Schema for membership tier creation
+// Schema for membership tier
 const membershipTierSchema = z.object({
-  name: z.string().min(1, 'Tier name is required').max(50),
-  description: z.string().optional(),
-  level: z.coerce.number().int().min(1, 'Level must be at least 1'),
-  pointsThreshold: z.coerce.number().int().min(0).optional().nullable(),
-  stampsThreshold: z.coerce.number().int().min(0).optional().nullable(),
-  spendThreshold: z.coerce.number().min(0).optional().nullable(),
-  subscriptionFee: z.coerce.number().min(0).optional().nullable(),
-  autoUpgrade: z.boolean().optional().default(true),
-  pointsMultiplier: z.coerce.number().min(1).optional().default(1.0),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(1, 'Description is required'),
+  thresholdPoints: z.coerce.number().int().min(0, 'Must be a non-negative number'),
+  thresholdSpend: z.coerce.number().min(0, 'Must be a non-negative number'),
+  multiplier: z.coerce.number().min(1, 'Multiplier must be at least 1'),
+  color: z.string().regex(/^#([A-Fa-f0-9]{6})$/, 'Must be a valid hex color'),
+  benefits: z.array(z.string()).optional(),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
 });
 
-type FormValues = z.infer<typeof membershipTierSchema>;
+type MembershipTier = z.infer<typeof membershipTierSchema> & { 
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function MembershipTiersList({
   projectId,
-  rewardSystemType
+  rewardSystemType,
 }: {
   projectId: string;
   rewardSystemType: string;
 }) {
-  const router = useRouter();
-  const [tiers, setTiers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [tiers, setTiers] = useState<MembershipTier[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentTier, setCurrentTier] = useState<MembershipTier | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [benefits, setBenefits] = useState<string[]>(['']);
+  const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  // Load membership tiers
-  const loadTiers = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.get(`/api/projects/${projectId}/memberships/tiers`);
-      setTiers(response.data.tiers || []);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to load membership tiers');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Initialize form
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof membershipTierSchema>>({
     resolver: zodResolver(membershipTierSchema),
     defaultValues: {
       name: '',
       description: '',
-      level: 1,
-      pointsThreshold: rewardSystemType === 'POINTS' ? 0 : null,
-      stampsThreshold: rewardSystemType === 'STAMPS' ? 0 : null,
-      spendThreshold: null,
-      subscriptionFee: null,
-      autoUpgrade: true,
-      pointsMultiplier: 1.0,
+      thresholdPoints: 0,
+      thresholdSpend: 0,
+      multiplier: 1,
+      color: '#3B82F6',
+      benefits: [''],
+      isDefault: false,
+      isActive: true,
     },
   });
 
-  // Load tiers on component mount
+  // Fetch membership tiers on component mount
   useEffect(() => {
-    loadTiers();
+    fetchMembershipTiers();
   }, [projectId]);
 
-  // Handle form submission
-  const onSubmit = async (data: FormValues) => {
+  const fetchMembershipTiers = async () => {
+    setLoadingState('loading');
+    try {
+      const response = await axios.get(`/api/projects/${projectId}/memberships/tiers`);
+      setTiers(response.data.tiers);
+      setLoadingState('success');
+    } catch (error) {
+      console.error('Failed to fetch membership tiers:', error);
+      toast.error('Failed to load membership tiers');
+      setLoadingState('error');
+    }
+  };
+
+  const openCreateDialog = () => {
+    form.reset({
+      name: '',
+      description: '',
+      thresholdPoints: 0,
+      thresholdSpend: 0,
+      multiplier: 1,
+      color: '#3B82F6',
+      benefits: [''],
+      isDefault: false,
+      isActive: true,
+    });
+    setBenefits(['']);
+    setCurrentTier(null);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (tier: MembershipTier) => {
+    form.reset({
+      name: tier.name,
+      description: tier.description,
+      thresholdPoints: tier.thresholdPoints,
+      thresholdSpend: tier.thresholdSpend,
+      multiplier: tier.multiplier,
+      color: tier.color,
+      benefits: tier.benefits || [''],
+      isDefault: tier.isDefault,
+      isActive: tier.isActive,
+    });
+    setBenefits(tier.benefits || ['']);
+    setCurrentTier(tier);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteTier = async () => {
+    if (!currentTier) return;
     setIsLoading(true);
     try {
-      // Submit either pointsThreshold or stampsThreshold based on reward system type
-      if (rewardSystemType === 'POINTS') {
-        data.stampsThreshold = null;
-      } else {
-        data.pointsThreshold = null;
-      }
-      
-      await axios.post(`/api/projects/${projectId}/memberships/tiers`, data);
-      toast.success('Membership tier created successfully');
-      setIsDialogOpen(false);
-      form.reset();
-      loadTiers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create membership tier');
+      await axios.delete(`/api/projects/${projectId}/memberships/tiers/${currentTier.id}`);
+      toast.success(`${currentTier.name} membership tier deleted`);
+      // Refresh data
+      fetchMembershipTiers();
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to delete membership tier:', error);
+      toast.error('Failed to delete membership tier');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Format threshold display based on reward system type
-  const formatThreshold = (tier: any) => {
-    if (rewardSystemType === 'POINTS' && tier.pointsThreshold) {
-      return `${tier.pointsThreshold} Points`;
-    } else if (rewardSystemType === 'STAMPS' && tier.stampsThreshold) {
-      return `${tier.stampsThreshold} Stamps`;
-    } else if (tier.spendThreshold) {
-      return `$${tier.spendThreshold} Spent`;
-    } else if (tier.subscriptionFee) {
-      return `$${tier.subscriptionFee} Subscription`;
-    } else {
-      return 'Default Tier';
+  const handleDeleteDialogOpen = (tier: MembershipTier) => {
+    setCurrentTier(tier);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const addBenefit = () => {
+    setBenefits([...benefits, '']);
+  };
+
+  const removeBenefit = (index: number) => {
+    const newBenefits = [...benefits];
+    newBenefits.splice(index, 1);
+    setBenefits(newBenefits);
+  };
+
+  const updateBenefit = (index: number, value: string) => {
+    const newBenefits = [...benefits];
+    newBenefits[index] = value;
+    setBenefits(newBenefits);
+  };
+
+  const moveUp = async (index: number) => {
+    if (index <= 0) return;
+    try {
+      await axios.post(`/api/projects/${projectId}/memberships/tiers/reorder`, {
+        tierId: tiers[index].id,
+        direction: 'up'
+      });
+      fetchMembershipTiers();
+      toast.success('Membership tier order updated');
+    } catch (error) {
+      toast.error('Failed to update tier order');
+    }
+  };
+
+  const moveDown = async (index: number) => {
+    if (index >= tiers.length - 1) return;
+    try {
+      await axios.post(`/api/projects/${projectId}/memberships/tiers/reorder`, {
+        tierId: tiers[index].id,
+        direction: 'down'
+      });
+      fetchMembershipTiers();
+      toast.success('Membership tier order updated');
+    } catch (error) {
+      toast.error('Failed to update tier order');
+    }
+  };
+
+  const onSubmit = async (data: z.infer<typeof membershipTierSchema>) => {
+    // Filter out empty benefit strings
+    const filteredBenefits = benefits.filter(benefit => benefit.trim() !== '');
+    const finalData = { ...data, benefits: filteredBenefits };
+
+    setIsLoading(true);
+    try {
+      if (currentTier) {
+        // Update existing tier
+        await axios.patch(`/api/projects/${projectId}/memberships/tiers/${currentTier.id}`, finalData);
+        toast.success(`${finalData.name} membership tier updated`);
+      } else {
+        // Create new tier
+        await axios.post(`/api/projects/${projectId}/memberships/tiers`, finalData);
+        toast.success(`${finalData.name} membership tier created`);
+      }
+      
+      // Refresh data and reset form
+      fetchMembershipTiers();
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error('Failed to save membership tier:', error);
+      toast.error(error.response?.data?.error || 'Failed to save membership tier');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Membership Tiers</CardTitle>
-          <CardDescription>
-            Define membership levels and progression rules for your customers.
-          </CardDescription>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Tier
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[525px]">
-            <DialogHeader>
-              <DialogTitle>Create New Membership Tier</DialogTitle>
-              <DialogDescription>
-                Define a new membership level with progression requirements.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tier Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Silver" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Membership Tiers</CardTitle>
+            <CardDescription>
+              Define membership tiers that customers can achieve based on points or spending
+            </CardDescription>
+          </div>
+          <Button onClick={openCreateDialog} variant="outline">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Tier
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingState === 'loading' ? (
+            <div className="py-8 text-center">Loading membership tiers...</div>
+          ) : loadingState === 'error' ? (
+            <div className="py-8 text-center text-red-500">
+              Failed to load membership tiers. Please try again.
+            </div>
+          ) : tiers.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">No membership tiers created yet.</p>
+              <Button onClick={openCreateDialog} className="mt-4">
+                Create your first tier
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tiers.map((tier, index) => (
+                <div
+                  key={tier.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                  style={{ borderLeftColor: tier.color, borderLeftWidth: '4px' }}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium">{tier.name}</h3>
+                      {tier.isDefault && <Badge variant="outline">Default</Badge>}
+                      {!tier.isActive && <Badge variant="outline">Inactive</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{tier.description}</p>
+                    <div className="mt-2 text-sm">
+                      {rewardSystemType !== 'STAMPS' && (
+                        <span className="mr-4">
+                          <strong>Threshold:</strong> {tier.thresholdPoints} points
+                        </span>
+                      )}
+                      <span className="mr-4">
+                        <strong>Spend:</strong> ${tier.thresholdSpend}
+                      </span>
+                      <span>
+                        <strong>Multiplier:</strong> {tier.multiplier}x
+                      </span>
+                    </div>
+                    {tier.benefits && tier.benefits.length > 0 && (
+                      <div className="mt-2">
+                        <strong className="text-sm">Benefits:</strong>
+                        <ul className="list-disc list-inside text-sm">
+                          {tier.benefits.map((benefit, i) => (
+                            <li key={i}>{benefit}</li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tier Level</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Higher number = higher tier
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveUp(index)}
+                        disabled={index === 0}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveDown(index)}
+                        disabled={index === tiers.length - 1}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(tier)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteDialogOpen(tier)}
+                      disabled={tier.isDefault}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {currentTier ? `Edit ${currentTier.name}` : 'Create a New Membership Tier'}
+            </DialogTitle>
+            <DialogDescription>
+              {currentTier
+                ? 'Edit the details of this membership tier'
+                : 'Define a new tier for your loyalty program'}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tier Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Bronze, Silver, Gold, etc." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="A brief description of this tier and its benefits"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="thresholdPoints"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Points Threshold</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Benefits and details about this tier" {...field} />
+                        <Input type="number" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        Points needed to reach this tier
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                {/* Progression requirements */}
-                <div className="grid grid-cols-2 gap-4">
-                  {rewardSystemType === 'POINTS' && (
-                    <FormField
-                      control={form.control}
-                      name="pointsThreshold"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Points Required</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              placeholder="1000"
-                              {...field}
-                              value={field.value === null ? '' : field.value}
-                              onChange={(e) => {
-                                const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                field.onChange(value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Points needed to reach this tier
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
-                  {rewardSystemType === 'STAMPS' && (
-                    <FormField
-                      control={form.control}
-                      name="stampsThreshold"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stamps Required</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              placeholder="10"
-                              {...field}
-                              value={field.value === null ? '' : field.value}
-                              onChange={(e) => {
-                                const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                field.onChange(value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Stamps needed to reach this tier
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
-                  <FormField
-                    control={form.control}
-                    name="spendThreshold"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Spend Threshold</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="500"
-                            {...field}
-                            value={field.value === null ? '' : field.value}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? null : parseFloat(e.target.value);
-                              field.onChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Amount spent to reach this tier
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="subscriptionFee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subscription Fee</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="0"
-                            {...field}
-                            value={field.value === null ? '' : field.value}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? null : parseFloat(e.target.value);
-                              field.onChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Optional fee to join this tier (0 for free)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="pointsMultiplier"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Points Multiplier</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            step="0.1"
-                            placeholder="1.0"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Points earning multiplier for this tier
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 <FormField
                   control={form.control}
-                  name="autoUpgrade"
+                  name="thresholdSpend"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem>
+                      <FormLabel>Spend Threshold</FormLabel>
                       <FormControl>
-                        <Checkbox
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Amount spent to reach this tier
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="multiplier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Points Multiplier</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" min="1" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Points earned multiplier for this tier
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Color</FormLabel>
+                      <div className="flex gap-2">
+                        <div 
+                          className="w-8 h-8 rounded-full border"
+                          style={{ backgroundColor: field.value }}
+                        />
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Benefits</Label>
+                {benefits.map((benefit, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={benefit}
+                      onChange={(e) => updateBenefit(index, e.target.value)}
+                      placeholder={`Benefit ${index + 1}`}
+                    />
+                    {benefits.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeBenefit(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addBenefit}
+                  className="mt-2"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Benefit
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="isDefault"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Default Tier</FormLabel>
+                        <FormDescription>
+                          Set as the starting tier for new customers
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Auto-upgrade eligible customers
-                        </FormLabel>
-                        <FormDescription>
-                          Automatically upgrade customers when they reach the requirements
-                        </FormDescription>
-                      </div>
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Active</FormLabel>
+                        <FormDescription>
+                          Enable or disable this tier
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Creating...' : 'Create Tier'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        {tiers.length === 0 ? (
-          <EmptyState
-            icon={<Award className="w-12 h-12 text-muted-foreground" />}
-            title="No membership tiers created"
-            description="Create your first membership tier to enable customer progression."
-          />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Level</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Requirement</TableHead>
-                <TableHead>Members</TableHead>
-                <TableHead>Multiplier</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tiers.map((tier) => (
-                <TableRow key={tier.id}>
-                  <TableCell>{tier.level}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{tier.name}</div>
-                    {tier.description && (
-                      <div className="text-sm text-muted-foreground">{tier.description}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatThreshold(tier)}</TableCell>
-                  <TableCell>{tier._count?.customerMemberships || 0}</TableCell>
-                  <TableCell>{tier.pointsMultiplier}x</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : currentTier ? 'Update Tier' : 'Create Tier'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the "{currentTier?.name}" membership tier.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTier} disabled={isLoading}>
+              {isLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
