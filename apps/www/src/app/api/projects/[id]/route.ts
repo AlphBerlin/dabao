@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { Organization } from '@prisma/client';
 
 // Schema for project updates
 const projectUpdateSchema = z.object({
@@ -183,7 +184,7 @@ export async function DELETE(
 
     // Check if user is owner of the organization that owns this project
     const isOwner = dbUser.organizations.some(
-      (userOrg) => userOrg.organizationId === project.organizationId && userOrg.role === 'OWNER'
+      (userOrg: Organization) => userOrg.organizationId === project.organizationId && userOrg.role === 'OWNER'
     );
 
     if (!isOwner) {

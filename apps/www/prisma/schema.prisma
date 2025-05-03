@@ -118,23 +118,23 @@ model UserOrganization {
 
 // Billing model for organizations
 model Billing {
-  id             String   @id @default(cuid())
-  organizationId String   @map("organization_id")
-  plan           String   @default("free") // free, starter, pro, enterprise
-  currency       Currency @default(USD)
-  amount         Decimal  @default(0)
-  interval       String   @default("month") // month, year
-  status         String   @default("active") // active, past_due, canceled
-  trialEndsAt    DateTime? @map("trial_ends_at")
-  canceledAt     DateTime? @map("canceled_at")
-  currentPeriodStart DateTime @default(now()) @map("current_period_start")
-  currentPeriodEnd   DateTime @map("current_period_end")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                 String    @id @default(cuid())
+  organizationId     String    @map("organization_id")
+  plan               String    @default("free") // free, starter, pro, enterprise
+  currency           Currency  @default(USD)
+  amount             Decimal   @default(0)
+  interval           String    @default("month") // month, year
+  status             String    @default("active") // active, past_due, canceled
+  trialEndsAt        DateTime? @map("trial_ends_at")
+  canceledAt         DateTime? @map("canceled_at")
+  currentPeriodStart DateTime  @default(now()) @map("current_period_start")
+  currentPeriodEnd   DateTime  @map("current_period_end")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
+
   @@map("billing")
   @@schema("dabao")
 }
@@ -147,7 +147,7 @@ model Project {
   name           String
   description    String?
   slug           String   @unique
-  status         String?  
+  status         String?
   organizationId String   @map("organization_id")
   active         Boolean  @default(true)
   customDomain   String?  @unique @map("custom_domain")
@@ -157,13 +157,13 @@ model Project {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  apiKeys      ApiKey[]
-  invites      ProjectInvite[]
-  preferences  ProjectPreference?
-  rewards      Reward[]
-  customers    Customer[]
-  campaigns    Campaign[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys           ApiKey[]
+  invites           ProjectInvite[]
+  preferences       ProjectPreference?
+  rewards           Reward[]
+  customers         Customer[]
+  campaigns         Campaign[]
   membershipTiers   MembershipTier[]
   vouchers          Voucher[]
   stampCards        StampCard[]
@@ -172,6 +172,7 @@ model Project {
   telegramSettings  TelegramSettings?
   telegramCampaigns TelegramCampaign[]
   telegramMessages  TelegramMessage[]
+  TelegramUser      TelegramUser[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -237,27 +238,27 @@ model ApiKey {
 
 // Customer model for the loyalty program
 model Customer {
-  id         String    @id @default(cuid())
-  projectId  String    @map("project_id")
+  id         String   @id @default(cuid())
+  projectId  String   @map("project_id")
   name       String?
   email      String
   phone      String?
-  externalId String?   @map("external_id")
+  externalId String?  @map("external_id")
   metadata   Json?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  rewards    CustomerReward[]
-  referrals  CustomerReferral[]
-  activities CustomerActivity[]
+  project             Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rewards             CustomerReward[]
+  referrals           CustomerReferral[]
+  activities          CustomerActivity[]
   customerMemberships CustomerMembership[]
-  stampCards StampCard[]
-  pointsTransactions CustomerPointsTransaction[]
-  voucherRedemptions VoucherRedemption[]
-  telegramUsers TelegramUser[]
-  
+  stampCards          StampCard[]
+  pointsTransactions  CustomerPointsTransaction[]
+  voucherRedemptions  VoucherRedemption[]
+  telegramUsers       TelegramUser[]
+
   @@unique([projectId, email])
   @@unique([projectId, externalId])
   @@map("customers")
@@ -271,19 +272,19 @@ model Reward {
   name        String
   description String?
   type        RewardType
-  value       Int        // Points value or discount percentage
-  code        String?    // For discount codes
+  value       Int // Points value or discount percentage
+  code        String? // For discount codes
   active      Boolean    @default(true)
   image       String?
   expiresAt   DateTime?  @map("expires_at")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt @map("updated_at")
-  
+
   // Relations
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  customers   CustomerReward[]
-  campaigns   CampaignReward[]
-  
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  customers CustomerReward[]
+  campaigns CampaignReward[]
+
   @@unique([projectId, code])
   @@map("rewards")
   @@schema("dabao_tenant")
@@ -291,52 +292,52 @@ model Reward {
 
 // CustomerReward model for tracking rewards claimed by customers
 model CustomerReward {
-  id           String    @id @default(cuid())
-  customerId   String    @map("customer_id")
-  rewardId     String    @map("reward_id")
-  claimed      Boolean   @default(false)
-  claimedAt    DateTime? @map("claimed_at")
-  redeemedAt   DateTime? @map("redeemed_at")
-  expiresAt    DateTime? @map("expires_at")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  
+  id         String    @id @default(cuid())
+  customerId String    @map("customer_id")
+  rewardId   String    @map("reward_id")
+  claimed    Boolean   @default(false)
+  claimedAt  DateTime? @map("claimed_at")
+  redeemedAt DateTime? @map("redeemed_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
   // Relations
-  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  reward       Reward    @relation(fields: [rewardId], references: [id], onDelete: Cascade)
-  
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reward   Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
   @@map("customer_rewards")
   @@schema("dabao_tenant")
 }
 
 // CustomerReferral model for tracking referrals
 model CustomerReferral {
-  id             String    @id @default(cuid())
-  customerId     String    @map("customer_id")
-  referralCode   String    @unique @map("referral_code")
-  referredCount  Int       @default(0) @map("referred_count")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  
+  id            String   @id @default(cuid())
+  customerId    String   @map("customer_id")
+  referralCode  String   @unique @map("referral_code")
+  referredCount Int      @default(0) @map("referred_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
   // Relations
-  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  referredUsers  ReferredUser[]
-  
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  referredUsers ReferredUser[]
+
   @@map("customer_referrals")
   @@schema("dabao_tenant")
 }
 
 // ReferredUser model for tracking users referred by customers
 model ReferredUser {
-  id                String   @id @default(cuid())
-  customerReferralId String  @map("customer_referral_id")
-  email             String
-  convertedAt       DateTime? @map("converted_at")
-  createdAt         DateTime @default(now()) @map("created_at")
-  
+  id                 String    @id @default(cuid())
+  customerReferralId String    @map("customer_referral_id")
+  email              String
+  convertedAt        DateTime? @map("converted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
   // Relations
-  customerReferral  CustomerReferral @relation(fields: [customerReferralId], references: [id], onDelete: Cascade)
-  
+  customerReferral CustomerReferral @relation(fields: [customerReferralId], references: [id], onDelete: Cascade)
+
   @@map("referred_users")
   @@schema("dabao_tenant")
 }
@@ -352,11 +353,11 @@ model Campaign {
   endDate     DateTime @map("end_date")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  rewards     CampaignReward[]
-  
+  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rewards CampaignReward[]
+
   @@map("campaigns")
   @@schema("dabao_tenant")
 }
@@ -367,11 +368,11 @@ model CampaignReward {
   campaignId String   @map("campaign_id")
   rewardId   String   @map("reward_id")
   createdAt  DateTime @default(now()) @map("created_at")
-  
+
   // Relations
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  reward     Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
-  
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  reward   Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
   @@unique([campaignId, rewardId])
   @@map("campaign_rewards")
   @@schema("dabao_tenant")
@@ -381,39 +382,39 @@ model CampaignReward {
 model CustomerActivity {
   id           String   @id @default(cuid())
   customerId   String   @map("customer_id")
-  type         String   // purchase, login, referral, etc.
+  type         String // purchase, login, referral, etc.
   description  String?
   pointsEarned Int?     @map("points_earned")
   metadata     Json?
   createdAt    DateTime @default(now()) @map("created_at")
-  
+
   // Relations
-  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   @@map("customer_activities")
   @@schema("dabao_tenant")
 }
 
 // MembershipTier model for defining membership levels
 model MembershipTier {
-  id                 String   @id @default(cuid())
-  projectId          String   @map("project_id")
-  name               String   // e.g. Bronze, Silver, Gold, Platinum
-  description        String?
-  level              Int      // 1, 2, 3, 4, etc. (higher number = higher tier)
-  pointsThreshold    Int?     @map("points_threshold") // Points needed to reach this tier (for points system)
-  stampsThreshold    Int?     @map("stamps_threshold") // Stamps needed to reach this tier (for stamps system)
-  spendThreshold     Decimal? @map("spend_threshold") // Amount spent to reach this tier
-  subscriptionFee    Decimal? @map("subscription_fee") // If this tier requires payment
-  benefits           Json?    // Benefits like free shipping, exclusive access, etc.
-  icon               String?
-  autoUpgrade        Boolean  @default(true) @map("auto_upgrade") // Automatically upgrade customers when eligible
-  pointsMultiplier   Decimal  @default(1.0) @map("points_multiplier") // Points earning multiplier for this tier
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  projectId        String   @map("project_id")
+  name             String // e.g. Bronze, Silver, Gold, Platinum
+  description      String?
+  level            Int // 1, 2, 3, 4, etc. (higher number = higher tier)
+  pointsThreshold  Int?     @map("points_threshold") // Points needed to reach this tier (for points system)
+  stampsThreshold  Int?     @map("stamps_threshold") // Stamps needed to reach this tier (for stamps system)
+  spendThreshold   Decimal? @map("spend_threshold") // Amount spent to reach this tier
+  subscriptionFee  Decimal? @map("subscription_fee") // If this tier requires payment
+  benefits         Json? // Benefits like free shipping, exclusive access, etc.
+  icon             String?
+  autoUpgrade      Boolean  @default(true) @map("auto_upgrade") // Automatically upgrade customers when eligible
+  pointsMultiplier Decimal  @default(1.0) @map("points_multiplier") // Points earning multiplier for this tier
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project            Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   customerMemberships CustomerMembership[]
 
   @@unique([projectId, level])
@@ -423,25 +424,25 @@ model MembershipTier {
 
 // CustomerMembership model for tracking customer tier status
 model CustomerMembership {
-  id               String   @id @default(cuid())
-  customerId       String   @map("customer_id")
-  membershipTierId String   @map("membership_tier_id")
-  startDate        DateTime @default(now()) @map("start_date")
-  endDate          DateTime? @map("end_date") // For time-limited memberships
-  isActive         Boolean  @default(true) @map("is_active")
-  subscriptionId   String?  @map("subscription_id") // For paid memberships
-  pointsBalance    Int      @default(0) @map("points_balance") // Current points balance
-  stampsBalance    Int      @default(0) @map("stamps_balance") // Current stamps balance
-  totalPointsEarned Int     @default(0) @map("total_points_earned")
-  totalStampsEarned Int     @default(0) @map("total_stamps_earned")
-  totalSpent       Decimal  @default(0) @map("total_spent")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(cuid())
+  customerId        String    @map("customer_id")
+  membershipTierId  String    @map("membership_tier_id")
+  startDate         DateTime  @default(now()) @map("start_date")
+  endDate           DateTime? @map("end_date") // For time-limited memberships
+  isActive          Boolean   @default(true) @map("is_active")
+  subscriptionId    String?   @map("subscription_id") // For paid memberships
+  pointsBalance     Int       @default(0) @map("points_balance") // Current points balance
+  stampsBalance     Int       @default(0) @map("stamps_balance") // Current stamps balance
+  totalPointsEarned Int       @default(0) @map("total_points_earned")
+  totalStampsEarned Int       @default(0) @map("total_stamps_earned")
+  totalSpent        Decimal   @default(0) @map("total_spent")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  membershipTier   MembershipTier @relation(fields: [membershipTierId], references: [id], onDelete: Cascade)
-  
+  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  membershipTier MembershipTier @relation(fields: [membershipTierId], references: [id], onDelete: Cascade)
+
   @@unique([customerId, membershipTierId])
   @@map("customer_memberships")
   @@schema("dabao_tenant")
@@ -451,7 +452,7 @@ model CustomerMembership {
 model Voucher {
   id               String   @id @default(cuid())
   projectId        String   @map("project_id")
-  code             String   // Unique code for redemption
+  code             String // Unique code for redemption
   name             String
   description      String?
   discountType     String   @map("discount_type") // PERCENTAGE, FIXED_AMOUNT, FREE_ITEM
@@ -468,8 +469,8 @@ model Voucher {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  redemptions      VoucherRedemption[]
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  redemptions VoucherRedemption[]
 
   @@unique([projectId, code])
   @@map("vouchers")
@@ -483,11 +484,11 @@ model VoucherRedemption {
   customerId String   @map("customer_id")
   orderId    String?  @map("order_id") // Optional reference to an order
   usedAt     DateTime @default(now()) @map("used_at")
-  
+
   // Relations
-  voucher    Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+  voucher  Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   @@unique([voucherId, customerId, orderId])
   @@map("voucher_redemptions")
   @@schema("dabao_tenant")
@@ -495,79 +496,79 @@ model VoucherRedemption {
 
 // CustomerPointsTransaction model for tracking points transactions
 model CustomerPointsTransaction {
-  id          String   @id @default(cuid())
-  customerId  String   @map("customer_id")
-  points      Int      // Can be positive (earning) or negative (redemption)
-  reason      String   // purchase, referral, redemption, etc.
+  id          String    @id @default(cuid())
+  customerId  String    @map("customer_id")
+  points      Int // Can be positive (earning) or negative (redemption)
+  reason      String // purchase, referral, redemption, etc.
   description String?
-  orderId     String?  @map("order_id")
+  orderId     String?   @map("order_id")
   expiresAt   DateTime? @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
+  createdAt   DateTime  @default(now()) @map("created_at")
+
   // Relations
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   @@map("customer_points_transactions")
   @@schema("dabao_tenant")
 }
 
 // StampCard model for tracking stamp collections
 model StampCard {
-  id            String   @id @default(cuid())
-  customerId    String   @map("customer_id")
-  projectId     String   @map("project_id")
-  totalStamps   Int      @default(0) @map("total_stamps")
-  currentStamps Int      @default(0) @map("current_stamps")
+  id            String    @id @default(cuid())
+  customerId    String    @map("customer_id")
+  projectId     String    @map("project_id")
+  totalStamps   Int       @default(0) @map("total_stamps")
+  currentStamps Int       @default(0) @map("current_stamps")
   completedAt   DateTime? @map("completed_at")
-  redeemed      Boolean  @default(false)
+  redeemed      Boolean   @default(false)
   redeemedAt    DateTime? @map("redeemed_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
   // Relations
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stamps        Stamp[]
-  
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stamps   Stamp[]
+
   @@map("stamp_cards")
   @@schema("dabao_tenant")
 }
 
 // Stamp model for individual stamps on a card
 model Stamp {
-  id           String   @id @default(cuid())
-  stampCardId  String   @map("stamp_card_id")
-  orderId      String?  @map("order_id")
-  reason       String   // purchase, referral, etc.
-  earnedAt     DateTime @default(now()) @map("earned_at")
-  
+  id          String   @id @default(cuid())
+  stampCardId String   @map("stamp_card_id")
+  orderId     String?  @map("order_id")
+  reason      String // purchase, referral, etc.
+  earnedAt    DateTime @default(now()) @map("earned_at")
+
   // Relations
-  stampCard    StampCard @relation(fields: [stampCardId], references: [id], onDelete: Cascade)
-  
+  stampCard StampCard @relation(fields: [stampCardId], references: [id], onDelete: Cascade)
+
   @@map("stamps")
   @@schema("dabao_tenant")
 }
 
 // RedemptionRule model for configuring point/stamp redemption rules
 model RedemptionRule {
-  id            String   @id @default(cuid())
-  projectId     String   @map("project_id")
-  name          String
-  description   String?
-  ruleType      String   @map("rule_type") // POINTS_TO_VOUCHER, STAMPS_TO_VOUCHER, POINTS_TO_PRODUCT
-  pointsRequired Int?    @map("points_required")
-  stampsRequired Int?    @map("stamps_required")
-  outputType    String   @map("output_type") // VOUCHER, PRODUCT, TIER_UPGRADE
-  voucherId     String?  @map("voucher_id")  // If awarding a specific voucher
-  productId     String?  @map("product_id")  // If awarding a specific product
-  tierUpgradeId String?  @map("tier_upgrade_id") // If upgrading to a specific tier
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
+  id             String   @id @default(cuid())
+  projectId      String   @map("project_id")
+  name           String
+  description    String?
+  ruleType       String   @map("rule_type") // POINTS_TO_VOUCHER, STAMPS_TO_VOUCHER, POINTS_TO_PRODUCT
+  pointsRequired Int?     @map("points_required")
+  stampsRequired Int?     @map("stamps_required")
+  outputType     String   @map("output_type") // VOUCHER, PRODUCT, TIER_UPGRADE
+  voucherId      String?  @map("voucher_id") // If awarding a specific voucher
+  productId      String?  @map("product_id") // If awarding a specific product
+  tierUpgradeId  String?  @map("tier_upgrade_id") // If upgrading to a specific tier
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
   // Relations
-  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   @@map("redemption_rules")
   @@schema("dabao_tenant")
 }
@@ -576,19 +577,19 @@ model RedemptionRule {
 
 // TelegramSettings model for project-level Telegram configuration
 model TelegramSettings {
-  id              String   @id @default(cuid())
-  projectId       String   @unique @map("project_id")
-  botToken        String   @map("bot_token")
-  botUsername     String   @map("bot_username")
-  webhookUrl      String?  @map("webhook_url")
-  welcomeMessage  String?  @map("welcome_message")
-  helpMessage     String?  @map("help_message")
-  enableCommands  Boolean  @default(true) @map("enable_commands")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  projectId      String   @unique @map("project_id")
+  botToken       String   @map("bot_token")
+  botUsername    String   @map("bot_username")
+  webhookUrl     String?  @map("webhook_url")
+  welcomeMessage String?  @map("welcome_message")
+  helpMessage    String?  @map("help_message")
+  enableCommands Boolean  @default(true) @map("enable_commands")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("telegram_settings")
   @@schema("dabao_tenant")
@@ -596,84 +597,87 @@ model TelegramSettings {
 
 // TelegramUser model for tracking Telegram users
 model TelegramUser {
-  id              String   @id @default(cuid())
-  telegramId      String   @unique @map("telegram_id") // The Telegram-provided user ID
+  id              String    @id @default(cuid())
+  telegramId      String    @map("telegram_id") // The Telegram-provided user ID
   username        String?
-  firstName       String?  @map("first_name")
-  lastName        String?  @map("last_name")
-  languageCode    String?  @map("language_code")
-  customerId      String?  @map("customer_id") // Optional link to Customer
-  isSubscribed    Boolean  @default(true) @map("is_subscribed")
-  subscribedAt    DateTime @default(now()) @map("subscribed_at")
+  firstName       String?   @map("first_name")
+  lastName        String?   @map("last_name")
+  languageCode    String?   @map("language_code")
+  customerId      String?   @map("customer_id") // Optional link to Customer]
+  projectId       String    @map("project_id")
+  isSubscribed    Boolean   @default(true) @map("is_subscribed")
+  subscribedAt    DateTime  @default(now()) @map("subscribed_at")
   unsubscribedAt  DateTime? @map("unsubscribed_at")
-  lastInteraction DateTime @default(now()) @map("last_interaction")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  
+  lastInteraction DateTime  @default(now()) @map("last_interaction")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
   // Relations
-  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   receivedMessages TelegramMessage[] @relation("ReceivedMessages")
-  sentMessages    TelegramMessage[] @relation("SentMessages") 
-  
+  sentMessages     TelegramMessage[] @relation("SentMessages")
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([telegramId, projectId])
   @@map("telegram_users")
   @@schema("dabao_tenant")
 }
 
 // TelegramCampaign model for Telegram-specific campaigns
 model TelegramCampaign {
-  id              String   @id @default(cuid())
-  projectId       String   @map("project_id")
+  id              String                 @id @default(cuid())
+  projectId       String                 @map("project_id")
   name            String
   description     String?
-  messageTemplate String   @map("message_template")
-  buttons         Json?    // Inline button configuration
-  imageUrl        String?  @map("image_url")
-  scheduledFor    DateTime? @map("scheduled_for")
+  messageTemplate String                 @map("message_template")
+  buttons         Json? // Inline button configuration
+  imageUrl        String?                @map("image_url")
+  scheduledFor    DateTime?              @map("scheduled_for")
   status          TelegramCampaignStatus @default(DRAFT)
-  audienceFilter  Json?    @map("audience_filter") // Filter criteria for targeting users
-  sentCount       Int      @default(0) @map("sent_count")
-  deliveredCount  Int      @default(0) @map("delivered_count")
-  readCount       Int      @default(0) @map("read_count")
-  clickCount      Int      @default(0) @map("click_count")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  
+  audienceFilter  Json?                  @map("audience_filter") // Filter criteria for targeting users
+  sentCount       Int                    @default(0) @map("sent_count")
+  deliveredCount  Int                    @default(0) @map("delivered_count")
+  readCount       Int                    @default(0) @map("read_count")
+  clickCount      Int                    @default(0) @map("click_count")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
   // Relations
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  messages        TelegramMessage[]
-  
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages TelegramMessage[]
+
   @@map("telegram_campaigns")
   @@schema("dabao_tenant")
 }
 
 // TelegramMessage model for tracking messages
 model TelegramMessage {
-  id              String   @id @default(cuid())
-  projectId       String   @map("project_id")
-  telegramMsgId   String?  @map("telegram_msg_id") // The Telegram-provided message ID
-  senderId        String?  @map("sender_id") // TelegramUser who sent the message (if from user)
-  recipientId     String?  @map("recipient_id") // TelegramUser who received the message (if from bot)
-  campaignId      String?  @map("campaign_id") // If part of a campaign
-  messageType     TelegramMessageType @default(TEXT)
-  content         String   // Message text content
-  buttons         Json?    // Inline button configuration if any
-  mediaUrl        String?  @map("media_url") // URL for images, videos, etc.
-  isFromUser      Boolean  @default(false) @map("is_from_user") // If true, user sent to bot, else bot sent to user
-  isDelivered     Boolean  @default(false) @map("is_delivered")
-  isRead          Boolean  @default(false) @map("is_read")
-  hasClicked      Boolean  @default(false) @map("has_clicked")
-  sentAt          DateTime @default(now()) @map("sent_at")
-  deliveredAt     DateTime? @map("delivered_at")
-  readAt          DateTime? @map("read_at")
-  clickedAt       DateTime? @map("clicked_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  
+  id            String              @id @default(cuid())
+  projectId     String              @map("project_id")
+  telegramMsgId String?             @map("telegram_msg_id") // The Telegram-provided message ID
+  senderId      String?             @map("sender_id") // TelegramUser who sent the message (if from user)
+  recipientId   String?             @map("recipient_id") // TelegramUser who received the message (if from bot)
+  campaignId    String?             @map("campaign_id") // If part of a campaign
+  messageType   TelegramMessageType @default(TEXT)
+  content       String // Message text content
+  buttons       Json? // Inline button configuration if any
+  mediaUrl      String?             @map("media_url") // URL for images, videos, etc.
+  isFromUser    Boolean             @default(false) @map("is_from_user") // If true, user sent to bot, else bot sent to user
+  isDelivered   Boolean             @default(false) @map("is_delivered")
+  isRead        Boolean             @default(false) @map("is_read")
+  hasClicked    Boolean             @default(false) @map("has_clicked")
+  sentAt        DateTime            @default(now()) @map("sent_at")
+  deliveredAt   DateTime?           @map("delivered_at")
+  readAt        DateTime?           @map("read_at")
+  clickedAt     DateTime?           @map("clicked_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
   // Relations
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sender          TelegramUser? @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
-  recipient       TelegramUser? @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: SetNull)
-  campaign        TelegramCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender    TelegramUser?     @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  recipient TelegramUser?     @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: SetNull)
+  campaign  TelegramCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
   @@map("telegram_messages")
   @@schema("dabao_tenant")
 }
