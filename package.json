@@ -19,7 +19,7 @@
     "turbo": "^2.4.2",
     "typescript": "5.7.3"
   },
- "packageManager": "pnpm@9.15.5",
+  "packageManager": "pnpm@9.15.5",
   "engines": {
     "pnpm": ">=9",
     "node": ">=22"
@@ -27,5 +27,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "grammy": "^1.36.1"
+  }
 }

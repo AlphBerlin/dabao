@@ -1,6 +1,5 @@
 // app/api/theme/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import type { ThemeConfig } from "@/lib/theme-provider";
 
 // 1) Your global fallback:
