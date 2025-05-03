@@ -7,16 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      framer-motion:
-        specifier: ^12.9.2
-        version: 12.9.2(@emotion/is-prop-valid@0.8.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      lucide-react:
-        specifier: ^0.475.0
-        version: 0.475.0(react@19.0.0)
-      next-themes:
-        specifier: ^0.4.4
-        version: 0.4.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
     devDependencies:
       '@workspace/eslint-config':
         specifier: workspace:*
@@ -145,12 +135,21 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      framer-motion:
+        specifier: ^12.9.2
+        version: 12.9.2(@emotion/is-prop-valid@0.8.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      lucide-react:
+        specifier: ^0.475.0
+        version: 0.475.0(react@19.0.0)
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
       next:
         specifier: 15.3.1
         version: 15.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      next-themes:
+        specifier: ^0.4.4
+        version: 0.4.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react:
         specifier: ^19.0.0
         version: 19.0.0

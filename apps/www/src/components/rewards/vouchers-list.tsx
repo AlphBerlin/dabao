@@ -68,14 +68,15 @@ import {undefined} from "zod";
 
 const voucherSchema = z.object({
   code: z.string().min(3, 'Code must be at least 3 characters').max(50),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
-  discountType: z.enum(['FIXED', 'PERCENTAGE']),
+  discountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_ITEM']),
   discountValue: z.coerce.number().min(0, 'Must be a non-negative number'),
   minimumSpend: z.coerce.number().min(0, 'Must be a non-negative number'),
   pointsCost: z.coerce.number().int().min(0, 'Must be a non-negative number'),
   maxRedemptions: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
-  validFrom: z.date(),
-  validUntil: z.date(),
+  startDate: z.date(),
+  endDate: z.date(),
   isActive: z.boolean().default(true),
 });
 
@@ -105,14 +106,15 @@ export default function VouchersList({
     resolver: zodResolver(voucherSchema),
     defaultValues: {
       code: '',
+      name: '',
       description: '',
       discountType: 'PERCENTAGE',
       discountValue: 10,
       minimumSpend: 0,
       pointsCost: 0,
       maxRedemptions: undefined,
-      validFrom: new Date(),
-      validUntil: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+      startDate: new Date(),
+      endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
       isActive: true,
     }
   });
@@ -148,14 +150,15 @@ export default function VouchersList({
   const openCreateDialog = () => {
     form.reset({
       code: '',
+      name: '',
       description: '',
       discountType: 'PERCENTAGE',
       discountValue: 10,
       minimumSpend: 0,
       pointsCost: 0,
       maxRedemptions: undefined,
-      validFrom: new Date(),
-      validUntil: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+      startDate: new Date(),
+      endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
       isActive: true,
     });
     setCurrentVoucher(null);
@@ -165,14 +168,15 @@ export default function VouchersList({
   const openEditDialog = (voucher: Voucher) => {
     form.reset({
       code: voucher.code,
+      name: voucher.name,
       description: voucher.description,
       discountType: voucher.discountType,
       discountValue: voucher.discountValue,
       minimumSpend: voucher.minimumSpend,
       pointsCost: voucher.pointsCost,
       maxRedemptions: voucher.maxRedemptions,
-      validFrom: new Date(voucher.validFrom),
-      validUntil: new Date(voucher.validUntil),
+      startDate: new Date(voucher.startDate),
+      endDate: new Date(voucher.endDate),
       isActive: voucher.isActive,
     });
     setCurrentVoucher(voucher);
@@ -205,14 +209,21 @@ export default function VouchersList({
   const onSubmit = async (data: z.infer<typeof voucherSchema>) => {
     setIsLoading(true);
     try {
+      const formData = {
+        ...data,
+        // Ensure dates are in ISO format
+        startDate: data.startDate.toISOString(),
+        endDate: data.endDate.toISOString()
+      };
+      
       if (currentVoucher) {
         await axios.patch(
           `/api/projects/${projectId}/vouchers/${currentVoucher.id}`,
-          data
+          formData
         );
         toast.success(`Voucher ${data.code} updated`);
       } else {
-        await axios.post(`/api/projects/${projectId}/vouchers`, data);
+        await axios.post(`/api/projects/${projectId}/vouchers`, formData);
         toast.success(`Voucher ${data.code} created`);
       }
       fetchVouchers();
@@ -289,6 +300,20 @@ export default function VouchersList({
 
                   <FormField
                     control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Voucher Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -324,7 +349,8 @@ export default function VouchersList({
                               <SelectItem value="PERCENTAGE">
                                 Percentage
                               </SelectItem>
-                              <SelectItem value="FIXED">Fixed Amount</SelectItem>
+                              <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
+                              <SelectItem value="FREE_ITEM">Free Item</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -436,10 +462,10 @@ export default function VouchersList({
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="validFrom"
+                      name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Valid From</FormLabel>
+                          <FormLabel>Start Date</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -476,10 +502,10 @@ export default function VouchersList({
 
                     <FormField
                       control={form.control}
-                      name="validUntil"
+                      name="endDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Valid Until</FormLabel>
+                          <FormLabel>End Date</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -578,10 +604,11 @@ export default function VouchersList({
                   <thead>
                     <tr className="border-b bg-muted/50 text-left">
                       <th className="p-2 pl-4">Code</th>
+                      <th className="p-2">Name</th>
                       <th className="p-2">Description</th>
                       <th className="p-2">Value</th>
                       <th className="p-2">Points</th>
-                      <th className="p-2">Valid Until</th>
+                      <th className="p-2">End Date</th>
                       <th className="p-2">Status</th>
                       <th className="p-2">Actions</th>
                     </tr>
@@ -602,6 +629,7 @@ export default function VouchersList({
                             </Button>
                           </div>
                         </td>
+                        <td className="p-2">{v.name}</td>
                         <td className="p-2">{v.description}</td>
                         <td className="p-2">
                           {v.discountType === 'PERCENTAGE'
@@ -610,7 +638,7 @@ export default function VouchersList({
                         </td>
                         <td className="p-2">{v.pointsCost}</td>
                         <td className="p-2">
-                          {new Date(v.validUntil).toLocaleDateString()}
+                          {new Date(v.endDate).toLocaleDateString()}
                         </td>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
