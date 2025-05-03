@@ -78,16 +78,47 @@ import {
 // Define schema for redemption rule
 const redemptionRuleSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required').optional(),
+  description: z.string().optional(),
   ruleType: z.enum(['POINTS_TO_VOUCHER', 'STAMPS_TO_VOUCHER', 'POINTS_TO_PRODUCT', 'STAMPS_TO_TIER_UPGRADE']),
-  pointsRequired: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
-  stampsRequired: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
+  pointsRequired: z.coerce.number().int().optional(),
+  stampsRequired: z.coerce.number().int().optional(),
   outputType: z.enum(['VOUCHER', 'PRODUCT', 'TIER_UPGRADE']),
   voucherId: z.string().optional(),
   productId: z.string().optional(),
   tierUpgradeId: z.string().optional(),
   minimumSpend: z.coerce.number().min(0, 'Must be non-negative').default(0),
   isActive: z.boolean().default(true),
+}).refine((data) => {
+  // Validate that points are required for POINTS rules
+  if (data.ruleType.includes('POINTS')) {
+    return data.pointsRequired !== undefined && data.pointsRequired > 0;
+  }
+  return true;
+}, {
+  message: "Points are required and must be greater than 0 for points-based rules",
+  path: ["pointsRequired"],
+}).refine((data) => {
+  // Validate that stamps are required for STAMPS rules
+  if (data.ruleType.includes('STAMPS')) {
+    return data.stampsRequired !== undefined && data.stampsRequired > 0;
+  }
+  return true;
+}, {
+  message: "Stamps are required and must be greater than 0 for stamp-based rules",
+  path: ["stampsRequired"],
+}).refine((data) => {
+  // Validate output IDs based on outputType
+  if (data.outputType === 'VOUCHER') {
+    return !!data.voucherId;
+  } else if (data.outputType === 'PRODUCT') {
+    return !!data.productId;
+  } else if (data.outputType === 'TIER_UPGRADE') {
+    return !!data.tierUpgradeId;
+  }
+  return true;
+}, {
+  message: "You must select a value for the selected output type",
+  path: ["outputType"],
 });
 
 type FormValues = z.infer<typeof redemptionRuleSchema>;
@@ -258,6 +289,7 @@ export default function RedemptionRulesList({
   };
 
   const onSubmit = async (data: FormValues) => {
+    console.log("Form data:", data);
     setIsLoading(true);
     try {
       // Make sure we're correctly mapping rule type and output type
@@ -420,7 +452,16 @@ export default function RedemptionRulesList({
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={(e) => {
+              console.log("Form submitted");
+              form.handleSubmit(onSubmit)(e);
+            }} className="space-y-4">
+              {/* Log form validation state */}
+              <div className="text-xs text-red-500">
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <div>Form has errors: {JSON.stringify(form.formState.errors)}</div>
+                )}
+              </div>
               <FormField
                 control={form.control}
                 name="name"
