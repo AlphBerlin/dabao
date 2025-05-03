@@ -48,6 +48,33 @@ enum RewardType {
   @@schema("dabao")
 }
 
+// Additional enum for Telegram message types
+enum TelegramMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  DOCUMENT
+  STICKER
+  LOCATION
+  CONTACT
+  POLL
+  ANIMATION
+
+  @@schema("dabao")
+}
+
+// Additional enum for Telegram campaign status
+enum TelegramCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+
+  @@schema("dabao")
+}
+
 // -----------------------------
 // Control-plane models (Organization & Admin)
 // -----------------------------
@@ -141,6 +168,10 @@ model Project {
   vouchers          Voucher[]
   stampCards        StampCard[]
   redemptionRules   RedemptionRule[]
+  // New Telegram relations
+  telegramSettings  TelegramSettings?
+  telegramCampaigns TelegramCampaign[]
+  telegramMessages  TelegramMessage[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -225,6 +256,7 @@ model Customer {
   stampCards StampCard[]
   pointsTransactions CustomerPointsTransaction[]
   voucherRedemptions VoucherRedemption[]
+  telegramUsers TelegramUser[]
   
   @@unique([projectId, email])
   @@unique([projectId, externalId])
@@ -266,7 +298,7 @@ model CustomerReward {
   claimedAt    DateTime? @map("claimed_at")
   redeemedAt   DateTime? @map("redeemed_at")
   expiresAt    DateTime? @map("expires_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt @map("updated_at")
   
   // Relations
@@ -537,6 +569,112 @@ model RedemptionRule {
   project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   
   @@map("redemption_rules")
+  @@schema("dabao_tenant")
+}
+
+// Telegram-specific models for the integration
+
+// TelegramSettings model for project-level Telegram configuration
+model TelegramSettings {
+  id              String   @id @default(cuid())
+  projectId       String   @unique @map("project_id")
+  botToken        String   @map("bot_token")
+  botUsername     String   @map("bot_username")
+  webhookUrl      String?  @map("webhook_url")
+  welcomeMessage  String?  @map("welcome_message")
+  helpMessage     String?  @map("help_message")
+  enableCommands  Boolean  @default(true) @map("enable_commands")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_settings")
+  @@schema("dabao_tenant")
+}
+
+// TelegramUser model for tracking Telegram users
+model TelegramUser {
+  id              String   @id @default(cuid())
+  telegramId      String   @unique @map("telegram_id") // The Telegram-provided user ID
+  username        String?
+  firstName       String?  @map("first_name")
+  lastName        String?  @map("last_name")
+  languageCode    String?  @map("language_code")
+  customerId      String?  @map("customer_id") // Optional link to Customer
+  isSubscribed    Boolean  @default(true) @map("is_subscribed")
+  subscribedAt    DateTime @default(now()) @map("subscribed_at")
+  unsubscribedAt  DateTime? @map("unsubscribed_at")
+  lastInteraction DateTime @default(now()) @map("last_interaction")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  receivedMessages TelegramMessage[] @relation("ReceivedMessages")
+  sentMessages    TelegramMessage[] @relation("SentMessages") 
+  
+  @@map("telegram_users")
+  @@schema("dabao_tenant")
+}
+
+// TelegramCampaign model for Telegram-specific campaigns
+model TelegramCampaign {
+  id              String   @id @default(cuid())
+  projectId       String   @map("project_id")
+  name            String
+  description     String?
+  messageTemplate String   @map("message_template")
+  buttons         Json?    // Inline button configuration
+  imageUrl        String?  @map("image_url")
+  scheduledFor    DateTime? @map("scheduled_for")
+  status          TelegramCampaignStatus @default(DRAFT)
+  audienceFilter  Json?    @map("audience_filter") // Filter criteria for targeting users
+  sentCount       Int      @default(0) @map("sent_count")
+  deliveredCount  Int      @default(0) @map("delivered_count")
+  readCount       Int      @default(0) @map("read_count")
+  clickCount      Int      @default(0) @map("click_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages        TelegramMessage[]
+  
+  @@map("telegram_campaigns")
+  @@schema("dabao_tenant")
+}
+
+// TelegramMessage model for tracking messages
+model TelegramMessage {
+  id              String   @id @default(cuid())
+  projectId       String   @map("project_id")
+  telegramMsgId   String?  @map("telegram_msg_id") // The Telegram-provided message ID
+  senderId        String?  @map("sender_id") // TelegramUser who sent the message (if from user)
+  recipientId     String?  @map("recipient_id") // TelegramUser who received the message (if from bot)
+  campaignId      String?  @map("campaign_id") // If part of a campaign
+  messageType     TelegramMessageType @default(TEXT)
+  content         String   // Message text content
+  buttons         Json?    // Inline button configuration if any
+  mediaUrl        String?  @map("media_url") // URL for images, videos, etc.
+  isFromUser      Boolean  @default(false) @map("is_from_user") // If true, user sent to bot, else bot sent to user
+  isDelivered     Boolean  @default(false) @map("is_delivered")
+  isRead          Boolean  @default(false) @map("is_read")
+  hasClicked      Boolean  @default(false) @map("has_clicked")
+  sentAt          DateTime @default(now()) @map("sent_at")
+  deliveredAt     DateTime? @map("delivered_at")
+  readAt          DateTime? @map("read_at")
+  clickedAt       DateTime? @map("clicked_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender          TelegramUser? @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  recipient       TelegramUser? @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: SetNull)
+  campaign        TelegramCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  
+  @@map("telegram_messages")
   @@schema("dabao_tenant")
 }
 
