@@ -22,6 +22,7 @@ const PUBLIC_ROUTES = [
   '/create-organization',
   '/_next',
   '/favicon.ico',
+  '/webhooks/telegram'
 ];
 
 /**
@@ -34,7 +35,10 @@ export async function middleware(request: NextRequest) {
   
   // Skip organization checks for public routes
   const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route)) || pathname === '/';
-  
+  // For public routes, we can skip organization checks
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
   // Process Supabase session first
   const supabaseResponse = await updateSession(request);
   
@@ -43,10 +47,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
   
-  // For public routes, we can skip organization checks
-  if (isPublicRoute) {
-    return supabaseResponse;
-  }
+  
   
   // Check if the route is protected and requires organization membership
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
