@@ -1,17 +1,29 @@
+// src/app/api/projects/[id]/telegram/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-import { Bot } from 'grammy';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
+import botManager from '@/services/bot-manager';
+import { Bot } from 'grammy';
 
-
-// Helper function to create a Telegram bot instance
-const createBot = (token: string) => {
+// Helper function to validate a bot token
+const validateBotToken = async (token: string, username: string) => {
   try {
-    return new Bot(token);
+    const bot = new Bot(token);
+    const botInfo = await bot.api.getMe();
+    
+    if (!botInfo) {
+      throw new Error('Could not get bot information');
+    }
+    
+    // Validate that username matches
+    if (botInfo.username !== username) {
+      throw new Error('Bot username does not match the provided token');
+    }
+    
+    return botInfo;
   } catch (error) {
-    console.error('Error creating bot instance:', error);
-    throw new Error('Invalid bot token');
+    console.error('Bot token validation error:', error);
+    throw error;
   }
 };
 
@@ -21,7 +33,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const { id } = params;
+    const projectId = id;
 
     // Check for authentication and authorization
     const supabase = await createClient();
@@ -49,11 +62,14 @@ export async function GET(
       return NextResponse.json(null, { status: 404 });
     }
 
-    // Don't send sensitive information like bot token to the client directly
-    // Instead, send a masked version
+    // Check bot status
+    const isActive = botManager.isBotActive(projectId);
+
+    // Return masked settings with status
     const maskedSettings = {
       ...telegramSettings,
       botToken: telegramSettings.botToken.substring(0, 8) + '...' + telegramSettings.botToken.substring(telegramSettings.botToken.length - 4),
+      isActive,
     };
 
     return NextResponse.json(maskedSettings);
@@ -72,7 +88,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const { id } = params;
+    const projectId = id;
     const data = await request.json();
 
     // Check for authentication and authorization
@@ -100,27 +117,20 @@ export async function POST(
       );
     }
 
-    // Validate the token by trying to create a bot instance
+    // Validate the token
     try {
-      const bot = createBot(data.botToken);
-      // Get bot info to validate token
-      const botInfo = await bot.api.getMe();
-      if (!botInfo) {
-        throw new Error('Could not get bot information');
-      }
-      // Optional: validate that username matches
-      if (botInfo.username !== data.botUsername) {
-        return NextResponse.json(
-          { error: 'Bot username does not match the provided token' },
-          { status: 400 }
-        );
-      }
+      await validateBotToken(data.botToken, data.botUsername);
     } catch (error) {
-      console.error('Bot token validation error:', error);
       return NextResponse.json(
-        { error: 'Invalid bot token' },
+        { error: `Invalid bot token: ${error.message}` },
         { status: 400 }
       );
+    }
+
+    // Generate a webhook URL if not provided
+    if (!data.webhookUrl) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin');
+      data.webhookUrl = `${baseUrl}/api/telegram/webhook/${projectId}`;
     }
 
     // Check if Telegram settings already exist for this project
@@ -141,8 +151,15 @@ export async function POST(
           welcomeMessage: data.welcomeMessage,
           helpMessage: data.helpMessage,
           enableCommands: data.enableCommands !== undefined ? data.enableCommands : true,
+          status: 'pending',
+          updatedAt: new Date()
         },
       });
+      
+      // Update or restart the bot
+      if (botManager.isBotActive(projectId)) {
+        await botManager.removeBot(projectId);
+      }
     } else {
       // Create new settings
       telegramSettings = await db.telegramSettings.create({
@@ -154,41 +171,40 @@ export async function POST(
           welcomeMessage: data.welcomeMessage,
           helpMessage: data.helpMessage,
           enableCommands: data.enableCommands !== undefined ? data.enableCommands : true,
+          status: 'pending',
+          lastStatusChange: new Date()
         },
       });
-
-      // Set up the bot using Grammy
-      try {
-        const bot = createBot(data.botToken);
-
-        // Set up commands
-        if (data.enableCommands) {
-          await bot.api.setMyCommands([
-            { command: "start", description: "Start the bot" },
-            { command: "help", description: "Show help information" },
-            { command: "points", description: "Check your points balance" },
-            { command: "rewards", description: "View available rewards" },
-            { command: "profile", description: "View your profile" },
-          ]);
-        }
-
-        // Set webhook if provided
-        if (data.webhookUrl) {
-          await bot.api.setWebhook(data.webhookUrl);
-        }
-      } catch (error) {
-        console.error('Error setting up bot:', error);
-        // Continue despite setup errors - we can fix these later
-      }
     }
 
-    // Don't send sensitive information like bot token to the client directly
-    const maskedSettings = {
-      ...telegramSettings,
-      botToken: telegramSettings.botToken.substring(0, 8) + '...' + telegramSettings.botToken.substring(telegramSettings.botToken.length - 4),
-    };
+    // Initialize the bot with our manager
+    try {
+      await botManager.createBot(projectId, data.botToken);
+      
+      // Update status to show bot is active
+      const isActive = botManager.isBotActive(projectId);
+      
+      // Return masked settings with status
+      const maskedSettings = {
+        ...telegramSettings,
+        botToken: telegramSettings.botToken.substring(0, 8) + '...' + telegramSettings.botToken.substring(telegramSettings.botToken.length - 4),
+        isActive,
+      };
 
-    return NextResponse.json(maskedSettings);
+      return NextResponse.json(maskedSettings);
+    } catch (error) {
+      console.error('Error setting up bot:', error);
+      
+      // Return settings even if bot setup failed
+      const maskedSettings = {
+        ...telegramSettings,
+        botToken: telegramSettings.botToken.substring(0, 8) + '...' + telegramSettings.botToken.substring(telegramSettings.botToken.length - 4),
+        isActive: false,
+        setupError: error.message
+      };
+
+      return NextResponse.json(maskedSettings);
+    }
   } catch (error) {
     console.error('Error saving Telegram settings:', error);
     return NextResponse.json(
@@ -204,8 +220,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
-
+    const { id } = params;
+    const projectId = id;
+    
     // Check for authentication and authorization
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -232,21 +249,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Telegram integration not found' }, { status: 404 });
     }
 
-    // Optional: Clean up bot settings on Telegram side
-    try {
-      const bot = createBot(existingSettings.botToken);
-
-      // Remove webhook if it was set
-      if (existingSettings.webhookUrl) {
-        await bot.api.deleteWebhook();
-      }
-
-      // Clear commands
-      await bot.api.deleteMyCommands();
-    } catch (error) {
-      console.error('Error cleaning up bot settings:', error);
-      // Continue despite cleanup errors
-    }
+    // Remove the bot using our manager
+    await botManager.removeBot(projectId);
 
     // Delete the Telegram settings
     await db.telegramSettings.delete({

@@ -52,7 +52,7 @@ export default function ProjectLayout({
       <ProjectSidebar project={project} pathname={pathname} loading={loading} />
       <div className="flex-1 flex flex-col">
         <ProjectHeader project={project} loading={loading} />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto mx-6">
           {children}
         </main>
       </div>
