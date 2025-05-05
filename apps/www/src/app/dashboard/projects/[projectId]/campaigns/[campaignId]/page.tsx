@@ -78,6 +78,8 @@ export default function CampaignDetailPage() {
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
   
   // Load campaign data
   useEffect(() => {
@@ -135,6 +137,56 @@ export default function CampaignDetailPage() {
       toast.error("Failed to update campaign status. Please try again.");
     } finally {
       setIsTogglingStatus(false);
+    }
+  };
+  
+  // Handle sending campaign
+  const handleSendCampaign = async () => {
+    if (!campaign?.telegramCampaign?.id) return;
+    
+    try {
+      setIsSending(true);
+      
+      const response = await fetch(
+        `/api/projects/${projectId}/integrations/telegram/campaigns/${campaign.telegramCampaign.id}/send`, 
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send campaign");
+      }
+      
+      const result = await response.json();
+      
+      // Update local campaign data
+      setCampaign({
+        ...campaign,
+        status: CampaignStatus.ACTIVE,
+        telegramCampaign: {
+          ...campaign.telegramCampaign,
+          status: 'SENDING',
+          sentAt: new Date(),
+        }
+      });
+      
+      toast.success(`Campaign is being sent to ${result.stats?.totalUsers || 'all'} subscribers`);
+      setShowSendDialog(false);
+      
+      // Refresh after a delay to get updated stats
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    } catch (error) {
+      console.error("Error sending campaign:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to send campaign");
+    } finally {
+      setIsSending(false);
     }
   };
   
@@ -508,19 +560,19 @@ export default function CampaignDetailPage() {
                   <h3 className="font-medium mb-2">Campaign Metrics</h3>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="flex flex-col">
-                      <span className="text-2xl font-bold">{campaign.telegramCampaign.sentCount}</span>
+                      <span className="text-2xl font-bold">{campaign.telegramCampaign.sentCount || 0}</span>
                       <span className="text-sm text-muted-foreground">Sent</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-2xl font-bold">{campaign.telegramCampaign.deliveredCount}</span>
+                      <span className="text-2xl font-bold">{campaign.telegramCampaign.deliveredCount || 0}</span>
                       <span className="text-sm text-muted-foreground">Delivered</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-2xl font-bold">{campaign.telegramCampaign.readCount}</span>
+                      <span className="text-2xl font-bold">{campaign.telegramCampaign.readCount || 0}</span>
                       <span className="text-sm text-muted-foreground">Read</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-2xl font-bold">{campaign.telegramCampaign.clickCount}</span>
+                      <span className="text-2xl font-bold">{campaign.telegramCampaign.clickCount || 0}</span>
                       <span className="text-sm text-muted-foreground">Clicked</span>
                     </div>
                   </div>
@@ -542,7 +594,7 @@ export default function CampaignDetailPage() {
                 
                 {campaign.telegramCampaign.status !== "SENDING" && 
                  campaign.telegramCampaign.status !== "COMPLETED" && (
-                  <Dialog>
+                  <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
                     <DialogTrigger asChild>
                       <Button>
                         <Send className="mr-2 h-4 w-4" />
@@ -569,8 +621,10 @@ export default function CampaignDetailPage() {
                         </p>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline">Cancel</Button>
-                        <Button>Confirm and Send</Button>
+                        <Button variant="outline" onClick={() => setShowSendDialog(false)} disabled={isSending}>Cancel</Button>
+                        <Button onClick={handleSendCampaign} disabled={isSending}>
+                          {isSending ? "Sending..." : "Confirm and Send"}
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
