@@ -184,6 +184,9 @@ export class BotManager {
       }
     }
 
+    // Pre-load menus from database
+    await this.loadMenusFromDatabase(projectId);
+
     // Set up callbacks
     await this.setupCallbacks(bot);
     
@@ -215,7 +218,217 @@ export class BotManager {
       }
     });
   }
+
+  // Private cache for menus
+  private menuCache: Map<string, any[]> = new Map();
+
+  // Load menus from database
+  private async loadMenusFromDatabase(projectId: string): Promise<void> {
+    try {
+      // Fetch all menus for this project
+      const menus = await db.telegramMenu.findMany({
+        where: { projectId },
+        orderBy: { sortOrder: 'asc' }
+      });
+      
+      // Store in cache
+      this.menuCache.set(projectId, menus);
+      
+      console.log(`[Bot ${projectId}] Loaded ${menus.length} menus from database`);
+
+      // If no menus exist, create default ones
+      if (menus.length === 0) {
+        await this.createDefaultMenus(projectId);
+      }
+    } catch (error) {
+      console.error(`Error loading menus for project ${projectId}:`, error);
+    }
+  }
+
+  // Create default menus for a new project
+  private async createDefaultMenus(projectId: string): Promise<void> {
+    try {
+      // Create main menu
+      const mainMenu = await db.telegramMenu.create({
+        data: {
+          projectId,
+          menuId: 'main',
+          name: 'Main Menu',
+          description: 'The main navigation menu',
+          isDefault: true,
+          sortOrder: 0,
+          items: [
+            { text: '💳 Membership', action: 'menu:membership' },
+            { text: '🎯 Points', action: 'points' },
+            { text: '🎁 Rewards', action: 'coupon:list' },
+            { text: '📍 Locations', action: 'menu:locations' }
+          ]
+        }
+      });
+      
+      // Create membership menu
+      const membershipMenu = await db.telegramMenu.create({
+        data: {
+          projectId,
+          menuId: 'membership',
+          name: 'Membership Menu',
+          description: 'Membership options and information',
+          isDefault: false,
+          sortOrder: 1,
+          items: [
+            { text: '💳 View My Status', action: 'membership' },
+            { text: '🎯 Check Points', action: 'points' },
+            { text: '📊 Benefits', action: 'menu:benefits' },
+            { text: '🔙 Back to Main', action: 'menu:main' }
+          ]
+        }
+      });
+      
+      // Create locations menu
+      const locationsMenu = await db.telegramMenu.create({
+        data: {
+          projectId, 
+          menuId: 'locations',
+          name: 'Locations',
+          description: 'Store locations',
+          isDefault: false,
+          sortOrder: 2,
+          items: [
+            { text: '🗺️ Find Nearest', action: 'location:nearest' },
+            { text: '📍 All Locations', action: 'location:all' },
+            { text: '🔙 Back to Main', action: 'menu:main' }
+          ]
+        }
+      });
+      
+      // Add to cache
+      this.menuCache.set(projectId, [mainMenu, membershipMenu, locationsMenu]);
+      console.log(`[Bot ${projectId}] Created default menus`);
+    } catch (error) {
+      console.error(`Error creating default menus for project ${projectId}:`, error);
+    }
+  }
+
+  // Get a menu from cache or database
+  private async getMenu(projectId: string, menuId: string): Promise<any | null> {
+    // Check cache first
+    const cachedMenus = this.menuCache.get(projectId);
+    if (cachedMenus) {
+      const menu = cachedMenus.find(m => m.menuId === menuId);
+      if (menu) return menu;
+    }
+    
+    // If not in cache, try to fetch from database
+    try {
+      const menu = await db.telegramMenu.findFirst({
+        where: { projectId, menuId }
+      });
+      
+      if (menu) {
+        // Update cache
+        if (cachedMenus) {
+          this.menuCache.set(projectId, [...cachedMenus.filter(m => m.menuId !== menuId), menu]);
+        } else {
+          this.menuCache.set(projectId, [menu]);
+        }
+        return menu;
+      }
+    } catch (error) {
+      console.error(`Error fetching menu ${menuId} for project ${projectId}:`, error);
+    }
+    
+    return null;
+  }
+
+  // Show a menu to a user
+  private async showMenu(ctx: Context, menuId: string): Promise<void> {
+    const projectId = 'session' in ctx ? ctx.session.projectId : '';
+    if (!projectId) return;
+    
+    // Get menu from cache/database
+    const menu = await this.getMenu(projectId, menuId);
+    
+    if (!menu) {
+      // Fallback to main menu if requested menu doesn't exist
+      if (menuId !== 'main') {
+        await this.showMenu(ctx, 'main');
+      } else {
+        // If no main menu, show a default one
+        await ctx.reply("📋 Menu", {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "💳 Membership", callback_data: "membership" },
+                { text: "🎯 Points", callback_data: "points" }
+              ],
+              [
+                { text: "🎁 Rewards", callback_data: "coupon:list" },
+                { text: "❓ Help", callback_data: "menu:help" }
+              ]
+            ]
+          }
+        });
+      }
+      return;
+    }
+    
+    // Format the menu items for Telegram
+    const buttons = this.formatMenuItemsForTelegram(menu.items);
+    
+    await ctx.reply(`📋 ${menu.name}`, {
+      reply_markup: {
+        inline_keyboard: buttons
+      }
+    });
+
+    // Record bot message
+    if ('from' in ctx) {
+      await this.recordBotMessage(ctx, `Menu: ${menu.name}`);
+    }
+  }
+
+  // Format menu items into Telegram keyboard buttons
+  private formatMenuItemsForTelegram(items: any[]): any[][] {
+    if (!Array.isArray(items) || items.length === 0) {
+      // Default buttons if none provided
+      return [[{ text: "Main Menu", callback_data: "menu:main" }]];
+    }
+    
+    // Format buttons into rows (max 2 buttons per row)
+    const formattedButtons = [];
+    for (let i = 0; i < items.length; i += 2) {
+      const row = [];
+      row.push({
+        text: items[i].text,
+        callback_data: items[i].action
+      });
+      
+      if (i + 1 < items.length) {
+        row.push({
+          text: items[i + 1].text,
+          callback_data: items[i + 1].action
+        });
+      }
+      
+      formattedButtons.push(row);
+    }
+    
+    return formattedButtons;
+  }
   
+  // Handle menu callback
+  private async handleMenuCallback(ctx: Context, menuId: string): Promise<void> {
+    await ctx.answerCallbackQuery();
+    
+    // Show the menu from the database
+    await this.showMenu(ctx, menuId);
+  }
+  
+  // Show main menu with buttons
+  private async showMainMenu(ctx: Context): Promise<void> {
+    await this.showMenu(ctx, 'main');
+  }
+
   // System commands like /start and /help
   private setupSystemCommands(bot: Bot<Context, SessionData>, settings: any): void {
     // Start command
@@ -363,52 +576,6 @@ export class BotManager {
     }
     
     return formattedButtons;
-  }
-  
-  // Handle menu callback
-  private async handleMenuCallback(ctx: Context, menuId: string): Promise<void> {
-    await ctx.answerCallbackQuery();
-    
-    switch (menuId) {
-      case 'main':
-        await this.showMainMenu(ctx);
-        break;
-      case 'membership':
-        await this.handleMembershipCallback(ctx);
-        break;
-      case 'promotions':
-        await ctx.reply("🎉 Current Promotions\n\n" +
-          "• Buy 1 Get 1 Free on all drinks\n" +
-          "• 50% off on desserts this weekend\n" +
-          "• Earn 2x points on any purchase over $20");
-        break;
-      case 'outlets':
-        await ctx.reply("📍 Our Outlets\n\n" +
-          "• Downtown: 123 Main St - Open 9am-10pm\n" +
-          "• Westside: 456 Park Ave - Open 10am-9pm\n" +
-          "• Eastside: 789 Beach Rd - Open 8am-11pm");
-        break;
-      default:
-        await ctx.reply("Menu option not available.");
-    }
-  }
-  
-  // Show main menu with buttons
-  private async showMainMenu(ctx: Context): Promise<void> {
-    await ctx.reply("📋 Main Menu - Choose an option:", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "💳 Membership", callback_data: "menu:membership" },
-            { text: "🍽️ Menu", callback_data: "menu:food" }
-          ],
-          [
-            { text: "🎁 Promotions", callback_data: "menu:promotions" },
-            { text: "📍 Our Outlets", callback_data: "menu:outlets" }
-          ]
-        ]
-      }
-    });
   }
   
   // Handle points information request
@@ -854,7 +1021,7 @@ export class BotManager {
         return false;
       }
       
-      // Fetch all commands for this project
+      // Get all commands for this project
       const customCommands = await db.telegramCommand.findMany({
         where: { projectId, isEnabled: true },
         orderBy: { sortOrder: 'asc' }
@@ -882,7 +1049,7 @@ export class BotManager {
         });
       }
       
-      // Set commands in Telegram if enabled
+      // Register commands with Telegram if enabled
       if (settings.enableCommands) {
         try {
           // Update command list in Telegram
@@ -891,19 +1058,29 @@ export class BotManager {
         } catch (error) {
           console.error(`Error setting commands with Telegram API for bot ${projectId}:`, error);
         }
-      } else {
-        // If commands are disabled, remove them from Telegram
-        try {
-          await bot.api.deleteMyCommands();
-          console.log(`Removed commands from Telegram menu for bot ${projectId}`);
-        } catch (error) {
-          console.error(`Error removing commands from Telegram for bot ${projectId}:`, error);
-        }
       }
       
       return true;
     } catch (error) {
       console.error(`Error updating bot commands for ${projectId}:`, error);
+      return false;
+    }
+  }
+
+  // Also update menus when updated in the database
+  public async updateBotMenus(projectId: string): Promise<boolean> {
+    try {
+      console.log(`Updating menus for bot ${projectId}`);
+      
+      // Remove from cache to force reload
+      this.menuCache.delete(projectId);
+      
+      // Load menus from database
+      await this.loadMenusFromDatabase(projectId);
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating bot menus for ${projectId}:`, error);
       return false;
     }
   }
@@ -941,6 +1118,9 @@ export class BotManager {
             break;
           case 'register':
             await this.handleRegistrationStep(ctx, params[0]);
+            break;
+          case 'location':
+            await this.handleLocationCallback(ctx, params[0]);
             break;
           default:
             // Log unknown callback for debugging
@@ -1278,7 +1458,40 @@ export class BotManager {
     await this.handleJoinMembership(ctx);
   }
 
-  // ...existing code...
+  // Handle location-related callbacks
+  private async handleLocationCallback(ctx: Context, action: string): Promise<void> {
+    await ctx.answerCallbackQuery();
+    
+    switch (action) {
+      case 'nearest':
+        await ctx.reply("To find the nearest location, please share your location using the button below:", {
+          reply_markup: {
+            keyboard: [
+              [{ text: "📍 Share My Location", request_location: true }]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+          }
+        });
+        break;
+        
+      case 'all':
+        await ctx.reply("📍 Our Locations:\n\n" +
+          "• Downtown: 123 Main St - Open 9am-10pm\n" +
+          "• Westside: 456 Park Ave - Open 10am-9pm\n" +
+          "• Eastside: 789 Beach Rd - Open 8am-11pm", {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🔙 Back to Locations", callback_data: "menu:locations" }]
+              ]
+            }
+          });
+        break;
+        
+      default:
+        await ctx.reply("I couldn't process that location request.");
+    }
+  }
 }
 
 // Export singleton instance

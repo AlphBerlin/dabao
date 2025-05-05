@@ -186,6 +186,7 @@ model Project {
   telegramMessages  TelegramMessage[]
   TelegramUser      TelegramUser[]
   telegramCommands  TelegramCommand[]
+  telegramMenus     TelegramMenu[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -715,6 +716,27 @@ model TelegramCommand {
 
   @@unique([projectId, command])
   @@map("telegram_commands")
+  @@schema("dabao_tenant")
+}
+
+// TelegramMenu model for storing menu structures
+model TelegramMenu {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  menuId      String    @map("menu_id")  // Identifier used in callback_data
+  name        String    // Display name for the menu
+  description String?   // Description for admin UI
+  items       Json      // Array of menu items with text and actions
+  isDefault   Boolean   @default(false) @map("is_default")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, menuId])
+  @@map("telegram_menus")
   @@schema("dabao_tenant")
 }
 
