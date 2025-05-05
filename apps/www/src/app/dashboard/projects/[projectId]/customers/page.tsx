@@ -253,7 +253,7 @@ export default function CustomersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{customer.totalPoints.toLocaleString()}</div>
+                        <div className="font-medium">{customer.totalPoints?.toLocaleString()}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">

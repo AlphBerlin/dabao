@@ -242,7 +242,7 @@ export function Header() {
                                       {notification.message}
                                     </p>
                                     <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">
-                                      {new Date(notification.createdAt).toLocaleString()}
+                                      {new Date(notification.createdAt)?.toLocaleString()}
                                     </p>
                                   </div>
                                 </div>

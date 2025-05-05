@@ -78,7 +78,7 @@ export function ProjectDashboard({
             <Star className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPoints.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{totalPoints?.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <Link href={`/dashboard/${project.id}/settings/points`} className="text-primary underline underline-offset-4">
                 Points settings

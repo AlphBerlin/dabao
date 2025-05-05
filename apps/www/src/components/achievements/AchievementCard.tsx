@@ -110,8 +110,8 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
                     className={`h-2 ${achievement.earned ? "bg-green-100" : "bg-neutral-100"}`}
                   />
                   <div className="flex justify-between mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                    <span>{achievement.progress.toLocaleString()}</span>
-                    <span>{achievement.total.toLocaleString()}</span>
+                    <span>{achievement.progress?.toLocaleString()}</span>
+                    <span>{achievement.total?.toLocaleString()}</span>
                   </div>
                 </div>
               )}
