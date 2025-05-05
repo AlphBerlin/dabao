@@ -358,21 +358,51 @@ model ReferredUser {
 
 // Campaign model for marketing campaigns
 model Campaign {
-  id          String   @id @default(cuid())
-  projectId   String   @map("project_id")
-  name        String
-  description String?
-  active      Boolean  @default(true)
-  startDate   DateTime @map("start_date")
-  endDate     DateTime @map("end_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String         @id @default(cuid())
+  projectId        String         @map("project_id")
+  name             String
+  description      String?
+  type             CampaignType   @default(CUSTOM)
+  status           CampaignStatus @default(DRAFT)
+  pointsMultiplier Int?           @map("points_multiplier") // For POINTS_MULTIPLIER type
+  startDate        DateTime?      @map("start_date")
+  endDate          DateTime?      @map("end_date")
+  active           Boolean        @default(true)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  rewards CampaignReward[]
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rewards          CampaignReward[]
+  telegramCampaign TelegramCampaign? // Add relation to TelegramCampaign
 
   @@map("campaigns")
+  @@schema("dabao_tenant")
+}
+
+// Add Campaign enums
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELED
+
+  @@schema("dabao_tenant")
+}
+
+enum CampaignType {
+  WELCOME
+  REFERRAL
+  POINTS_MULTIPLIER
+  BIRTHDAY
+  ANNIVERSARY
+  PROMOTION
+  SPECIAL_EVENT
+  HOLIDAY
+  CUSTOM
+
   @@schema("dabao_tenant")
 }
 
@@ -642,6 +672,7 @@ model TelegramUser {
 model TelegramCampaign {
   id              String                 @id @default(cuid())
   projectId       String                 @map("project_id")
+  campaignId      String?                @unique @map("campaign_id") // Link to main Campaign
   name            String
   description     String?
   messageTemplate String                 @map("message_template")
@@ -659,6 +690,7 @@ model TelegramCampaign {
 
   // Relations
   project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  campaign Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   messages TelegramMessage[]
 
   @@map("telegram_campaigns")
