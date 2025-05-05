@@ -155,7 +155,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Customers</p>
                     <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {totalCustomers.toLocaleString()}
+                      {totalCustomers?.toLocaleString()}
                     </h3>
                   </div>
                   <div className="bg-secondary-100 dark:bg-secondary-900/30 p-3 rounded-lg">
@@ -172,7 +172,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-neutral-500 dark:text-neutral-400 text-sm">Total Points Issued</p>
                     <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
-                      {totalPointsIssued.toLocaleString()}
+                      {totalPointsIssued?.toLocaleString()}
                     </h3>
                   </div>
                   <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg">

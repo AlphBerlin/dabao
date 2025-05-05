@@ -66,7 +66,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <div className="mt-6 flex items-center gap-4 text-sm">
           <div className="flex items-center text-neutral-600 dark:text-neutral-400">
             <Users className="h-4 w-4 mr-1" />
-            <span>{customerCount.toLocaleString()} customers</span>
+            <span>{customerCount?.toLocaleString()} customers</span>
           </div>
           
           <div className="text-neutral-500 dark:text-neutral-400">

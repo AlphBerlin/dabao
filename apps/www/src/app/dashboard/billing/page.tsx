@@ -92,8 +92,8 @@ export default function BillingPage() {
                     strokeWidth={8}
                   />
                   <p className="mt-4 font-medium">
-                    {mockBillingUsage.apiCalls.used.toLocaleString()} /{" "}
-                    {mockBillingUsage.apiCalls.limit.toLocaleString()}
+                    {mockBillingUsage.apiCalls.used?.toLocaleString()} /{" "}
+                    {mockBillingUsage.apiCalls.limit?.toLocaleString()}
                   </p>
                   <div className="flex items-center mt-4">
                     <BarChart2 size={16} className="text-neutral-500 dark:text-neutral-400 mr-2" />
@@ -133,8 +133,8 @@ export default function BillingPage() {
                     strokeWidth={8}
                   />
                   <p className="mt-4 font-medium">
-                    {mockBillingUsage.customers.used.toLocaleString()} /{" "}
-                    {mockBillingUsage.customers.limit.toLocaleString()}
+                    {mockBillingUsage.customers.used?.toLocaleString()} /{" "}
+                    {mockBillingUsage.customers.limit?.toLocaleString()}
                   </p>
                   <div className="flex items-center mt-4">
                     <Users size={16} className="text-neutral-500 dark:text-neutral-400 mr-2" />
