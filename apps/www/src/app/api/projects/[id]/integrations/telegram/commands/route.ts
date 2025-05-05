@@ -153,7 +153,7 @@ export async function POST(
   }
 }
 
-// Get a specific command
+// GET route for a specific command
 export async function GET_SINGLE(
   request: NextRequest,
   { params }: { params: { id: string; commandId: string } }
@@ -204,18 +204,16 @@ export async function GET_SINGLE(
 // PUT/PATCH route to update a command
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; commandId?: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const projectId =(await params).id;
     const data = await request.json();
-    const commandId = params.commandId || data.id;
+    const searchParams = request.nextUrl.searchParams;
+    const commandId = searchParams.get('commandId');
     
     if (!commandId) {
-      return NextResponse.json(
-        { error: 'Command ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Command ID is required' }, { status: 400 });
     }
 
     // Check for authentication and authorization
@@ -235,7 +233,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Get existing command
+    // Check if command exists
     const existingCommand = await db.telegramCommand.findFirst({
       where: {
         id: commandId,
@@ -247,9 +245,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Command not found' }, { status: 404 });
     }
 
-    // Check for command name conflict if name is being changed
+    // If changing the command name, check it doesn't conflict
     if (data.command && data.command !== existingCommand.command) {
-      const nameConflict = await db.telegramCommand.findFirst({
+      const conflictingCommand = await db.telegramCommand.findFirst({
         where: {
           projectId,
           command: data.command,
@@ -257,7 +255,7 @@ export async function PATCH(
         },
       });
 
-      if (nameConflict) {
+      if (conflictingCommand) {
         return NextResponse.json(
           { error: 'A command with this name already exists' },
           { status: 400 }
@@ -284,7 +282,6 @@ export async function PATCH(
         response: data.response ?? existingCommand.response,
         type: data.type ?? existingCommand.type,
         isEnabled: data.isEnabled !== undefined ? data.isEnabled : existingCommand.isEnabled,
-        sortOrder: data.sortOrder ?? existingCommand.sortOrder,
         metadata: data.metadata ?? existingCommand.metadata,
       },
     });
@@ -305,18 +302,15 @@ export async function PATCH(
 // DELETE route to remove a command
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; commandId?: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const projectId =(await params).id;
-    const url = new URL(request.url);
-    const commandId = params.commandId || url.searchParams.get('commandId');
+    const projectId = params.id;
+    const searchParams = request.nextUrl.searchParams;
+    const commandId = searchParams.get('commandId');
     
     if (!commandId) {
-      return NextResponse.json(
-        { error: 'Command ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Command ID is required' }, { status: 400 });
     }
 
     // Check for authentication and authorization
@@ -368,35 +362,35 @@ export async function DELETE(
   }
 }
 
-// PATCH route to reorder commands
+// PUT route to reorder commands
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId =(await params).id;
+    const projectId = params.id;
     const data = await request.json();
     
-    // Check if this is a reorder operation
+    // Check for authentication and authorization
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify project access
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Handle reordering of commands
     if (data.action === 'reorder' && Array.isArray(data.commandIds)) {
-      // Check for authentication and authorization
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-  
-      // Verify project access
-      const project = await db.project.findUnique({
-        where: { id: projectId },
-      });
-  
-      if (!project) {
-        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-      }
-  
-      // Update each command's sort order
+      // Update the sort order for each command
       const updates = data.commandIds.map((id: string, index: number) => {
         return db.telegramCommand.update({
           where: {

@@ -10,6 +10,7 @@ import TelegramSettingsForm from "./components/telegram-settings-form";
 import TelegramAnalyticsPanel from "./components/telegram-analytics-panel";
 import TelegramCampaignsPanel from "./components/telegram-campaigns-panel";
 import TelegramUsersPanel from "./components/telegram-users-panel";
+import TelegramCommandsPanel from "./components/telegram-commands-panel";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ function TelegramIntegrationContent() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
           {isConnected && (
             <>
+              <TabsTrigger value="commands">Commands</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
@@ -53,6 +55,10 @@ function TelegramIntegrationContent() {
         
         {isConnected && (
           <>
+            <TabsContent value="commands" className="mt-0">
+              <TelegramCommandsPanel projectId={projectId} />
+            </TabsContent>
+            
             <TabsContent value="analytics" className="mt-0">
               <TelegramAnalyticsPanel projectId={projectId} />
             </TabsContent>

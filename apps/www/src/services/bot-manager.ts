@@ -1,5 +1,5 @@
 // src/services/botManager.ts
-import { Bot, BotError, Context, session, webhookCallback } from 'grammy';
+import { Bot, BotError, Context, session, webhookCallback, BotCommand } from 'grammy';
 import { db } from '@/lib/db';
 
 interface SessionData {
@@ -145,9 +145,37 @@ export class BotManager {
       orderBy: { sortOrder: 'asc' }
     });
     
+    // Generate BotCommand array for Telegram's menu
+    const botCommands: BotCommand[] = [];
+    
+    // Add system commands first
+    botCommands.push({ command: 'start', description: 'Start the bot' });
+    botCommands.push({ command: 'help', description: 'Show available commands' });
+    botCommands.push({ command: 'menu', description: 'Show main menu' });
+    
+    console.log(`[Bot ${projectId}] Setting up ${customCommands.length} custom commands`);
+    
     // Register each custom command
     for (const cmd of customCommands) {
       this.registerCustomCommand(bot, cmd);
+      
+      // Add to BotCommand array if enabled
+      if (cmd.isEnabled) {
+        botCommands.push({
+          command: cmd.command,
+          description: cmd.description
+        });
+      }
+    }
+    
+    // Register commands with Telegram if enabled in settings
+    if (settings.enableCommands) {
+      try {
+        await bot.api.setMyCommands(botCommands);
+        console.log(`[Bot ${projectId}] Successfully registered ${botCommands.length} commands with Telegram`);
+      } catch (error) {
+        console.error(`[Bot ${projectId}] Failed to register commands with Telegram:`, error);
+      }
     }
 
     // Handle callback queries (button clicks)
@@ -245,72 +273,78 @@ export class BotManager {
   
   // Register a custom command from the database
   private registerCustomCommand(bot: Bot<Context, SessionData>, command: any): void {
-    // Handle different types of commands
-    switch (command.type) {
-      case 'TEXT_RESPONSE':
-        bot.command(command.command, async (ctx) => {
-          await ctx.reply(command.response || "Command response not configured.");
-        });
-        break;
-        
-      case 'BUTTON_MENU':
-        bot.command(command.command, async (ctx) => {
-          const metadata = command.metadata || {};
-          const title = metadata.title || command.command;
-          const buttons = metadata.buttons || [];
+    try {
+      console.log(`Registering command /${command.command} of type ${command.type}`);
+      
+      // Handle different types of commands
+      switch (command.type) {
+        case 'TEXT_RESPONSE':
+          bot.command(command.command, async (ctx) => {
+            await ctx.reply(command.response || "Command response not configured.");
+          });
+          break;
           
-          // Format buttons for Telegram
-          const inlineKeyboard = this.formatButtonsForTelegram(buttons);
+        case 'BUTTON_MENU':
+          bot.command(command.command, async (ctx) => {
+            const metadata = command.metadata || {};
+            const title = metadata.title || command.command;
+            const buttons = metadata.buttons || [];
+            
+            // Format buttons for Telegram
+            const inlineKeyboard = this.formatButtonsForTelegram(buttons);
+            
+            await ctx.reply(command.response || title, {
+              reply_markup: {
+                inline_keyboard: inlineKeyboard
+              }
+            });
+          });
+          break;
           
-          await ctx.reply(command.response || title, {
-            reply_markup: {
-              inline_keyboard: inlineKeyboard
+        case 'POINTS_INFO':
+          bot.command(command.command, async (ctx) => {
+            await this.handlePointsCallback(ctx);
+          });
+          break;
+          
+        case 'MEMBERSHIP_INFO':
+          bot.command(command.command, async (ctx) => {
+            await this.handleMembershipCallback(ctx);
+          });
+          break;
+          
+        case 'COUPON_GENERATOR':
+          bot.command(command.command, async (ctx) => {
+            await this.handleCouponCallback(ctx, 'generate');
+          });
+          break;
+          
+        case 'CUSTOM_ACTION':
+          // Custom actions require special handling depending on metadata
+          bot.command(command.command, async (ctx) => {
+            const metadata = command.metadata || {};
+            const actionType = metadata.actionType;
+            
+            if (actionType === 'api_call') {
+              // Would implement API call logic here
+              await ctx.reply("Processing your request...");
+            } else if (actionType === 'form') {
+              ctx.session.currentMenu = `form_${command.id}`;
+              await ctx.reply(metadata.formPrompt || "Please provide the requested information:");
+            } else {
+              await ctx.reply(command.response || "This command is not fully configured.");
             }
           });
-        });
-        break;
-        
-      case 'POINTS_INFO':
-        bot.command(command.command, async (ctx) => {
-          await this.handlePointsCallback(ctx);
-        });
-        break;
-        
-      case 'MEMBERSHIP_INFO':
-        bot.command(command.command, async (ctx) => {
-          await this.handleMembershipCallback(ctx);
-        });
-        break;
-        
-      case 'COUPON_GENERATOR':
-        bot.command(command.command, async (ctx) => {
-          await this.handleCouponCallback(ctx, 'generate');
-        });
-        break;
-        
-      case 'CUSTOM_ACTION':
-        // Custom actions require special handling depending on metadata
-        bot.command(command.command, async (ctx) => {
-          const metadata = command.metadata || {};
-          const actionType = metadata.actionType;
+          break;
           
-          if (actionType === 'api_call') {
-            // Would implement API call logic here
-            await ctx.reply("Processing your request...");
-          } else if (actionType === 'form') {
-            ctx.session.currentMenu = `form_${command.id}`;
-            await ctx.reply(metadata.formPrompt || "Please provide the requested information:");
-          } else {
-            await ctx.reply(command.response || "This command is not fully configured.");
-          }
-        });
-        break;
-        
-      default:
-        // Default simple text response
-        bot.command(command.command, async (ctx) => {
-          await ctx.reply(command.response || `Command /${command.command} received.`);
-        });
+        default:
+          // Default simple text response
+          bot.command(command.command, async (ctx) => {
+            await ctx.reply(command.response || `Command /${command.command} received.`);
+          });
+      }
+    } catch (error) {
+      console.error(`Error registering command /${command.command}:`, error);
     }
   }
   
@@ -768,6 +802,13 @@ export class BotManager {
       const bot = this.activeBots.get(projectId);
       if (!bot) return false;
 
+      // Delete commands from Telegram menu
+      try {
+        await bot.api.deleteMyCommands();
+      } catch (error) {
+        console.error(`Error deleting commands for bot ${projectId}:`, error);
+      }
+
       // Stop the bot
       await bot.stop();
       
@@ -806,21 +847,71 @@ export class BotManager {
   // Update commands for a specific bot
   public async updateBotCommands(projectId: string): Promise<boolean> {
     try {
-      const bot = this.activeBots.get(projectId);
-      if (!bot) return false;
+      console.log(`Updating commands for bot ${projectId}`);
       
-      // Create a new bot instance with same token to refresh commands
+      // Get the bot instance
+      const bot = this.activeBots.get(projectId);
+      if (!bot) {
+        console.error(`Bot ${projectId} not found for command update`);
+        return false;
+      }
+      
+      // Fetch project settings
       const settings = await db.telegramSettings.findUnique({
         where: { projectId }
       });
       
-      if (!settings) return false;
+      if (!settings) {
+        console.error(`No Telegram settings found for project ${projectId}`);
+        return false;
+      }
       
-      // Remove the old bot
-      await this.removeBot(projectId);
+      // Fetch all commands for this project
+      const customCommands = await db.telegramCommand.findMany({
+        where: { projectId, isEnabled: true },
+        orderBy: { sortOrder: 'asc' }
+      });
       
-      // Create a new bot with fresh commands
-      await this.createBot(projectId, settings.botToken);
+      console.log(`Found ${customCommands.length} enabled commands for bot ${projectId}`);
+      
+      // Generate BotCommand array for Telegram's menu
+      const botCommands: BotCommand[] = [];
+      
+      // Add system commands first
+      botCommands.push({ command: 'start', description: 'Start the bot' });
+      botCommands.push({ command: 'help', description: 'Show available commands' });
+      botCommands.push({ command: 'menu', description: 'Show main menu' });
+      
+      // Process custom commands
+      for (const cmd of customCommands) {
+        // Re-register command handler
+        this.registerCustomCommand(bot, cmd);
+        
+        // Add to command list
+        botCommands.push({
+          command: cmd.command,
+          description: cmd.description
+        });
+      }
+      
+      // Set commands in Telegram if enabled
+      if (settings.enableCommands) {
+        try {
+          // Update command list in Telegram
+          await bot.api.setMyCommands(botCommands);
+          console.log(`Successfully updated ${botCommands.length} commands with Telegram for bot ${projectId}`);
+        } catch (error) {
+          console.error(`Error setting commands with Telegram API for bot ${projectId}:`, error);
+        }
+      } else {
+        // If commands are disabled, remove them from Telegram
+        try {
+          await bot.api.deleteMyCommands();
+          console.log(`Removed commands from Telegram menu for bot ${projectId}`);
+        } catch (error) {
+          console.error(`Error removing commands from Telegram for bot ${projectId}:`, error);
+        }
+      }
       
       return true;
     } catch (error) {
