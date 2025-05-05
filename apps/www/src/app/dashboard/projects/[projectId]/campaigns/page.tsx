@@ -73,6 +73,23 @@ enum CampaignType {
   CUSTOM = "CUSTOM"
 }
 
+// Integration types
+enum IntegrationType {
+  TELEGRAM = "TELEGRAM",
+  EMAIL = "EMAIL",
+  SMS = "SMS",
+  PUSH_NOTIFICATION = "PUSH_NOTIFICATION",
+  WHATSAPP = "WHATSAPP"
+}
+
+// Integration status
+enum IntegrationStatus {
+  CONNECTED = "CONNECTED",
+  DISCONNECTED = "DISCONNECTED",
+  PENDING = "PENDING",
+  FAILED = "FAILED"
+}
+
 interface Campaign {
   id: string;
   name: string;
@@ -84,11 +101,31 @@ interface Campaign {
   endDate: string | null;
   createdAt: string;
   updatedAt: string;
+  integrations: CampaignIntegration[];
   _count: {
     customers: number;
     rewards: number;
     activities: number;
   };
+}
+
+interface CampaignIntegration {
+  type: IntegrationType;
+  status: IntegrationStatus;
+  id: string | null;
+  name: string | null;
+  details?: any;
+}
+
+interface TelegramCampaignDetails {
+  id: string;
+  messageTemplate: string;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  clickCount: number;
+  status: string;
+  imageUrl?: string;
 }
 
 export default function CampaignsPage() {
