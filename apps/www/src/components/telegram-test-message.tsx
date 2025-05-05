@@ -53,7 +53,7 @@ export function TelegramTestMessage({ projectId, telegramCampaignId, disabled = 
         throw new Error(errorData.error || "Failed to send test message");
       }
 
-      toast.success( "Test message sent successfully");
+      toast.success("Test message sent successfully");
       setOpen(false);
     } catch (error) {
       console.error("Error sending test message:", error);

@@ -121,7 +121,7 @@ export default function EditCampaignPage() {
     };
     
     loadCampaign();
-  }, [projectId, campaignId, form, toast]);
+  }, [projectId, campaignId, form]);
 
   const onSubmit = async (values: z.infer<typeof campaignFormSchema>) => {
     try {
