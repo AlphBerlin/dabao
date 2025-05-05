@@ -122,25 +122,12 @@ export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarPro
           >
             Campaigns
           </NavLink>
-          <NavLink
-            href={`/dashboard/projects/${project?.id}/analytics`}
-            icon={<BarChart3 className="h-4 w-4 mr-3" />}
-            isActive={pathname.includes(`/dashboard/projects/${project?.id}/analytics`)}
-          >
-            Analytics
-          </NavLink>
         </div>
 
         <div>
           <h3 className="text-xs font-medium text-muted-foreground mb-3">ADVANCED</h3>
           <div className="space-y-1">
-            <NavLink
-              href={`/dashboard/projects/${project?.id}/loyalty`}
-              icon={<Award className="h-4 w-4 mr-3" />}
-              isActive={pathname.includes(`/dashboard/projects/${project?.id}/loyalty`)}
-            >
-              Loyalty Program
-            </NavLink>
+        
             <NavLink
               href={`/dashboard/projects/${project?.id}/integrations`}
               icon={<Puzzle className="h-4 w-4 mr-3" />}
@@ -154,20 +141,6 @@ export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarPro
               isActive={pathname.includes(`/dashboard/projects/${project?.id}/notifications`)}
             >
               Notifications
-            </NavLink>
-            <NavLink
-              href={`/dashboard/projects/${project?.id}/mobile-app`}
-              icon={<Smartphone className="h-4 w-4 mr-3" />}
-              isActive={pathname.includes(`/dashboard/projects/${project?.id}/mobile-app`)}
-            >
-              Mobile App
-            </NavLink>
-            <NavLink
-              href={`/dashboard/projects/${project?.id}/settings`}
-              icon={<Settings className="h-4 w-4 mr-3" />}
-              isActive={pathname.includes(`/dashboard/projects/${project?.id}/settings`)}
-            >
-              Settings
             </NavLink>
           </div>
         </div>
