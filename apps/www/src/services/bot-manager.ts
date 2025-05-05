@@ -6,6 +6,12 @@ interface SessionData {
   projectId: string;
   currentMenu?: string;
   lastCommandTimestamp?: number;
+  registrationData?: {
+    step: string;
+    email?: string;
+    name?: string;
+    phone?: string;
+  };
 }
 
 // Singleton class to manage all bots across the application
@@ -178,43 +184,22 @@ export class BotManager {
       }
     }
 
-    // Handle callback queries (button clicks)
-    bot.on("callback_query", async (ctx) => {
-      try {
-        const callbackData = ctx.callbackQuery.data;
-        
-        // Parse the callback data to determine action
-        const [action, ...params] = callbackData.split(':');
-        
-        // Handle different button actions
-        switch (action) {
-          case 'menu':
-            await this.handleMenuCallback(ctx, params[0]);
-            break;
-          case 'points':
-            await this.handlePointsCallback(ctx);
-            break;
-          case 'membership':
-            await this.handleMembershipCallback(ctx);
-            break;
-          case 'coupon':
-            await this.handleCouponCallback(ctx, params[0]);
-            break;
-          default:
-            // Log unknown callback for debugging
-            console.log(`Unknown callback: ${callbackData}`);
-            await ctx.answerCallbackQuery("This button is not active.");
-        }
-      } catch (error) {
-        console.error('Error handling callback query:', error);
-        await ctx.answerCallbackQuery("Sorry, something went wrong.").catch(console.error);
-      }
-    });
+    // Set up callbacks
+    await this.setupCallbacks(bot);
     
     // Handle regular messages (not commands)
     bot.on('message', async (ctx) => {
       const messageText = ctx.message?.text;
       if (!messageText || messageText.startsWith('/')) return;
+
+      // Record user message in the database
+      await this.recordUserMessage(ctx);
+
+      // Check if user is in a registration flow
+      if (ctx.session.registrationData) {
+        await this.handleRegistrationInput(ctx, messageText);
+        return;
+      }
 
       // Check if user is in a specific menu state
       if (ctx.session.currentMenu) {
@@ -224,6 +209,9 @@ export class BotManager {
         const response = settings.welcomeMessage || 
           "I'm here to help! Use commands like /menu or /help to navigate.";
         await ctx.reply(response);
+        
+        // Record bot response
+        await this.recordBotMessage(ctx, response);
       }
     });
   }
@@ -919,6 +907,378 @@ export class BotManager {
       return false;
     }
   }
+
+  // Handle all callback queries
+  private async setupCallbacks(bot: Bot<Context, SessionData>): Promise<void> {
+    bot.on("callback_query", async (ctx) => {
+      try {
+        const callbackData = ctx.callbackQuery.data;
+        
+        // Parse the callback data to determine action
+        const [action, ...params] = callbackData.split(':');
+        
+        // Handle different button actions
+        switch (action) {
+          case 'menu':
+            await this.handleMenuCallback(ctx, params[0]);
+            break;
+          case 'points':
+            if (params[0] === 'create') {
+              await this.handleCreateAccount(ctx);
+            } else {
+              await this.handlePointsCallback(ctx);
+            }
+            break;
+          case 'membership':
+            if (params[0] === 'join') {
+              await this.handleJoinMembership(ctx);
+            } else {
+              await this.handleMembershipCallback(ctx);
+            }
+            break;
+          case 'coupon':
+            await this.handleCouponCallback(ctx, params[0]);
+            break;
+          case 'register':
+            await this.handleRegistrationStep(ctx, params[0]);
+            break;
+          default:
+            // Log unknown callback for debugging
+            console.log(`Unknown callback: ${callbackData}`);
+            await ctx.answerCallbackQuery("This button is not active.");
+        }
+
+        // Record this message in the database for tracking
+        await this.recordBotMessage(ctx, callbackData);
+      } catch (error) {
+        console.error('Error handling callback query:', error);
+        await ctx.answerCallbackQuery("Sorry, something went wrong.").catch(console.error);
+      }
+    });
+  }
+
+  // Handle membership join process
+  private async handleJoinMembership(ctx: Context): Promise<void> {
+    if ('callbackQuery' in ctx && 'session' in ctx) {
+      await ctx.answerCallbackQuery();
+
+      // Initialize registration flow
+      ctx.session.registrationData = {
+        step: 'email'
+      };
+
+      await ctx.reply("Great! Let's set up your membership. I'll need a few details from you.");
+      await ctx.reply("First, please enter your email address:");
+    }
+  }
+
+  // Handle step-by-step registration
+  private async handleRegistrationInput(ctx: Context, input: string): Promise<void> {
+    if (!('session' in ctx)) return;
+    
+    const registrationData = ctx.session.registrationData;
+    if (!registrationData) return;
+
+    const telegramId = ctx.from?.id.toString();
+    const projectId = ctx.session.projectId;
+    
+    if (!telegramId || !projectId) {
+      await ctx.reply("Sorry, I couldn't process your registration.");
+      return;
+    }
+
+    try {
+      switch (registrationData.step) {
+        case 'email':
+          // Validate email
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(input)) {
+            await ctx.reply("That doesn't look like a valid email address. Please try again:");
+            return;
+          }
+          
+          // Store email and move to next step
+          registrationData.email = input;
+          registrationData.step = 'name';
+          await ctx.reply("Thanks! Now, please enter your full name:");
+          break;
+        
+        case 'name':
+          // Store name and move to next step
+          registrationData.name = input;
+          registrationData.step = 'phone';
+          await ctx.reply("Great! Finally, please enter your phone number (optional, you can type 'skip' to skip this step):");
+          break;
+        
+        case 'phone':
+          // Store phone number
+          if (input.toLowerCase() !== 'skip') {
+            registrationData.phone = input;
+          }
+          
+          // Complete registration
+          await this.completeRegistration(ctx);
+          break;
+      }
+    } catch (error) {
+      console.error('Error processing registration input:', error);
+      await ctx.reply("Sorry, there was an error processing your input. Please try again or contact support.");
+    }
+  }
+
+  // Complete registration process
+  private async completeRegistration(ctx: Context): Promise<void> {
+    if (!('session' in ctx)) return;
+    
+    const registrationData = ctx.session.registrationData;
+    if (!registrationData || !registrationData.email) {
+      await ctx.reply("Sorry, we couldn't complete your registration. Please try again later.");
+      return;
+    }
+
+    const telegramId = ctx.from?.id.toString();
+    const projectId = ctx.session.projectId;
+    
+    try {
+      // Find telegram user
+      const telegramUser = await db.telegramUser.findFirst({
+        where: { telegramId, projectId }
+      });
+
+      if (!telegramUser) {
+        await ctx.reply("Sorry, we couldn't find your user account. Please try again later.");
+        return;
+      }
+
+      // Check if a customer with this email already exists
+      let customer = await db.customer.findFirst({
+        where: { 
+          projectId,
+          email: registrationData.email
+        }
+      });
+
+      // Create customer if not exists
+      if (!customer) {
+        customer = await db.customer.create({
+          data: {
+            projectId,
+            email: registrationData.email,
+            name: registrationData.name,
+            phone: registrationData.phone,
+          }
+        });
+      }
+
+      // Link customer to telegram user if not already linked
+      if (!telegramUser.customerId) {
+        await db.telegramUser.update({
+          where: { id: telegramUser.id },
+          data: { customerId: customer.id }
+        });
+      }
+
+      // Find the lowest membership tier to assign
+      const lowestTier = await db.membershipTier.findFirst({
+        where: { projectId },
+        orderBy: { level: 'asc' }
+      });
+
+      if (!lowestTier) {
+        await ctx.reply("Thanks for registering! However, no membership tiers are available at the moment. We'll set up your membership soon.");
+        return;
+      }
+
+      // Check if customer already has a membership
+      const existingMembership = await db.customerMembership.findFirst({
+        where: { 
+          customerId: customer.id,
+          isActive: true
+        }
+      });
+
+      if (!existingMembership) {
+        // Create new membership
+        await db.customerMembership.create({
+          data: {
+            customerId: customer.id,
+            membershipTierId: lowestTier.id,
+            pointsBalance: 0,
+            totalPointsEarned: 0
+          }
+        });
+      }
+
+      // Clear registration data
+      ctx.session.registrationData = undefined;
+
+      // Show success message
+      await ctx.reply(`🎉 Congratulations! Your membership has been created successfully!\n\nWelcome to our loyalty program. You've been enrolled in our ${lowestTier.name} tier.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "View My Membership", callback_data: "membership" }],
+            [{ text: "Check Points Balance", callback_data: "points" }]
+          ]
+        }
+      });
+
+      // Create customer activity record
+      await db.customerActivity.create({
+        data: {
+          customerId: customer.id,
+          type: 'registration',
+          description: 'Registered via Telegram Bot',
+          pointsEarned: 0,
+          metadata: { source: 'telegram' }
+        }
+      });
+    } catch (error) {
+      console.error('Error completing registration:', error);
+      await ctx.reply("Sorry, we couldn't complete your registration. Please try again later or contact support.");
+    }
+  }
+
+  // Record user message for tracking
+  private async recordUserMessage(ctx: Context): Promise<void> {
+    if (!ctx.message?.text) return;
+    
+    const telegramId = ctx.from?.id.toString();
+    const projectId = 'session' in ctx ? ctx.session.projectId : '';
+    
+    if (!telegramId || !projectId) return;
+    
+    try {
+      // Find telegram user or create if not exists
+      const telegramUser = await this.findOrCreateTelegramUser(telegramId, projectId, ctx.from);
+      
+      if (!telegramUser) return;
+      
+      // Record the message
+      await db.telegramMessage.create({
+        data: {
+          projectId,
+          senderId: telegramUser.id,
+          telegramMsgId: ctx.message.message_id.toString(),
+          messageType: 'TEXT',
+          content: ctx.message.text,
+          isFromUser: true,
+          isDelivered: true,
+          isRead: true,
+          sentAt: new Date(),
+          deliveredAt: new Date(),
+          readAt: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error recording user message:', error);
+    }
+  }
+
+  // Record bot message for tracking
+  private async recordBotMessage(ctx: Context, content: string): Promise<void> {
+    const telegramId = ctx.from?.id.toString();
+    const projectId = 'session' in ctx ? ctx.session.projectId : '';
+    
+    if (!telegramId || !projectId) return;
+    
+    try {
+      // Find telegram user
+      const telegramUser = await db.telegramUser.findFirst({
+        where: { telegramId, projectId }
+      });
+      
+      if (!telegramUser) return;
+      
+      // Record the message
+      await db.telegramMessage.create({
+        data: {
+          projectId,
+          recipientId: telegramUser.id,
+          messageType: 'TEXT',
+          content: content,
+          isFromUser: false,
+          isDelivered: true,
+          sentAt: new Date(),
+          deliveredAt: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error recording bot message:', error);
+    }
+  }
+
+  // Find or create telegram user
+  private async findOrCreateTelegramUser(telegramId: string, projectId: string, from: any): Promise<any> {
+    try {
+      // Check if user exists
+      let telegramUser = await db.telegramUser.findFirst({
+        where: { telegramId, projectId }
+      });
+      
+      if (telegramUser) {
+        // Update last interaction
+        return await db.telegramUser.update({
+          where: { id: telegramUser.id },
+          data: {
+            lastInteraction: new Date(),
+            username: from.username,
+            firstName: from.first_name,
+            lastName: from.last_name,
+            languageCode: from.language_code
+          }
+        });
+      } else {
+        // Create new user
+        return await db.telegramUser.create({
+          data: {
+            telegramId,
+            projectId,
+            username: from.username,
+            firstName: from.first_name,
+            lastName: from.last_name,
+            languageCode: from.language_code,
+            lastInteraction: new Date()
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error finding or creating user:', error);
+      return null;
+    }
+  }
+
+  // Handle registration steps from button clicks
+  private async handleRegistrationStep(ctx: Context, step: string): Promise<void> {
+    if (!('session' in ctx)) return;
+    
+    // Handle registration navigation
+    switch (step) {
+      case 'email':
+        ctx.session.registrationData = { step: 'email' };
+        await ctx.reply("Please enter your email address:");
+        break;
+      
+      case 'cancel':
+        ctx.session.registrationData = undefined;
+        await ctx.reply("Registration cancelled. You can join membership anytime by clicking the Join Membership button.");
+        break;
+      
+      default:
+        await ctx.reply("Invalid registration step. Please try again.");
+    }
+  }
+  
+  // Handle account creation (points account)
+  private async handleCreateAccount(ctx: Context): Promise<void> {
+    if ('callbackQuery' in ctx) {
+      await ctx.answerCallbackQuery();
+    }
+    
+    // This now redirects to the membership join process
+    await this.handleJoinMembership(ctx);
+  }
+
+  // ...existing code...
 }
 
 // Export singleton instance
