@@ -91,7 +91,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = params.id;
+    const projectId =(await params).id;
 
     // Check if user has access to this project
     const hasAccess = await supabase.rpc('check_user_has_project_access', {
@@ -152,7 +152,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = params.id;
+    const projectId =(await params).id;
 
     // Find the user in the database to check organization ownership
     const dbUser = await db.user.findUnique({

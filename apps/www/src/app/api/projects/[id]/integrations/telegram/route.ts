@@ -33,7 +33,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const projectId = id;
 
     // Check for authentication and authorization
@@ -88,7 +88,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const projectId = id;
     const data = await request.json();
 
@@ -220,7 +220,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const projectId = id;
     
     // Check for authentication and authorization
