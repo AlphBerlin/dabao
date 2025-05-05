@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId =(await params).id;
     
     // Check for authentication and authorization
     const supabase = await createClient();
@@ -113,7 +113,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId =(await params).id;
     const data = await request.json();
     
     // Check for authentication and authorization
@@ -181,7 +181,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId =(await params).id;
     const data = await request.json();
     const { featureType, featureId, config } = data;
     
@@ -272,7 +272,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId =(await params).id;
     const data = await request.json();
     const { app, content } = data;
     

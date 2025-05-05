@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId =(await params).id;
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "week"; // day, week, month
     const limit = Number(searchParams.get("limit") || "50");
