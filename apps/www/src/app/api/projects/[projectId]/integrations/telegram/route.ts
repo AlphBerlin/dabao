@@ -170,7 +170,7 @@ export async function POST(
           helpMessage: data.helpMessage,
           enableCommands: data.enableCommands !== undefined ? data.enableCommands : true,
           status: 'pending',
-          lastStatusChange: new Date()
+          updatedAt: new Date()
         },
       });
     }

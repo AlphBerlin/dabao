@@ -110,7 +110,7 @@ export default function ProjectOverviewPage() {
         />
         <StatsCard
           title="Points Issued"
-          value={stats?.totalPointsIssued??.toLocaleString()}
+          value={stats?.totalPointsIssued?.toLocaleString()}
           description="Total loyalty points"
           icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
           loading={loading}

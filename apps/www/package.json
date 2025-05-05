@@ -24,6 +24,7 @@
     "canvas-confetti": "^1.9.3",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.9.2",
+    "grammy": "^1.21.1",
     "lucide-react": "^0.475.0",
     "nanoid": "^5.1.5",
     "next": "15.3.1",

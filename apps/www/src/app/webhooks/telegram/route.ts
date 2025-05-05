@@ -1,7 +1,6 @@
 // app/api/webhook/telegram/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { Bot } from 'grammy';
-import { db } from '@/lib/db';
 
 export const runtime = 'edge'; // optional: run as edge fn for minimal cold start
 
@@ -42,8 +41,8 @@ export async function POST(request: NextRequest) {
   // }
 
   // 3️⃣ re-hydrate your bot instance and commands
-  const bot = new Bot('8112882451:AAEMTI8wsMiI9ugUKR0J-6WVYYQGAzZRTuA');
-  configureBot(bot, 'cma4u06vf0001rzjxld2e7f21');
+  const bot = new Bot('token');
+  configureBot(bot, 'projectId');
 
   // 4️⃣ dispatch the update payload
   const update = await request.json();
