@@ -75,6 +75,18 @@ enum TelegramCampaignStatus {
   @@schema("dabao")
 }
 
+// Additional enum for Telegram command types
+enum TelegramCommandType {
+  TEXT_RESPONSE
+  BUTTON_MENU
+  POINTS_INFO
+  COUPON_GENERATOR
+  MEMBERSHIP_INFO
+  CUSTOM_ACTION
+
+  @@schema("dabao")
+}
+
 // -----------------------------
 // Control-plane models (Organization & Admin)
 // -----------------------------
@@ -173,6 +185,7 @@ model Project {
   telegramCampaigns TelegramCampaign[]
   telegramMessages  TelegramMessage[]
   TelegramUser      TelegramUser[]
+  telegramCommands  TelegramCommand[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -522,7 +535,7 @@ model StampCard {
   completedAt   DateTime? @map("completed_at")
   redeemed      Boolean   @default(false)
   redeemedAt    DateTime? @map("redeemed_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
@@ -680,6 +693,28 @@ model TelegramMessage {
   campaign  TelegramCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   @@map("telegram_messages")
+  @@schema("dabao_tenant")
+}
+
+// TelegramCommand model for custom bot commands
+model TelegramCommand {
+  id          String             @id @default(cuid())
+  projectId   String             @map("project_id") 
+  command     String             // The command text (without the /)
+  description String             // Description shown in command list
+  response    String?            // Text response for simple commands
+  type        TelegramCommandType
+  isEnabled   Boolean            @default(true) @map("is_enabled")
+  sortOrder   Int                @default(0) @map("sort_order")
+  metadata    Json?              // For storing button configurations, custom actions, etc.
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, command])
+  @@map("telegram_commands")
   @@schema("dabao_tenant")
 }
 
