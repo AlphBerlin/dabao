@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { ProjectSidebar } from "@/components/projects/project-sidebar";
 import { ProjectHeader } from "@/components/projects/project-header";
 import { Toaster } from "@workspace/ui/components/sonner"
+import { ScrollArea } from "@workspace/ui/components/scroll-area";
 
 interface Project {
   id: string;
@@ -53,7 +54,9 @@ export default function ProjectLayout({
       <div className="flex-1 flex flex-col">
         <ProjectHeader project={project} loading={loading} />
         <main className="flex-1 overflow-y-auto mx-6">
+          <ScrollArea className="h-screen">
           {children}
+          </ScrollArea>
         </main>
       </div>
       <Toaster />
