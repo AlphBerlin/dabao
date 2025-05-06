@@ -1,4 +1,4 @@
-import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, wait } from '../testHelpers';
+import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, wait } from '../testHelpers.js';
 import * as grpc from '@grpc/grpc-js';
 
 describe('MCPService', () => {
@@ -13,7 +13,7 @@ describe('MCPService', () => {
       const authResponse = await authenticateUser(methods.auth.authenticate);
       authToken = authResponse.token;
       metadata = createAuthMetadata(authToken);
-    } catch (error) {
+    } catch (error:any) {
       console.error('Setup failed:', error);
       throw error;
     }
@@ -35,7 +35,7 @@ describe('MCPService', () => {
         expect(response.message).toBeDefined();
         expect(response.success).toBe(true);
         expect(response.payload).toBeDefined();
-      } catch (error) {
+      } catch (error:any) {
         console.error('ProcessRequest error:', error);
         throw error;
       }
@@ -54,7 +54,7 @@ describe('MCPService', () => {
         
         expect(response).toBeDefined();
         expect(response.success).toBe(false);
-      } catch (error) {
+      } catch (error:any) {
         // Some implementations might return error response instead of throwing
         expect(error).toBeDefined();
       }
@@ -74,7 +74,7 @@ describe('MCPService', () => {
         
         // Should not reach here
         fail('Request should have failed without authentication');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.UNAUTHENTICATED);
       }
@@ -96,7 +96,7 @@ describe('MCPService', () => {
         };
         
         // Listen for responses
-        chatStream.on('data', (response) => {
+        chatStream.on('data', (response:any) => {
           expect(response).toBeDefined();
           expect(response.message).toBeDefined();
           expect(typeof response.message).toBe('string');
@@ -108,7 +108,7 @@ describe('MCPService', () => {
         });
         
         // Handle errors
-        chatStream.on('error', (error) => {
+        chatStream.on('error', (error:any) => {
           console.error('Chat error:', error);
           fail(`Chat stream error: ${error.message}`);
           done();
@@ -116,7 +116,7 @@ describe('MCPService', () => {
         
         // Write the message to the stream
         chatStream.write(message);
-      } catch (error) {
+      } catch (error:any) {
         console.error('Chat test error:', error);
         fail(`Chat test error: ${error.message}`);
         done();
@@ -148,7 +148,7 @@ describe('MCPService', () => {
         ];
         
         // Listen for responses
-        chatStream.on('data', (response) => {
+        chatStream.on('data', (response:any) => {
           expect(response).toBeDefined();
           expect(response.message).toBeDefined();
           responseCount++;
@@ -163,7 +163,7 @@ describe('MCPService', () => {
         });
         
         // Handle errors
-        chatStream.on('error', (error) => {
+        chatStream.on('error', (error:any) => {
           console.error('Chat sequence error:', error);
           fail(`Chat stream error: ${error.message}`);
           done();
@@ -171,7 +171,7 @@ describe('MCPService', () => {
         
         // Write the first message to start the conversation
         chatStream.write(messages[messageCount++]);
-      } catch (error) {
+      } catch (error:any) {
         console.error('Chat sequence test error:', error);
         fail(`Chat sequence test error: ${error.message}`);
         done();
@@ -201,7 +201,7 @@ describe('MCPService', () => {
         const receivedEvents: any = {};
         
         // Listen for events
-        eventStream.on('data', (event) => {
+        eventStream.on('data', (event:any) => {
           expect(event).toBeDefined();
           expect(event.event_type).toBeDefined();
           expect(event.timestamp).toBeDefined();
@@ -219,7 +219,7 @@ describe('MCPService', () => {
         });
         
         // Handle errors
-        eventStream.on('error', (error) => {
+        eventStream.on('error', (error:any) => {
           // Ignore cancellation error
           if (error.code !== grpc.status.CANCELLED) {
             console.error('StreamEvents error:', error);
@@ -228,7 +228,7 @@ describe('MCPService', () => {
             done();
           }
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('StreamEvents test error:', error);
         fail(`StreamEvents test error: ${error.message}`);
         done();
@@ -247,7 +247,7 @@ describe('MCPService', () => {
         const eventStream = clients.mcpClient.streamEvents(request, new grpc.Metadata());
         
         // Listen for errors (we expect authentication error)
-        eventStream.on('error', (error) => {
+        eventStream.on('error', (error:any) => {
           expect(error).toBeDefined();
           expect(error.code).toBe(grpc.status.UNAUTHENTICATED);
           done();
@@ -259,7 +259,7 @@ describe('MCPService', () => {
           eventStream.cancel();
           done();
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('Unauthenticated StreamEvents test error:', error);
         fail(`Unauthenticated StreamEvents test error: ${error.message}`);
         done();

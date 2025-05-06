@@ -1,4 +1,4 @@
-import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData } from '../testHelpers';
+import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData } from '../testHelpers.js';
 import * as grpc from '@grpc/grpc-js';
 
 describe('AnalyticsService', () => {
@@ -18,7 +18,7 @@ describe('AnalyticsService', () => {
       // Authenticate as an admin user
       const adminResponse = await authenticateUser(methods.auth.authenticate, 'admin@example.com', 'adminPassword');
       adminMetadata = createAuthMetadata(adminResponse.token);
-    } catch (error) {
+    } catch (error:any) {
       console.error('Setup failed:', error);
       throw error;
     }
@@ -55,7 +55,7 @@ describe('AnalyticsService', () => {
         expect(typeof metrics.opens).toBe('number');
         expect(typeof metrics.clicks).toBe('number');
         expect(typeof metrics.engagement_rate).toBe('number');
-      } catch (error) {
+      } catch (error:any) {
         console.error('GetCampaignMetrics error:', error);
         throw error;
       }
@@ -83,7 +83,7 @@ describe('AnalyticsService', () => {
         request.metrics.forEach(metric => {
           expect(metricKeys).toContain(metric);
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('GetCampaignMetrics with specific metrics error:', error);
         throw error;
       }
@@ -102,7 +102,7 @@ describe('AnalyticsService', () => {
         
         // Should not reach here
         fail('GetCampaignMetrics should fail without campaign ID');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }
@@ -123,7 +123,7 @@ describe('AnalyticsService', () => {
         expect(response).toBeDefined();
         expect(typeof response.overall_engagement_rate).toBe('number');
         expect(Array.isArray(response.segments)).toBe(true);
-      } catch (error) {
+      } catch (error:any) {
         console.error('GetEngagementData error:', error);
         throw error;
       }
@@ -145,11 +145,11 @@ describe('AnalyticsService', () => {
         expect(Array.isArray(response.segments)).toBe(true);
         
         // Check if segment data is available
-        const segmentData = response.segments.find(s => s.segment_name === request.segment);
+        const segmentData = response.segments.find((s:any) => s.segment_name === request.segment);
         expect(segmentData).toBeDefined();
         expect(typeof segmentData.engagement_rate).toBe('number');
         expect(typeof segmentData.user_count).toBe('number');
-      } catch (error) {
+      } catch (error:any) {
         console.error('GetEngagementData for segment error:', error);
         throw error;
       }
@@ -166,7 +166,7 @@ describe('AnalyticsService', () => {
         
         // Some implementations might return empty data instead of error
         // so we don't explicitly fail the test here
-      } catch (error) {
+      } catch (error:any) {
         // Error is expected, but we don't test specific error code
         expect(error).toBeDefined();
       }
@@ -197,7 +197,7 @@ describe('AnalyticsService', () => {
         
         // Download URL should be a valid URL
         expect(response.download_url.startsWith('http')).toBe(true);
-      } catch (error) {
+      } catch (error:any) {
         console.error('GenerateReport error:', error);
         throw error;
       }
@@ -234,7 +234,7 @@ describe('AnalyticsService', () => {
         // Download URLs should reflect the requested format
         expect(pdfResponse.download_url.includes('pdf')).toBe(true);
         expect(csvResponse.download_url.includes('csv')).toBe(true);
-      } catch (error) {
+      } catch (error:any) {
         console.error('GenerateReport formats error:', error);
         throw error;
       }
@@ -254,7 +254,7 @@ describe('AnalyticsService', () => {
         
         // Should not reach here
         fail('GenerateReport should fail without report_type');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }

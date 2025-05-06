@@ -1,4 +1,4 @@
-import { createClients, promisifyMethods, createAuthMetadata } from '../testHelpers';
+import { createClients, promisifyMethods, createAuthMetadata } from '../testHelpers.js';
 
 // Mock credentials for testing
 const TEST_CREDENTIALS = {
@@ -52,7 +52,7 @@ describe('AuthService', () => {
         await methods.auth.authenticate(TEST_CREDENTIALS.invalidUser);
         // Should not reach here
         fail('Authentication should have failed with invalid credentials');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBeDefined();
         expect(error.message).toContain('Authentication failed');

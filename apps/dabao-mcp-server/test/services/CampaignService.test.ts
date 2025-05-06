@@ -1,4 +1,4 @@
-import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData } from '../testHelpers';
+import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData } from '../testHelpers.js';
 import * as grpc from '@grpc/grpc-js';
 
 describe('CampaignService', () => {
@@ -19,7 +19,7 @@ describe('CampaignService', () => {
       // Authenticate as an admin user
       const adminResponse = await authenticateUser(methods.auth.authenticate, 'admin@example.com', 'adminPassword');
       adminMetadata = createAuthMetadata(adminResponse.token);
-    } catch (error) {
+    } catch (error:any) {
       console.error('Setup failed:', error);
       throw error;
     }
@@ -40,7 +40,7 @@ describe('CampaignService', () => {
         expect(typeof response.total_count).toBe('number');
         expect(response.page).toBe(request.page);
         expect(response.page_size).toBe(request.page_size);
-      } catch (error) {
+      } catch (error:any) {
         console.error('ListCampaigns error:', error);
         throw error;
       }
@@ -75,7 +75,7 @@ describe('CampaignService', () => {
           const firstIdPage2 = responsePage2.campaigns[0].id;
           expect(firstIdPage1).not.toBe(firstIdPage2);
         }
-      } catch (error) {
+      } catch (error:any) {
         console.error('Pagination error:', error);
         throw error;
       }
@@ -95,10 +95,10 @@ describe('CampaignService', () => {
         expect(responseFiltered).toBeDefined();
         
         // Check if all returned campaigns match the filter
-        responseFiltered.campaigns.forEach(campaign => {
+        responseFiltered.campaigns.forEach((campaign:any) => {
           expect(campaign.status).toBe(0); // DRAFT status is 0
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('Filter error:', error);
         throw error;
       }
@@ -127,7 +127,7 @@ describe('CampaignService', () => {
         
         // Save ID for later tests
         testCampaignId = response.id;
-      } catch (error) {
+      } catch (error:any) {
         console.error('CreateCampaign error:', error);
         throw error;
       }
@@ -152,7 +152,7 @@ describe('CampaignService', () => {
         Object.entries(request.metadata).forEach(([key, value]) => {
           expect(response.metadata[key]).toBe(value);
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('CreateCampaign with metadata error:', error);
         throw error;
       }
@@ -169,7 +169,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('Campaign creation should fail without a name');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }
@@ -188,7 +188,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('Campaign creation should fail without admin permissions');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.PERMISSION_DENIED);
       }
@@ -211,7 +211,7 @@ describe('CampaignService', () => {
         expect(response.id).toBe(testCampaignId);
         expect(response.name).toBeDefined();
         expect(response.status).toBeDefined();
-      } catch (error) {
+      } catch (error:any) {
         console.error('GetCampaign error:', error);
         throw error;
       }
@@ -227,7 +227,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('GetCampaign should fail for non-existent ID');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.NOT_FOUND);
       }
@@ -258,7 +258,7 @@ describe('CampaignService', () => {
         const getResponse = await methods.campaign.getCampaign({ id: testCampaignId }, metadata);
         expect(getResponse.name).toBe(updateRequest.name);
         expect(getResponse.description).toBe(updateRequest.description);
-      } catch (error) {
+      } catch (error:any) {
         console.error('UpdateCampaign error:', error);
         throw error;
       }
@@ -281,7 +281,7 @@ describe('CampaignService', () => {
         // Verify with a get request
         const getResponse = await methods.campaign.getCampaign({ id: testCampaignId }, metadata);
         expect(getResponse.status).toBe(updateRequest.status);
-      } catch (error) {
+      } catch (error:any) {
         console.error('UpdateCampaign status error:', error);
         throw error;
       }
@@ -301,7 +301,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('Campaign update should fail without admin permissions');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.PERMISSION_DENIED);
       }
@@ -331,7 +331,7 @@ describe('CampaignService', () => {
         const getResponse = await methods.campaign.getCampaign({ id: testCampaignId }, metadata);
         expect(getResponse.scheduled_at).toBe(scheduledTime);
         expect(getResponse.status).toBe(1); // SCHEDULED
-      } catch (error) {
+      } catch (error:any) {
         console.error('ScheduleCampaign error:', error);
         throw error;
       }
@@ -350,7 +350,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('Campaign scheduling should fail with invalid date format');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }
@@ -371,7 +371,7 @@ describe('CampaignService', () => {
         
         const response = await methods.campaign.createCampaign(createRequest, adminMetadata);
         campaignToDelete = response.id;
-      } catch (error) {
+      } catch (error:any) {
         console.error('Failed to create test campaign for deletion:', error);
       }
     });
@@ -394,11 +394,11 @@ describe('CampaignService', () => {
           await methods.campaign.getCampaign({ id: campaignToDelete }, metadata);
           // Should not reach here
           fail('GetCampaign should fail for deleted campaign');
-        } catch (error) {
+        } catch (error:any) {
           expect(error).toBeDefined();
           expect(error.code).toBe(grpc.status.NOT_FOUND);
         }
-      } catch (error) {
+      } catch (error:any) {
         console.error('DeleteCampaign error:', error);
         throw error;
       }
@@ -418,7 +418,7 @@ describe('CampaignService', () => {
         
         // Should not reach here
         fail('Campaign deletion should fail without admin permissions');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.PERMISSION_DENIED);
       }
