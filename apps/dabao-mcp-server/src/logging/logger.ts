@@ -68,14 +68,16 @@ export async function logAuditEvent(
       metadata
     });
 
-    // Log to database
+    // Log to database - map eventType to action field and include outcome in details
     await prisma.auditLog.create({
       data: {
         userId,
-        eventType,
+        action: eventType,
         resource,
-        outcome,
-        metadata: metadata as any
+        details: {
+          outcome,
+          ...metadata
+        }
       }
     });
   } catch (error) {
