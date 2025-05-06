@@ -17,65 +17,144 @@ import {
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-
-interface ProjectStats {
-  totalCustomers: number;
-  customerGrowth: number;
-  activeCustomers: number;
-  totalRewards: number;
-  redeemedRewards: number;
-  totalPointsIssued: number;
-  totalRewardValue: number;
-  conversionRate: number;
-}
+import {
+  fetchProjectStats,
+  fetchProjectEvents,
+  fetchActivityChartData,
+  type ProjectStats,
+  type ProjectEvent,
+  type ChartDataPoint,
+  type TimeframeOption
+} from "@/lib/api/project-overview";
 
 export default function ProjectOverviewPage() {
   const params = useParams();
   const projectId = params.projectId as string;
   
   const [stats, setStats] = useState<ProjectStats | null>(null);
+  const [events, setEvents] = useState<ProjectEvent[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState("7d");
+  const [chartLoading, setChartLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState<TimeframeOption>("7d");
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        // In a real application, fetch data from an API endpoint
-        const response = await fetch(`/api/projects/${projectId}/stats?timeframe=${timeframe}`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to load project stats");
-        }
-        
-        const data = await response.json();
-        setStats(data.stats);
+        const statsData = await fetchProjectStats(projectId, timeframe);
+        setStats(statsData);
       } catch (error) {
         console.error("Error loading project stats:", error);
-        // Use placeholder data for demonstration
-        setStats({
-          totalCustomers: 1254,
-          customerGrowth: 12.5,
-          activeCustomers: 867,
-          totalRewards: 45,
-          redeemedRewards: 342,
-          totalPointsIssued: 254600,
-          totalRewardValue: 12450,
-          conversionRate: 23.4
-        });
       } finally {
         setLoading(false);
       }
     };
+
+    const fetchChartData = async () => {
+      try {
+        setChartLoading(true);
+        const chartData = await fetchActivityChartData(projectId, timeframe);
+        setChartData(chartData);
+      } catch (error) {
+        console.error("Error loading chart data:", error);
+      } finally {
+        setChartLoading(false);
+      }
+    };
     
     fetchStats();
+    fetchChartData();
   }, [projectId, timeframe]);
+  
+  // Fetch events only once, not on timeframe change
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const eventsData = await fetchProjectEvents(projectId, 5);
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Error loading events:", error);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+    
+    fetchEvents();
+  }, [projectId]);
+
+  // Function to render activity chart
+  const renderActivityChart = () => {
+    if (chartLoading) {
+      return <Skeleton className="h-full w-full" />;
+    }
+    
+    if (!chartData || chartData.length === 0) {
+      return (
+        <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+          No activity data available
+        </div>
+      );
+    }
+    
+    const maxValue = Math.max(...chartData.map(d => d.value));
+    const chartHeight = 250;
+    
+    return (
+      <div className="h-full w-full">
+        <div className="flex h-[250px] items-end gap-2 pr-2 pl-2 pb-2">
+          {chartData.map((dataPoint, idx) => {
+            const height = dataPoint.value ? Math.max(15, (dataPoint.value / maxValue) * chartHeight) : 4;
+            return (
+              <div key={idx} className="relative flex flex-1 flex-col items-center">
+                <div 
+                  className="w-full bg-primary rounded-md transition-all duration-300" 
+                  style={{ height: `${height}px` }}
+                >
+                  <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-xs rounded px-2 py-1 mb-1 whitespace-nowrap">
+                    {dataPoint.value} customers
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-between mt-2 px-2 text-xs text-muted-foreground">
+          {chartData.map((dataPoint, idx) => (
+            <div key={idx} className={`${idx % 2 === 0 ? "block" : "hidden md:block"} text-center truncate`}>
+              {dataPoint.displayDate}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Function to get icon based on event type
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case 'NEW_CUSTOMER':
+        return <UsersRound className="h-4 w-4 text-primary" />;
+      case 'POINTS':
+        return <CircleDollarSign className="h-4 w-4 text-primary" />;
+      case 'REWARD':
+        return <Award className="h-4 w-4 text-primary" />;
+      case 'ACTIVITY':
+        return <ShoppingBag className="h-4 w-4 text-primary" />;
+      case 'CAMPAIGN':
+        return <Calendar className="h-4 w-4 text-primary" />;
+      default:
+        return <TrendingUp className="h-4 w-4 text-primary" />;
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Project Overview</h1>
-        <Tabs defaultValue={timeframe} onValueChange={setTimeframe} className="w-[400px]">
+        <Tabs defaultValue={timeframe} onValueChange={(value) => setTimeframe(value as TimeframeOption)} className="w-[400px]">
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="7d">7 days</TabsTrigger>
             <TabsTrigger value="30d">30 days</TabsTrigger>
@@ -124,13 +203,7 @@ export default function ProjectOverviewPage() {
             <CardDescription>Daily active customers over time</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex items-center justify-center">
-            {loading ? (
-              <Skeleton className="h-full w-full" />
-            ) : (
-              <div className="text-muted-foreground text-sm">
-                [Activity chart will be rendered here]
-              </div>
-            )}
+            {renderActivityChart()}
           </CardContent>
         </Card>
         
@@ -140,7 +213,7 @@ export default function ProjectOverviewPage() {
             <CardDescription>Latest activity in your project</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {eventsLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
@@ -148,59 +221,25 @@ export default function ProjectOverviewPage() {
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
-            ) : (
+            ) : events.length > 0 ? (
               <ul className="space-y-4">
-                <li className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ShoppingBag className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">New purchase</p>
-                    <p className="text-muted-foreground">Customer #1234 made a purchase</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">2m ago</div>
-                </li>
-                <li className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Award className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Reward redemption</p>
-                    <p className="text-muted-foreground">Customer #5678 redeemed Free Coffee</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">15m ago</div>
-                </li>
-                <li className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UsersRound className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">New customer</p>
-                    <p className="text-muted-foreground">Customer #9012 joined the program</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">1h ago</div>
-                </li>
-                <li className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <CircleDollarSign className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Points awarded</p>
-                    <p className="text-muted-foreground">Customer #3456 earned 500 points</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">2h ago</div>
-                </li>
-                <li className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Campaign started</p>
-                    <p className="text-muted-foreground">Summer Promotion is now active</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">3h ago</div>
-                </li>
+                {events.map((event, index) => (
+                  <li key={index} className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      {getEventIcon(event.type)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-muted-foreground">{event.description}</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{event.timeAgo}</div>
+                  </li>
+                ))}
               </ul>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No recent events found
+              </div>
             )}
           </CardContent>
         </Card>
