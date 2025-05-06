@@ -1,0 +1,81 @@
+{
+  "name": "dabao-mcp-server",
+  "version": "0.6.2",
+  "description": "Model Context Protocol server for Dabao SaaS",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "author": "AlphBerlin",
+  "homepage": "https://dabao.in",
+  "type": "module",
+  "bin": {
+    "dabao-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "pnpm run build",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "test": "npx jest",
+    "test:watch": "npx jest --watch",
+    "test:coverage": "npx jest --coverage",
+    "test:auth": "npx jest test/services/AuthService.test.ts",
+    "test:mcp": "npx jest test/services/MCPService.test.ts",
+    "test:campaign": "npx jest test/services/CampaignService.test.ts",
+    "test:telegram": "npx jest test/services/TelegramService.test.ts",
+    "test:analytics": "npx jest test/services/AnalyticsService.test.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "ts-node prisma/seed.ts",
+    "proto:gen": "protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/proto/ --ts_proto_opt=esModuleInterop=true ./proto/*.proto"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.3",
+    "@grpc/proto-loader": "^0.7.15",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@prisma/client": "^5.8.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "casbin": "^5.28.0",
+    "casbin-prisma-adapter": "^1.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "natural": "^6.8.0",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.15.6",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.11.10",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "prisma": "^5.8.0",
+    "protoc-gen-ts": "^0.8.7",
+    "shx": "^0.3.4",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.3.2",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
