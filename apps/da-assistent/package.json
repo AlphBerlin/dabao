@@ -1,14 +1,14 @@
 {
-  "name": "dabao-mcp-server",
+  "name": "da-assistant",
   "version": "0.6.2",
-  "description": "Model Context Protocol server for Dabao SaaS",
+  "description": "Da Assistant is a personal assistant that helps you with your dabao tasks.",
   "main": "dist/index.js",
   "license": "MIT",
   "author": "AlphBerlin",
   "homepage": "https://dabao.in",
   "type": "module",
   "bin": {
-    "dabao-mcp-server": "dist/index.js"
+    "da-assistant": "dist/index.js"
   },
   "files": [
     "dist"
