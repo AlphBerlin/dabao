@@ -9,7 +9,15 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "clean:modules": "pnpm dlx rimraf node_modules apps/*/node_modules packages/*/node_modules",
     "clean:cache": "pnpm dlx rimraf .next .turbo",
-    "clean": "pnpm run clean:modules && pnpm run clean:cache"
+    "clean": "pnpm run clean:modules && pnpm run clean:cache",
+    "test": "npx jest",
+    "test:watch": "npx jest --watch",
+    "test:coverage": "npx jest --coverage",
+    "test:auth": "npx jest test/services/AuthService.test.ts",
+    "test:mcp": "npx jest test/services/MCPService.test.ts",
+    "test:campaign": "npx jest test/services/CampaignService.test.ts",
+    "test:telegram": "npx jest test/services/TelegramService.test.ts",
+    "test:analytics": "npx jest test/services/AnalyticsService.test.ts"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
