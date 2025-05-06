@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
+import { hasProjectAccess } from '@/lib/auth/project-access';
 
 // GET /api/projects/[projectId]/events
 export async function GET(
@@ -23,21 +24,10 @@ export async function GET(
     const limit = parseInt(url.searchParams.get('limit') || '5', 10);
     
     // Verify the user has access to this project
-    const userProject = await db.project.findFirst({
-      where: {
-        id: projectId,
-        organization: {
-          users: {
-            some: {
-              userId: user.id,
-            }
-          }
-        }
-      }
-    });
+    const hasAccess = await hasProjectAccess(user.id, projectId);
     
-    if (!userProject) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Project not access' }, { status: 400 });
     }
     
     // Fetch customer activities for this project (using customer -> project relationship)
