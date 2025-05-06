@@ -35,7 +35,7 @@ interface ProjectSidebarProps {
 export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarProps) {
   if (loading) {
     return (
-      <div className="min-h-screen w-64 border-r p-6 flex flex-col">
+      <div className="max-h-screen w-64 border-r p-6 flex flex-col">
         <div className="flex items-center mb-6">
           <Skeleton className="h-9 w-9 rounded-md mr-3" />
           <Skeleton className="h-5 w-32" />
@@ -62,7 +62,7 @@ export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarPro
   }
 
   return (
-    <div className="min-h-screen w-64 border-r p-6 flex flex-col">
+    <div className="h-screen w-64 border-r p-6 flex flex-col">
       <Link
         href="/dashboard/projects"
         className="flex items-center text-muted-foreground hover:text-foreground transition mb-6"
