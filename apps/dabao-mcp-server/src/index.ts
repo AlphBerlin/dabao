@@ -9,6 +9,7 @@ import { voucherService } from "./services/voucherService.js";
 import { tierService } from "./services/tierService.js";
 import { campaignService } from "./services/campaignService.js";
 import { telegramService } from "./services/telegramService.js";
+import { Campaign } from "@prisma/client";
 
 // Load environment variables
 dotenv.config();
@@ -554,7 +555,7 @@ server.tool(
         };
       }
       
-      const voucher = validation.voucher;
+      const voucher = validation.voucher!;
       
       return {
         content: [
@@ -826,9 +827,7 @@ Points Balance: ${eligibility.pointsBalance}
 Total Spent: $${eligibility.totalSpent}
 Total Stamps: ${eligibility.totalStamps}
 
-Customer is eligible for upgrade to: ${eligibleTierNames}
-Next recommended tier: ${eligibility.nextTier.name} (Level ${eligibility.nextTier.level})
-${eligibility.nextTier.autoUpgrade ? "This tier supports automatic upgrades!" : "Manual upgrade required."}`
+Customer is eligible for upgrade to: ${eligibleTierNames}`
             }
           ]
         };
@@ -905,6 +904,16 @@ server.tool(
         telegramCampaign,
         rewards,
       });
+      if(!campaign) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Error creating campaign: Campaign creation failed."
+            }
+          ]
+        };
+      }
       
       const hasTelegram = campaign.telegramCampaign ? "Yes" : "No";
       const rewardsCount = campaign.rewards?.length || 0;
@@ -915,8 +924,8 @@ server.tool(
             type: "text",
             text: `Campaign "${name}" created successfully!
             
-Start Date: ${campaign.startDate.toLocaleDateString()}
-End Date: ${campaign.endDate ? campaign.endDate.toLocaleDateString() : "Ongoing"}
+Start Date: ${campaign.startDate?.toLocaleDateString()}
+End Date: ${campaign.endDate ? campaign.endDate?.toLocaleDateString() : "Ongoing"}
 Points Multiplier: ${campaign.pointsMultiplier || 1}x
 Telegram Integration: ${hasTelegram}
 Rewards: ${rewardsCount}
@@ -962,13 +971,16 @@ server.tool(
         };
       }
       
-      const formattedCampaigns = campaigns.map(campaign => {
+      const formattedCampaigns = campaigns.map((campaign:any) => {
+        if(!campaign) {
+          return "Campaign not found.";
+        }
         const telegramInfo = campaign.telegramCampaign 
           ? `\nTelegram: Yes (${campaign.telegramCampaign.status || 'PENDING'})`
           : "\nTelegram: No";
           
         const rewards = campaign.rewards.length > 0
-          ? `\nRewards: ${campaign.rewards.map(r => r.reward.name).join(", ")}`
+          ? `\nRewards: ${campaign.rewards.map((r:any) => r.reward.name).join(", ")}`
           : "\nRewards: None";
           
         return `
@@ -1178,10 +1190,8 @@ server.tool(
             type: "text",
             text: `Telegram settings updated successfully for project ${projectId}!
             
-Analytics Enabled: ${settings.analyticsEnabled ? "Yes" : "No"}
 Bot Connected: ${settings.botToken ? "Yes" : "No"}
-Webhook URL: ${settings.webhookUrl || "Not set"}
-Channels: ${settings.channelIds?.length || 0}`
+Webhook URL: ${settings.webhookUrl || "Not set"}`
           }
         ]
       };
