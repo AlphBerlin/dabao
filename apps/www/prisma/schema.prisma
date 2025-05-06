@@ -187,6 +187,7 @@ model Project {
   TelegramUser      TelegramUser[]
   telegramCommands  TelegramCommand[]
   telegramMenus     TelegramMenu[]
+  brandingSettings  BrandingSettings?  // Add relation to BrandingSettings
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -769,6 +770,26 @@ model TelegramMenu {
 
   @@unique([projectId, menuId])
   @@map("telegram_menus")
+  @@schema("dabao_tenant")
+}
+
+// BrandingSettings model for project branding configuration
+model BrandingSettings {
+  id            String  @id @default(cuid())
+  projectId     String  @unique @map("project_id")
+  name          String
+  logo          String?
+  favicon       String?
+  mascot        String?
+  customDomain  String? @map("custom_domain")
+  primaryColor  String  @default("#6366F1") @map("primary_color")
+  secondaryColor String @default("#4F46E5") @map("secondary_color")
+  accentColor   String  @default("#F43F5E") @map("accent_color")
+  
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("branding_settings")
   @@schema("dabao_tenant")
 }
 
