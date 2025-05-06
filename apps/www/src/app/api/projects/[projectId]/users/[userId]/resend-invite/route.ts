@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../../../lib/auth";
-import prisma from "../../../../../../../lib/prisma";
 import { randomUUID } from "crypto";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 // Function to verify admin project access
 async function verifyAdminAccess(projectId: string, userId: string) {
-  const userOrg = await prisma.userOrganization.findFirst({
+  const userOrg = await db.userOrganization.findFirst({
     where: {
       userId,
       organization: {
@@ -22,7 +21,7 @@ async function verifyAdminAccess(projectId: string, userId: string) {
   if (!userOrg) {
     return false;
   }
-  
+
   // Only OWNER and ADMIN can resend invites
   return ["OWNER", "ADMIN"].includes(userOrg.role);
 }
@@ -32,17 +31,16 @@ export async function POST(
   { params }: { params: { projectId: string; userId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    // Get authenticated user from Supabase
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { projectId, userId } = params;
-    
+
     // Check if user has admin access to this project
     const hasAdminAccess = await verifyAdminAccess(projectId, session.user.id);
     if (!hasAdminAccess) {
@@ -53,8 +51,8 @@ export async function POST(
     }
 
     // Find the invitation
-    const invite = await prisma.projectInvite.findFirst({
-      where: { 
+    const invite = await db.projectInvite.findFirst({
+      where: {
         id: userId,
         projectId
       }
@@ -71,16 +69,16 @@ export async function POST(
     const token = randomUUID();
     const expires = new Date();
     expires.setDate(expires.getDate() + 7);
-    
+
     // Update the invitation with new token and expiry
-    const updatedInvite = await prisma.projectInvite.update({
+    const updatedInvite = await db.projectInvite.update({
       where: { id: invite.id },
       data: {
         token,
         expires
       }
     });
-    
+
     // In a real application, you would send an email here with the new invite link
     // sendInviteEmail(invite.email, token, projectName, invite.role);
 

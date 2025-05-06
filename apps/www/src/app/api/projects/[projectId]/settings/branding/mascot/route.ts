@@ -7,7 +7,7 @@ import { hasProjectAccess } from "@/lib/auth/project-access";
 async function uploadFileToStorage(file: File, projectId: string): Promise<string> {
   // In a real implementation, this would upload the file to a service like AWS S3, Cloudinary, etc.
   // For now, return a placeholder URL
-  return `https://placehold.co/400x400?text=Logo+For+${projectId}`;
+  return `https://placehold.co/400x400?text=Mascot+For+${projectId}`;
 }
 
 export async function POST(
@@ -25,7 +25,7 @@ export async function POST(
 
     const { projectId } = await params;
     
-    // Check if user has access to this project
+    // Check if user has access to this project using the hasProjectAccess helper
     const hasAccess = await hasProjectAccess(projectId, user.id);
     if (!hasAccess) {
       return NextResponse.json(
@@ -36,27 +36,27 @@ export async function POST(
 
     // Parse the form data
     const formData = await request.formData();
-    const logoFile = formData.get("logo") as File;
+    const mascotFile = formData.get("mascot") as File;
     
-    if (!logoFile) {
+    if (!mascotFile) {
       return NextResponse.json(
-        { error: "No logo file provided" },
+        { error: "No mascot file provided" },
         { status: 400 }
       );
     }
 
     // Validate file type
-    const validImageTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
-    if (!validImageTypes.includes(logoFile.type)) {
+    const validImageTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp", "image/gif"];
+    if (!validImageTypes.includes(mascotFile.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Please upload a PNG, JPEG, SVG, or WebP image." },
+        { error: "Invalid file type. Please upload a PNG, JPEG, SVG, GIF or WebP image." },
         { status: 400 }
       );
     }
 
     // Validate file size (max 2MB)
     const maxSize = 2 * 1024 * 1024; // 2MB
-    if (logoFile.size > maxSize) {
+    if (mascotFile.size > maxSize) {
       return NextResponse.json(
         { error: "File size too large. Maximum size is 2MB." },
         { status: 400 }
@@ -64,9 +64,9 @@ export async function POST(
     }
     
     // Upload the file to storage (S3, Cloudinary, etc.)
-    const logoUrl = await uploadFileToStorage(logoFile, projectId);
+    const mascotUrl = await uploadFileToStorage(mascotFile, projectId);
     
-    // Update the project's branding settings with the new logo URL
+    // Update the project's branding settings with the new mascot URL
     const existingSettings = await db.brandingSettings.findUnique({
       where: { projectId },
     });
@@ -76,7 +76,7 @@ export async function POST(
       await db.brandingSettings.update({
         where: { projectId },
         data: {
-          logo: logoUrl,
+          mascot: mascotUrl,
         },
       });
     } else {
@@ -98,7 +98,7 @@ export async function POST(
         data: {
           projectId,
           name: project.name,
-          logo: logoUrl,
+          mascot: mascotUrl,
           primaryColor: "#6366F1",
           secondaryColor: "#4F46E5", 
           accentColor: "#F43F5E",
@@ -106,12 +106,12 @@ export async function POST(
       });
     }
     
-    // Return the logo URL
-    return NextResponse.json({ logoUrl });
+    // Return the mascot URL
+    return NextResponse.json({ mascotUrl });
   } catch (error) {
-    console.error("Error uploading logo:", error);
+    console.error("Error uploading mascot:", error);
     return NextResponse.json(
-      { error: "Failed to upload logo" },
+      { error: "Failed to upload mascot" },
       { status: 500 }
     );
   }

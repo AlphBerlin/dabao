@@ -27,9 +27,11 @@ async function verifyAdminAccess(projectId: string, userId: string) {
     },
     include: {
       organization: {
-        projects: {
-          where: { id: projectId },
-          select: { id: true }
+        include: {
+          projects: {
+            where: { id: projectId },
+            select: { id: true }
+          }
         }
       }
     }
@@ -38,7 +40,7 @@ async function verifyAdminAccess(projectId: string, userId: string) {
   if (!userOrg || userOrg.organization.projects.length === 0) {
     return false;
   }
-  
+
   // Only OWNER and ADMIN can invite users
   return ["OWNER", "ADMIN"].includes(userOrg.role);
 }
@@ -57,7 +59,7 @@ export async function POST(
     }
 
     const { projectId } = await params;
-    
+
     // Check if user has admin access to this project
     const hasAdminAccess = await verifyAdminAccess(projectId, user.id);
     if (!hasAdminAccess) {
@@ -70,7 +72,7 @@ export async function POST(
     // Parse and validate request body
     const body = await request.json();
     const validationResult = InviteUserSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request data", details: validationResult.error.format() },
@@ -79,7 +81,7 @@ export async function POST(
     }
 
     const { email, role } = validationResult.data;
-    
+
     // Check if the project exists
     const project = await db.project.findUnique({
       where: { id: projectId },
@@ -92,7 +94,7 @@ export async function POST(
         { status: 404 }
       );
     }
-    
+
     // Check if user is already a member
     const existingUser = await db.user.findUnique({
       where: { email },
@@ -109,10 +111,10 @@ export async function POST(
         { status: 409 }
       );
     }
-    
+
     // Check if there's an existing invite
     const existingInvite = await db.projectInvite.findFirst({
-      where: { 
+      where: {
         email,
         projectId,
         expires: { gt: new Date() } // Not expired yet
@@ -130,7 +132,7 @@ export async function POST(
     const token = randomUUID();
     const expires = new Date();
     expires.setDate(expires.getDate() + 7);
-    
+
     // Create invite in database
     const invite = await db.projectInvite.create({
       data: {
@@ -141,10 +143,10 @@ export async function POST(
         expires
       }
     });
-    
+
     // In a real application, you would send an email here with the invite link
     // sendInviteEmail(email, token, project.name, role);
-    
+
     return NextResponse.json({
       id: invite.id,
       email: invite.email,

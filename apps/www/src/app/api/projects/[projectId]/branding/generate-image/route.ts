@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
+import { hasProjectAccess } from "@/lib/auth/project-access";
 import { z } from "zod";
 
 // Schema for validation
@@ -8,28 +9,6 @@ const GenerateImageSchema = z.object({
   prompt: z.string().min(3, "Prompt must be at least 3 characters").max(500),
   type: z.enum(["logo", "mascot"]),
 });
-
-// Function to verify project access
-async function verifyProjectAccess(projectId: string, userId: string) {
-  const userOrg = await db.userOrganization.findFirst({
-    where: {
-      userId,
-      organization: {
-        projects: {
-          some: {
-            id: projectId,
-          },
-        },
-      },
-    },
-  });
-
-  if (!userOrg) {
-    return false;
-  }
-  
-  return true;
-}
 
 // Mock image generation - in a real implementation, this would call an AI service
 async function generateImageWithAI(prompt: string, type: string): Promise<string> {
@@ -62,7 +41,7 @@ export async function POST(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(projectId, user.id);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
