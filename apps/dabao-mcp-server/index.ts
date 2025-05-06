@@ -1,147 +1,100 @@
-#!/usr/bin/env node
+/**
+ * Dabao MCP Server - Main Entry Point
+ * 
+ * This Model Context Protocol (MCP) server provides an intelligent interface for Dabao SaaS,
+ * supporting campaign management, Telegram messaging, and analytics.
+ */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import pg from "pg";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import * as grpc from '@grpc/grpc-js';
+import { setupRoutes } from './src/services/mcpRoutes.js';
+import { initGrpcServer } from './src/services/grpcServer.js';
+import { logger } from './src/logging/logger.js';
+import { initializeDatabase, checkConnection } from './src/utils/database.js';
+import config, { validateConfig } from './src/utils/config.js';
 
-const server = new Server(
-  {
-    name: "example-servers/postgres",
-    version: "0.1.0",
-  },
-  {
-    capabilities: {
-      resources: {},
-      tools: {},
-    },
-  },
-);
-
-const args = process.argv.slice(2);
-if (args.length === 0) {
-  console.error("Please provide a database URL as a command-line argument");
-  process.exit(1);
-}
-
-const databaseUrl = args[0] as string;
-
-const resourceBaseUrl = new URL(databaseUrl);
-resourceBaseUrl.protocol = "postgres:";
-resourceBaseUrl.password = "";
-
-const pool = new pg.Pool({
-  connectionString: databaseUrl,
+// Create MCP server instance
+const mcpServer = new Server({
+  name: config.server.name,
+  version: config.server.version,
+  enableStdio: config.server.enableStdio
 });
 
-const SCHEMA_PATH = "schema";
-
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  const client = await pool.connect();
+async function startServer() {
   try {
-    const result = await client.query(
-      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
-    );
-    return {
-      resources: result.rows.map((row) => ({
-        uri: new URL(`${row.table_name}/${SCHEMA_PATH}`, resourceBaseUrl).href,
-        mimeType: "application/json",
-        name: `"${row.table_name}" database schema`,
-      })),
-    };
-  } finally {
-    client.release();
-  }
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  const resourceUrl = new URL(request.params.uri);
-
-  const pathComponents = resourceUrl.pathname.split("/");
-  const schema = pathComponents.pop();
-  const tableName = pathComponents.pop();
-
-  if (schema !== SCHEMA_PATH) {
-    throw new Error("Invalid resource URI");
-  }
-
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1",
-      [tableName],
-    );
-
-    return {
-      contents: [
-        {
-          uri: request.params.uri,
-          mimeType: "application/json",
-          text: JSON.stringify(result.rows, null, 2),
-        },
-      ],
-    };
-  } finally {
-    client.release();
-  }
-});
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "query",
-        description: "Run a read-only SQL query",
-        inputSchema: {
-          type: "object",
-          properties: {
-            sql: { type: "string" },
-          },
-        },
-      },
-    ],
-  };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name === "query") {
-    const sql = request.params.arguments?.sql as string;
-
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN TRANSACTION READ ONLY");
-      const result = await client.query(sql);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }],
-        isError: false,
-      };
-    } catch (error) {
-      throw error;
-    } finally {
-      client
-        .query("ROLLBACK")
-        .catch((error) =>
-          console.warn("Could not roll back transaction:", error),
-        );
-
-      client.release();
+    // Validate configuration
+    validateConfig();
+    
+    // Set up MCP routes
+    setupRoutes(mcpServer);
+    logger.info('MCP routes initialized');
+    
+    // Initialize gRPC server
+    const grpcServer = await initGrpcServer();
+    
+    // Check database connection
+    const isDbConnected = await checkConnection();
+    if (isDbConnected) {
+      logger.info('Database connection successful');
+      
+      // Initialize database schema if needed
+      await initializeDatabase();
+    } else {
+      logger.warn('Database connection failed - some features may not work');
     }
+    
+    // Start both servers
+    const grpcPort = config.server.grpcPort;
+    
+    // Start the MCP server
+    await mcpServer.listen();
+    logger.info(`MCP Server started`);
+    
+    // Start the gRPC server
+    grpcServer.bindAsync(
+      `0.0.0.0:${grpcPort}`,
+      grpc.ServerCredentials.createInsecure(),
+      (error, port) => {
+        if (error) {
+          logger.error(`Failed to start gRPC server: ${error.message}`);
+          throw error;
+        }
+        
+        logger.info(`gRPC Server started on port ${port}`);
+        grpcServer.start();
+      }
+    );
+    
+    // Handle shutdown signals
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    
+    logger.info(`Dabao MCP Server v${config.server.version} started in ${config.server.environment} mode`);
+    
+  } catch (error) {
+    logger.error(`Failed to start server: ${(error as Error).message}`);
+    process.exit(1);
   }
-  throw new Error(`Unknown tool: ${request.params.name}`);
-});
-
-async function runServer() {
-  const transport = new StdioServerTransport();
-  console.log(
-    `Starting server with database URL: ${databaseUrl}`,
-    `port: ${transport}`,
-  );
-  await server.connect(transport);
 }
 
-runServer().catch(console.error);
+async function shutdown() {
+  try {
+    logger.info('Shutting down servers...');
+    
+    // Stop the MCP server
+    await mcpServer.close();
+    logger.info('MCP Server stopped');
+    
+    // Exit process
+    process.exit(0);
+  } catch (error) {
+    logger.error(`Error during shutdown: ${(error as Error).message}`);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer().catch((error) => {
+  console.error(`Unhandled error starting server: ${error.message}`);
+  process.exit(1);
+});
