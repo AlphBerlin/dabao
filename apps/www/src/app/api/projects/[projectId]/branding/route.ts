@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
+import { hasProjectAccess } from "@/lib/auth/project-access";
 import { z } from "zod";
 
 // Schema for validation
@@ -16,28 +17,6 @@ const BrandingSchema = z.object({
     accentColor: z.string(),
   }),
 });
-
-// Function to verify project access for the current user
-async function verifyProjectAccess(projectId: string, userId: string) {
-  const userOrg = await db.userOrganization.findFirst({
-    where: {
-      userId,
-      organization: {
-        projects: {
-          some: {
-            id: projectId,
-          },
-        },
-      },
-    },
-  });
-
-  if (!userOrg) {
-    return false;
-  }
-  
-  return true;
-}
 
 // GET handler for branding settings
 export async function GET(
@@ -56,7 +35,7 @@ export async function GET(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(projectId, user.id);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
@@ -161,7 +140,7 @@ export async function PUT(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(projectId, user.id);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },

@@ -1,41 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
-
-// Function to verify project access with admin check
-async function verifyProjectAccess(projectId: string, userId: string, requireAdmin = false) {
-  const userOrg = await db.userOrganization.findFirst({
-    where: {
-      userId,
-      organization: {
-        projects: {
-          some: {
-            id: projectId,
-          },
-        },
-      },
-    },
-    include: {
-      organization: {
-        projects: {
-          where: { id: projectId },
-          select: { id: true }
-        }
-      }
-    }
-  });
-
-  if (!userOrg || userOrg.organization.projects.length === 0) {
-    return false;
-  }
-  
-  // Check if admin access is required
-  if (requireAdmin) {
-    return ["OWNER", "ADMIN"].includes(userOrg.role);
-  }
-  
-  return true;
-}
+import { hasProjectAccess } from "@/lib/auth/project-access";
 
 // GET handler for retrieving project users
 export async function GET(
@@ -52,9 +18,9 @@ export async function GET(
     }
 
     const { projectId } = await params;
-    
+
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(user.id, projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
@@ -104,7 +70,7 @@ export async function GET(
 
     // Also get pending invites
     const pendingInvites = await db.projectInvite.findMany({
-      where: { 
+      where: {
         projectId,
         expires: { gt: new Date() } // Only active invites
       }

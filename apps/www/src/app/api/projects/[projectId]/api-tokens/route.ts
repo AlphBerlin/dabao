@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { hasProjectAccess } from "@/lib/auth/project-access";
 
 // Schema for creating a new API token
 const CreateApiTokenSchema = z.object({
@@ -13,34 +14,6 @@ const CreateApiTokenSchema = z.object({
 });
 
 // Function to verify project access
-async function verifyProjectAccess(projectId: string, userId: string) {
-  const userOrg = await db.userOrganization.findFirst({
-    where: {
-      userId,
-      organization: {
-        projects: {
-          some: {
-            id: projectId,
-          },
-        },
-      },
-    },
-    include: {
-      organization: {
-        projects: {
-          where: { id: projectId },
-          select: { id: true }
-        }
-      }
-    }
-  });
-
-  if (!userOrg || userOrg.organization.projects.length === 0) {
-    return false;
-  }
-  
-  return true;
-}
 
 // Function to create a secure API token
 function generateApiToken(): string {
@@ -63,9 +36,9 @@ export async function GET(
     }
 
     const { projectId } = await params;
-    
+
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess( user.id, projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
@@ -115,9 +88,9 @@ export async function POST(
     }
 
     const { projectId } = await params;
-    
+
     // Check if user has access to this project
-    const hasAccess = await verifyProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(user.id,projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
@@ -128,7 +101,7 @@ export async function POST(
     // Parse and validate request body
     const body = await request.json();
     const validationResult = CreateApiTokenSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request data", details: validationResult.error.format() },
@@ -137,17 +110,17 @@ export async function POST(
     }
 
     const { name, type, expiryDays, permissions = ["*"] } = validationResult.data;
-    
+
     // Calculate expiry date if specified
     let expiresAt = null;
     if (expiryDays) {
       expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiryDays);
     }
-    
+
     // Generate a secure API token
     const token = generateApiToken();
-    
+
     // Create the API key in the database
     const apiKey = await db.apiKey.create({
       data: {
@@ -157,7 +130,7 @@ export async function POST(
         expiresAt,
       }
     });
-    
+
     // Format the response
     const response = {
       id: apiKey.id,
@@ -169,7 +142,7 @@ export async function POST(
       token, // Only returned once upon creation
       permissions,
     };
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error("Error creating API token:", error);

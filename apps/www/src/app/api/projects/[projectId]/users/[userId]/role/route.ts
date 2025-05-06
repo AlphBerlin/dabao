@@ -1,7 +1,6 @@
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../../../lib/auth";
-import prisma from "../../../../../../../lib/prisma";
 import { z } from "zod";
 
 // Schema for validating role update
@@ -13,7 +12,7 @@ const UpdateRoleSchema = z.object({
 
 // Function to verify admin project access
 async function verifyAdminAccess(projectId: string, userId: string) {
-  const userOrg = await prisma.userOrganization.findFirst({
+  const userOrg = await db.userOrganization.findFirst({
     where: {
       userId,
       organization: {
@@ -29,7 +28,7 @@ async function verifyAdminAccess(projectId: string, userId: string) {
   if (!userOrg) {
     return false;
   }
-  
+
   // Only OWNER and ADMIN can manage user roles
   return ["OWNER", "ADMIN"].includes(userOrg.role);
 }
@@ -39,19 +38,18 @@ export async function PATCH(
   { params }: { params: { projectId: string; userId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    // Get authenticated user from Supabase
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { projectId, userId } = params;
-    
+
     // Check if user has admin access to this project
-    const hasAdminAccess = await verifyAdminAccess(projectId, session.user.id);
+    const hasAdminAccess = await verifyAdminAccess(projectId, user.id);
     if (!hasAdminAccess) {
       return NextResponse.json(
         { error: "You don't have permission to update user roles" },
@@ -62,7 +60,7 @@ export async function PATCH(
     // Parse and validate request body
     const body = await request.json();
     const validationResult = UpdateRoleSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request data", details: validationResult.error.format() },
@@ -71,9 +69,9 @@ export async function PATCH(
     }
 
     const { role } = validationResult.data;
-    
+
     // Get the project to find the organization
-    const project = await prisma.project.findUnique({
+    const project = await db.project.findUnique({
       where: { id: projectId },
       select: { organizationId: true }
     });
@@ -86,7 +84,7 @@ export async function PATCH(
     }
 
     // Find the user in the organization
-    const userOrg = await prisma.userOrganization.findFirst({
+    const userOrg = await db.userOrganization.findFirst({
       where: {
         userId,
         organizationId: project.organizationId
@@ -101,7 +99,7 @@ export async function PATCH(
     }
 
     // Don't allow changing role of the organization owner if you're not the owner
-    if (userOrg.role === "OWNER" && session.user.id !== userId) {
+    if (userOrg.role === "OWNER" && user.id !== userId) {
       return NextResponse.json(
         { error: "Cannot change the role of the organization owner" },
         { status: 403 }
@@ -109,7 +107,7 @@ export async function PATCH(
     }
 
     // Update the user's role
-    const updatedUserOrg = await prisma.userOrganization.update({
+    const updatedUserOrg = await db.userOrganization.update({
       where: { id: userOrg.id },
       data: { role }
     });
