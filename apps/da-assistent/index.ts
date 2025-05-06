@@ -5,43 +5,18 @@
  * supporting campaign management, Telegram messaging, and analytics.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as grpc from '@grpc/grpc-js';
-import { setupRoutes } from './src/services/mcpRoutes.js';
 import { initGrpcServer } from './src/services/grpcServer.js';
 import { logger } from './src/logging/logger.js';
 import { initializeDatabase, checkConnection } from './src/utils/database.js';
 import config, { validateConfig } from './src/utils/config.js';
 
-// Create MCP server instance with required capabilities
-const mcpServer = new Server(
-  {
-    name: config.server.name,
-    version: config.server.version,
-    enableStdio: config.server.enableStdio
-  },
-  {
-    capabilities: {
-      resources: {
-        list: true,
-        read: true,
-      },
-      tools: {
-        list: true,
-        call: true,
-      },
-    },
-  }
-);
 
 async function startServer() {
   try {
     // Validate configuration
     validateConfig();
     
-    // Set up MCP routes
-    setupRoutes(mcpServer);
     logger.info('MCP routes initialized');
     
     // Initialize gRPC server
@@ -61,12 +36,6 @@ async function startServer() {
     // Start both servers
     const grpcPort = config.server.grpcPort;
     
-    // Connect the MCP server with stdio transport if enabled
-    if (config.server.enableStdio) {
-      const transport = new StdioServerTransport();
-      await mcpServer.connect(transport);
-      logger.info(`MCP Server started with stdio transport`);
-    }
     
     // Start the gRPC server
     grpcServer.bindAsync(

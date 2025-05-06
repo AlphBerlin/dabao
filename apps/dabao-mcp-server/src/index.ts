@@ -1,225 +1,387 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import * as dotenv from "dotenv";
+import { prisma } from "./lib/prisma.js";
+import { customerService } from "./services/customerService.js";
+import { projectService } from "./services/projectService.js";
 
-const NWS_API_BASE = "https://api.weather.gov";
-const USER_AGENT = "weather-app/1.0";
+// Load environment variables
+dotenv.config();
 
-// Helper function for making NWS API requests
-async function makeNWSRequest<T>(url: string): Promise<T | null> {
-  const headers = {
-    "User-Agent": USER_AGENT,
-    Accept: "application/geo+json",
-  };
-
-  try {
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error("Error making NWS request:", error);
-    return null;
-  }
-}
-
-interface AlertFeature {
-  properties: {
-    event?: string;
-    areaDesc?: string;
-    severity?: string;
-    status?: string;
-    headline?: string;
-  };
-}
-
-// Format alert data
-function formatAlert(feature: AlertFeature): string {
-  const props = feature.properties;
-  return [
-    `Event: ${props.event || "Unknown"}`,
-    `Area: ${props.areaDesc || "Unknown"}`,
-    `Severity: ${props.severity || "Unknown"}`,
-    `Status: ${props.status || "Unknown"}`,
-    `Headline: ${props.headline || "No headline"}`,
-    "---",
-  ].join("\n");
-}
-
-interface ForecastPeriod {
-  name?: string;
-  temperature?: number;
-  temperatureUnit?: string;
-  windSpeed?: string;
-  windDirection?: string;
-  shortForecast?: string;
-}
-
-interface AlertsResponse {
-  features: AlertFeature[];
-}
-
-interface PointsResponse {
-  properties: {
-    forecast?: string;
-  };
-}
-
-interface ForecastResponse {
-  properties: {
-    periods: ForecastPeriod[];
-  };
-}
 
 // Create server instance
 const server = new McpServer({
-  name: "weather",
+  name: "dabao",
   version: "1.0.0",
 });
 
-// Register weather tools
+
+// New database-powered tools for the loyalty program
+
+// Get customer info by email
 server.tool(
-  "get-alerts",
-  "Get weather alerts for a state",
+  "get-customer",
+  "Get customer information by email",
   {
-    state: z.string().length(2).describe("Two-letter state code (e.g. CA, NY)"),
+    email: z.string().email().describe("Customer email address"),
+    projectId: z.string().describe("Project ID"),
   },
-  async ({ state }) => {
-    const stateCode = state.toUpperCase();
-    const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
-    const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
+  async ({ email, projectId }) => {
+    try {
+      const customer = await customerService.findCustomerByEmail(email, projectId);
+      
+      if (!customer) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Customer not found with the provided email.",
+            },
+          ],
+        };
+      }
 
-    if (!alertsData) {
+      // Get points balance
+      const pointsBalance = await customerService.getCustomerPoints(customer.id);
+      
+      // Get customer's tier
+      const membershipInfo = customer.customerMemberships.length > 0 
+        ? customer.customerMemberships[0] 
+        : null;
+
+      const formattedResponse = `
+Customer Information:
+--------------------
+Name: ${customer.name || "Not provided"}
+Email: ${customer.email}
+ID: ${customer.id}
+Phone: ${customer.phone || "Not provided"}
+Points Balance: ${pointsBalance}
+Current Tier: ${membershipInfo?.membershipTier?.name || "No tier"}
+Account Created: ${customer.createdAt.toLocaleDateString()}
+      `.trim();
+
       return {
         content: [
           {
             type: "text",
-            text: "Failed to retrieve alerts data",
+            text: formattedResponse,
           },
         ],
       };
-    }
-
-    const features = alertsData.features || [];
-    if (features.length === 0) {
+    } catch (error) {
+      console.error("Error fetching customer:", error);
       return {
         content: [
           {
             type: "text",
-            text: `No active alerts for ${stateCode}`,
+            text: `Error fetching customer information: ${error instanceof Error ? error.message : "Unknown error"}`,
           },
         ],
       };
     }
-
-    const formattedAlerts = features.map(formatAlert);
-    const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: alertsText,
-        },
-      ],
-    };
   },
 );
 
+// Get customer activity
 server.tool(
-  "get-forecast",
-  "Get weather forecast for a location",
+  "get-customer-activity",
+  "Get customer recent activity",
   {
-    latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
-    longitude: z
-      .number()
-      .min(-180)
-      .max(180)
-      .describe("Longitude of the location"),
+    customerId: z.string().describe("Customer ID"),
+    limit: z.number().optional().describe("Number of activities to return (default: 5)"),
   },
-  async ({ latitude, longitude }) => {
-    // Get grid point data
-    const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
-    const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
+  async ({ customerId, limit = 5 }) => {
+    try {
+      const activities = await customerService.getCustomerActivity(customerId, limit);
+      
+      if (activities.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No activity found for this customer.",
+            },
+          ],
+        };
+      }
 
-    if (!pointsData) {
+      const formattedActivities = activities.map(activity => {
+        return `
+Date: ${activity.createdAt.toLocaleDateString()}
+Type: ${activity.type}
+${activity.pointsEarned ? `Points: ${activity.pointsEarned}` : ""}
+${activity.description ? `Description: ${activity.description}` : ""}
+--------------------`.trim();
+      });
+
       return {
         content: [
           {
             type: "text",
-            text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
+            text: `Recent Activity for ${customerId}:\n\n${formattedActivities.join("\n\n")}`,
           },
         ],
       };
-    }
-
-    const forecastUrl = pointsData.properties?.forecast;
-    if (!forecastUrl) {
+    } catch (error) {
+      console.error("Error fetching customer activity:", error);
       return {
         content: [
           {
             type: "text",
-            text: "Failed to get forecast URL from grid point data",
+            text: `Error fetching customer activity: ${error instanceof Error ? error.message : "Unknown error"}`,
           },
         ],
       };
     }
+  }
+);
 
-    // Get forecast data
-    const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
-    if (!forecastData) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Failed to retrieve forecast data",
-          },
-        ],
-      };
-    }
-
-    const periods = forecastData.properties?.periods || [];
-    if (periods.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "No forecast periods available",
-          },
-        ],
-      };
-    }
-
-    // Format forecast periods
-    const formattedForecast = periods.map((period: ForecastPeriod) =>
-      [
-        `${period.name || "Unknown"}:`,
-        `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
-        `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
-        `${period.shortForecast || "No forecast available"}`,
-        "---",
-      ].join("\n"),
-    );
-
-    const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: forecastText,
-        },
-      ],
-    };
+// Get project information
+server.tool(
+  "get-project",
+  "Get project information",
+  {
+    projectId: z.string().describe("Project ID"),
   },
+  async ({ projectId }) => {
+    try {
+      const project = await projectService.getProjectById(projectId);
+      
+      if (!project) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Project not found.",
+            },
+          ],
+        };
+      }
+
+      const preferences = project.preferences;
+      const formattedResponse = `
+Project Information:
+-------------------
+Name: ${project.name}
+ID: ${project.id}
+Slug: ${project.slug}
+Status: ${project.status || "Active"}
+${preferences ? `
+Loyalty Program Settings:
+-----------------------
+Points Name: ${preferences.pointsName}
+Points Abbreviation: ${preferences.pointsAbbreviation}
+Reward System: ${preferences.rewardSystemType}
+Referrals Enabled: ${preferences.enableReferrals ? "Yes" : "No"}
+Tiers Enabled: ${preferences.enableTiers ? "Yes" : "No"}
+Gameification Enabled: ${preferences.enableGameification ? "Yes" : "No"}
+${preferences.pointsExpiryDays ? `Points Expiry: ${preferences.pointsExpiryDays} days` : "Points do not expire"}
+Stamps Per Card: ${preferences.stampsPerCard}
+` : "No loyalty program preferences configured."}
+      `.trim();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: formattedResponse,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error fetching project information: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Get membership tiers for a project
+server.tool(
+  "get-membership-tiers",
+  "Get project membership tiers",
+  {
+    projectId: z.string().describe("Project ID"),
+  },
+  async ({ projectId }) => {
+    try {
+      const tiers = await projectService.getProjectMembershipTiers(projectId);
+      
+      if (tiers.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No membership tiers found for this project.",
+            },
+          ],
+        };
+      }
+
+      const formattedTiers = tiers.map(tier => {
+        return `
+Tier: ${tier.name} (Level ${tier.level})
+${tier.description ? `Description: ${tier.description}` : ""}
+Points Threshold: ${tier.pointsThreshold !== null ? tier.pointsThreshold : "N/A"}
+Stamps Threshold: ${tier.stampsThreshold !== null ? tier.stampsThreshold : "N/A"}
+Spend Threshold: ${tier.spendThreshold !== null ? `$${tier.spendThreshold}` : "N/A"}
+Points Multiplier: ${tier.pointsMultiplier}x
+${tier.subscriptionFee ? `Subscription Fee: $${tier.subscriptionFee}` : "No subscription fee"}
+--------------------`.trim();
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Membership Tiers for ${projectId}:\n\n${formattedTiers.join("\n\n")}`,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error fetching membership tiers:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error fetching membership tiers: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Get active campaigns for a project
+server.tool(
+  "get-active-campaigns",
+  "Get active campaigns for a project",
+  {
+    projectId: z.string().describe("Project ID"),
+  },
+  async ({ projectId }) => {
+    try {
+      const campaigns = await projectService.getActiveProjectCampaigns(projectId);
+      
+      if (campaigns.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No active campaigns found for this project.",
+            },
+          ],
+        };
+      }
+
+      const formattedCampaigns = campaigns.map(campaign => {
+        const rewards = campaign.rewards.map(cr => cr.reward.name).join(", ");
+        
+        return `
+Campaign: ${campaign.name}
+Type: ${campaign.type}
+Status: ${campaign.status}
+${campaign.description ? `Description: ${campaign.description}` : ""}
+${campaign.pointsMultiplier ? `Points Multiplier: ${campaign.pointsMultiplier}x` : ""}
+Start Date: ${campaign.startDate ? campaign.startDate.toLocaleDateString() : "N/A"}
+End Date: ${campaign.endDate ? campaign.endDate.toLocaleDateString() : "No end date"}
+Rewards: ${rewards || "None"}
+--------------------`.trim();
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Active Campaigns for ${projectId}:\n\n${formattedCampaigns.join("\n\n")}`,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error fetching active campaigns: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// Get available vouchers for a project
+server.tool(
+  "get-available-vouchers",
+  "Get available vouchers for a project",
+  {
+    projectId: z.string().describe("Project ID"),
+  },
+  async ({ projectId }) => {
+    try {
+      const vouchers = await projectService.getProjectAvailableVouchers(projectId);
+      
+      if (vouchers.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No available vouchers found for this project.",
+            },
+          ],
+        };
+      }
+
+      const formattedVouchers = vouchers.map(voucher => {
+        return `
+Voucher: ${voucher.name} (${voucher.code})
+${voucher.description ? `Description: ${voucher.description}` : ""}
+Type: ${voucher.discountType}
+Value: ${voucher.discountValue} ${voucher.discountType === "PERCENTAGE" ? "%" : ""}
+${voucher.minimumSpend ? `Minimum Spend: $${voucher.minimumSpend}` : "No minimum spend"}
+${voucher.usageLimit ? `Usage Limit: ${voucher.usageLimit}` : "No usage limit"}
+${voucher.requiredPoints ? `Required Points: ${voucher.requiredPoints}` : ""}
+${voucher.requiredStamps ? `Required Stamps: ${voucher.requiredStamps}` : ""}
+Valid Until: ${voucher.endDate.toLocaleDateString()}
+--------------------`.trim();
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Available Vouchers for ${projectId}:\n\n${formattedVouchers.join("\n\n")}`,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error fetching vouchers:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error fetching available vouchers: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        ],
+      };
+    }
+  }
 );
 
 // Start the server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Weather MCP Server running on stdio");
+  console.error("Dabao MCP Server running on stdio");
 }
 
 main().catch((error) => {
