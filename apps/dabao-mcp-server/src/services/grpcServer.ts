@@ -10,8 +10,8 @@ import { verifyToken } from "../middleware/auth.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to proto file
-const PROTO_PATH = path.join(__dirname, "../../proto/mcp.proto");
+// Path to proto file - use process.cwd() to ensure it works after build
+const PROTO_PATH = path.join(process.cwd(), "proto/mcp.proto");
 
 // Intent recognizer instance
 const intentRecognizer = new IntentRecognizer();

@@ -14,12 +14,26 @@ import { logger } from './src/logging/logger.js';
 import { initializeDatabase, checkConnection } from './src/utils/database.js';
 import config, { validateConfig } from './src/utils/config.js';
 
-// Create MCP server instance
-const mcpServer = new Server({
-  name: config.server.name,
-  version: config.server.version,
-  enableStdio: config.server.enableStdio
-});
+// Create MCP server instance with required capabilities
+const mcpServer = new Server(
+  {
+    name: config.server.name,
+    version: config.server.version,
+    enableStdio: config.server.enableStdio
+  },
+  {
+    capabilities: {
+      resources: {
+        list: true,
+        read: true,
+      },
+      tools: {
+        list: true,
+        call: true,
+      },
+    },
+  }
+);
 
 async function startServer() {
   try {

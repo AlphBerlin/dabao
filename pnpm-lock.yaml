@@ -124,6 +124,9 @@ importers:
       casbin:
         specifier: ^5.28.0
         version: 5.38.0
+      casbin-prisma-adapter:
+        specifier: ^1.7.0
+        version: 1.7.0(@prisma/client@5.22.0(prisma@5.22.0))(casbin@5.38.0)(prisma@5.22.0)
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -3130,6 +3133,13 @@ packages:
 
   canvas-confetti@1.9.3:
     resolution: {integrity: sha512-rFfTURMvmVEX1gyXFgn5QMn81bYk70qa0HLzcIOSVEyl57n6o9ItHeBtUSWdvKAPY0xlvBHno4/v3QPrT83q9g==}
+
+  casbin-prisma-adapter@1.7.0:
+    resolution: {integrity: sha512-V/8j84ZBbI7IWUQ7FX0ap4GosD8aarE/jGqiCOjT0lQS54UySD8bWhGe/OJZGxcRbRI3hMpMWTtKnodHB/gR6g==}
+    peerDependencies:
+      '@prisma/client': ^6.0.0
+      casbin: ^5.16.0
+      prisma: ^6.0.0
 
   casbin@5.38.0:
     resolution: {integrity: sha512-0VI0j18XtftaMj3nnv6CM3h0EvtB8IWPdxWD1t1myyUBOUboMSsMrU9PUtYFX9oAAXRpY2DWNTF1mXUG+QcYvw==}
@@ -9393,6 +9403,12 @@ snapshots:
   caniuse-lite@1.0.30001717: {}
 
   canvas-confetti@1.9.3: {}
+
+  casbin-prisma-adapter@1.7.0(@prisma/client@5.22.0(prisma@5.22.0))(casbin@5.38.0)(prisma@5.22.0):
+    dependencies:
+      '@prisma/client': 5.22.0(prisma@5.22.0)
+      casbin: 5.38.0
+      prisma: 5.22.0
 
   casbin@5.38.0:
     dependencies:
