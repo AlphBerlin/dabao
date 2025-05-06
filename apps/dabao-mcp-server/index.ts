@@ -6,6 +6,7 @@
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as grpc from '@grpc/grpc-js';
 import { setupRoutes } from './src/services/mcpRoutes.js';
 import { initGrpcServer } from './src/services/grpcServer.js';
@@ -46,9 +47,12 @@ async function startServer() {
     // Start both servers
     const grpcPort = config.server.grpcPort;
     
-    // Start the MCP server
-    await mcpServer.listen();
-    logger.info(`MCP Server started`);
+    // Connect the MCP server with stdio transport if enabled
+    if (config.server.enableStdio) {
+      const transport = new StdioServerTransport();
+      await mcpServer.connect(transport);
+      logger.info(`MCP Server started with stdio transport`);
+    }
     
     // Start the gRPC server
     grpcServer.bindAsync(
@@ -71,8 +75,8 @@ async function startServer() {
     
     logger.info(`Dabao MCP Server v${config.server.version} started in ${config.server.environment} mode`);
     
-  } catch (error) {
-    logger.error(`Failed to start server: ${(error as Error).message}`);
+  } catch (error: unknown) {
+    logger.error(`Failed to start server: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
@@ -81,20 +85,16 @@ async function shutdown() {
   try {
     logger.info('Shutting down servers...');
     
-    // Stop the MCP server
-    await mcpServer.close();
-    logger.info('MCP Server stopped');
-    
-    // Exit process
+    // Close resources
     process.exit(0);
-  } catch (error) {
-    logger.error(`Error during shutdown: ${(error as Error).message}`);
+  } catch (error: unknown) {
+    logger.error(`Error during shutdown: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
 
 // Start the server
 startServer().catch((error) => {
-  console.error(`Unhandled error starting server: ${error.message}`);
+  console.error(`Unhandled error starting server: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

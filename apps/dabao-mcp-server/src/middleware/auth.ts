@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { logger, logAuditEvent } from "../logging/logger.js";
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { supabase, getSession } from '../lib/supabase';
+import { supabase, getSession } from '../lib/supabase.js';
 
 const prisma = new PrismaClient();
 
@@ -37,56 +37,63 @@ const rolePermissions = {
   guest: ["campaign:read"]
 };
 
-// Setup authentication middleware for the MCP server
+// Instead of using middleware, we'll intercept requests with request handlers
 export function setupAuthMiddleware(server: Server) {
-  // Apply authentication check to all tool calls
-  server.use(async (request, next) => {
-    try {
-      // Skip auth for certain non-sensitive operations
-      if (request.type === "list_resources" || request.type === "list_tools") {
-        return await next();
-      }
+  // Wrap original handlers with authentication logic
+  const originalHandlers = server['_requestHandlers'];
+  
+  if (originalHandlers) {
+    for (const [schema, handler] of originalHandlers.entries()) {
+      server['_requestHandlers'].set(schema, async (request: any) => {
+        try {
+          // Skip auth for certain non-sensitive operations
+          if (request.type === "list_resources" || request.type === "list_tools") {
+            return await handler(request);
+          }
 
-      // Get token from request headers or params
-      const token = extractToken(request);
-      if (!token) {
-        logger.warn("Authentication failed: No token provided");
-        throw new Error("Authentication required");
-      }
+          // Get token from request headers or params
+          const token = extractToken(request);
+          if (!token) {
+            logger.warn("Authentication failed: No token provided");
+            throw new Error("Authentication required");
+          }
 
-      // Verify token and extract user info
-      const user = await verifyToken(token);
-      if (!user) {
-        logAuditEvent("unknown", "authentication", "token", "failed", { reason: "Invalid token" });
-        throw new Error("Invalid authentication token");
-      }
+          // Verify token and extract user info
+          const user = await verifyToken(token);
+          if (!user) {
+            logAuditEvent("unknown", "authentication", "token", "failed", { reason: "Invalid token" });
+            throw new Error("Invalid authentication token");
+          }
 
-      // Check permission for the requested operation
-      if (!hasPermission(user, request)) {
-        logAuditEvent(user.id, "authorization", request.type, "denied", { 
-          roles: user.roles,
-          requestedOperation: request.type
-        });
-        throw new Error("Permission denied");
-      }
+          // Check permission for the requested operation
+          if (!hasPermission(user, request)) {
+            logAuditEvent(user.id, "authorization", request.type, "denied", { 
+              roles: user.roles,
+              requestedOperation: request.type
+            });
+            throw new Error("Permission denied");
+          }
 
-      // Add user to request context for downstream handlers
-      request.context = {
-        ...request.context,
-        user
-      };
+          // Add user to request context for downstream handlers
+          request.context = {
+            ...request.context,
+            user
+          };
 
-      logAuditEvent(user.id, "authentication", "token", "success", { 
-        roles: user.roles,
-        requestedOperation: request.type
+          logAuditEvent(user.id, "authentication", "token", "success", { 
+            roles: user.roles,
+            requestedOperation: request.type
+          });
+
+          // Call the original handler
+          return await handler(request);
+        } catch (error: any) {
+          logger.error(`Auth middleware error: ${error.message}`);
+          throw error;
+        }
       });
-
-      return await next();
-    } catch (error: any) {
-      logger.error(`Auth middleware error: ${error.message}`);
-      throw error;
     }
-  });
+  }
 }
 
 // Extract token from request
@@ -248,6 +255,10 @@ export const authenticate = async (
     }
 
     const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Invalid token format' });
+    }
 
     // Validate token with Supabase
     const session = await getSession(token);
@@ -270,7 +281,7 @@ export const authenticate = async (
       id: user.id,
       supabaseId: user.supabaseId,
       email: user.email,
-      roles: user.roles.map(role => role.name)
+      roles: user.roles.map((role: { name: string }) => role.name)
     };
 
     next();

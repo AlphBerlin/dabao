@@ -4,11 +4,10 @@
  */
 
 import fetch from 'node-fetch';
-import { TELEGRAM_CONFIG } from './config';
-import { logger, logAuditEvent } from '../logging/logger';
-import { TelegramMessageRequest } from '../types/api';
-import { NotFoundError, ValidationError } from '../middleware/errorHandler';
-import { withRecovery } from '../middleware/errorHandler';
+import { TELEGRAM_CONFIG } from './config.js';
+import { logger, logAuditEvent } from '../logging/logger.js';
+import { TelegramMessageRequest } from '../types/api.js';
+import { NotFoundError, ValidationError, withRecovery } from '../middleware/errorHandler.js';
 
 /**
  * Send a message to a Telegram chat
@@ -52,7 +51,7 @@ export async function sendMessage(request: TelegramMessageRequest, userId: strin
     };
 
     // Send the request with retry functionality
-    const response = await withRecovery(async () => {
+    const response :any= await withRecovery(async () => {
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -62,7 +61,7 @@ export async function sendMessage(request: TelegramMessageRequest, userId: strin
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData:any= await res.json();
         throw new Error(`Telegram API error: ${errorData.description || res.statusText}`);
       }
 
@@ -146,11 +145,11 @@ export async function sendPhoto(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData:any = await response.json();
       throw new Error(`Telegram API error: ${errorData.description || response.statusText}`);
     }
 
-    const data = await response.json();
+    const data:any = await response.json();
 
     // Log if we have a user ID
     if (userId) {
@@ -206,14 +205,14 @@ export async function getChatInfo(chatId: string): Promise<any> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData:any = await response.json();
       if (response.status === 404 || errorData.description?.includes('chat not found')) {
         throw new NotFoundError(`Chat ${chatId}`);
       }
       throw new Error(`Telegram API error: ${errorData.description || response.statusText}`);
     }
 
-    const data = await response.json();
+    const data:any = await response.json();
     return data.result;
   } catch (error) {
     logger.error('Error getting chat info', {
@@ -291,7 +290,7 @@ export async function sendMediaGroup(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData:any = await response.json();
       throw new Error(`Telegram API error: ${errorData.description || response.statusText}`);
     }
 

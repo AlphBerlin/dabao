@@ -3,9 +3,9 @@
  * Provides a clean interface for database operations
  */
 
-import pg from 'pg';
-import { DB_CONFIG } from './config';
-import { logger } from '../logging/logger';
+import pg, { QueryResultRow } from 'pg';
+import { DB_CONFIG } from './config.js';
+import { logger } from '../logging/logger.js';
 
 // Create a connection pool
 const pool = new pg.Pool({
@@ -29,7 +29,7 @@ pool.on('error', (error) => {
  * @param params Query parameters
  * @returns Query result
  */
-export async function query<T = any>(
+export async function query<T extends QueryResultRow = any>(
   text: string, 
   params: any[] = []
 ): Promise<pg.QueryResult<T>> {

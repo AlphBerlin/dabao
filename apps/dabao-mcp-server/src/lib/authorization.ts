@@ -5,7 +5,7 @@ import { newEnforcer, Enforcer } from 'casbin';
 import { PrismaAdapter } from 'casbin-prisma-adapter';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../logging/logger';
+import { logger } from '../logging/logger.js';
 
 // Initialize Prisma client
 const prisma = new PrismaClient();

@@ -88,7 +88,57 @@ export async function logAuditEvent(
   }
 }
 
+/**
+ * Performance tracking wrapper function
+ * Wraps a function and logs its execution time
+ * @param func The function to wrap
+ * @param operation The operation name to log
+ * @returns The wrapped function with performance logging
+ */
+export function withPerformanceTracking<T extends (...args: any[]) => Promise<any>>(
+  func: T,
+  operation: string
+): T {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+    const start = performance.now();
+    try {
+      const result = await func(...args);
+      const end = performance.now();
+      logger.debug(`Performance: ${operation} completed in ${(end - start).toFixed(2)}ms`);
+      return result;
+    } catch (error) {
+      const end = performance.now();
+      logger.warn(`Performance: ${operation} failed after ${(end - start).toFixed(2)}ms`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }) as T;
+}
+
+/**
+ * Log performance metrics
+ * Use this to log manual performance metrics in code
+ * @param operation The operation name
+ * @param durationMs The duration in milliseconds
+ * @param metadata Additional context
+ */
+export function logPerformance(
+  operation: string, 
+  durationMs: number, 
+  metadata: Record<string, any> = {}
+): void {
+  logger.debug(`Performance: ${operation} took ${durationMs.toFixed(2)}ms`, {
+    performance: true,
+    operation,
+    durationMs,
+    ...metadata
+  });
+}
+
 export default {
   logger,
-  logAuditEvent
+  logAuditEvent,
+  withPerformanceTracking,
+  logPerformance
 };

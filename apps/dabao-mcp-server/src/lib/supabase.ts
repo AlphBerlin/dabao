@@ -2,7 +2,7 @@
  * Supabase client for authentication
  */
 import { createClient } from '@supabase/supabase-js';
-import { logger } from '../logging/logger';
+import { logger } from '../logging/logger.js';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
