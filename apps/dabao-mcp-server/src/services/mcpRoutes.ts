@@ -40,7 +40,7 @@ export function setupRoutes(server: Server) {
   // Handle reading resources
   server.setRequestHandler(
     ReadResourceRequestSchema,
-    withPerformanceTracking(async (request) => {
+    withPerformanceTracking(async (request:any) => {
       const uri = request.params.uri;
       logger.info(`Reading resource: ${uri}`);
 
@@ -167,7 +167,7 @@ export function setupRoutes(server: Server) {
   // Handle tool calls
   server.setRequestHandler(
     CallToolRequestSchema,
-    withPerformanceTracking(async (request) => {
+    withPerformanceTracking(async (request:any) => {
       const toolName = request.params.name;
       const args = request.params.arguments || {};
       const user = request.context?.user;
@@ -318,9 +318,11 @@ function extractResourceTypeFromUri(uri: string): string {
   } catch (error) {
     // If URI can't be parsed as URL, try to extract path component
     const parts = uri.split("://");
-    if (parts.length > 1) {
+    if (parts.length > 1 && parts[1]) {
       const pathParts = parts[1].split("/");
-      return pathParts.slice(1).join("/");
+      if (pathParts.length > 1) {
+        return pathParts.slice(1).join("/");
+      }
     }
   }
   

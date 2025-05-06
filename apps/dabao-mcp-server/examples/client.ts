@@ -21,7 +21,9 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   oneofs: true,
 });
 
-const mcpProto = grpc.loadPackageDefinition(packageDefinition).dabao.mcp;
+// Cast to any to avoid TypeScript errors with dabao.mcp access
+const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
+const mcpProto = protoDescriptor.dabao?.mcp || {};
 
 // Create clients for each service
 const authClient = new (mcpProto as any).AuthService(
@@ -69,8 +71,8 @@ async function main() {
     // Step 2: Choose a demo
     await chooseDemo();
     
-  } catch (error) {
-    console.error('Error:', error.message);
+  } catch (error: unknown) {
+    console.error('Error:', error instanceof Error ? error.message : String(error));
   } finally {
     rl.close();
   }
@@ -98,8 +100,8 @@ async function performAuthentication() {
     } else {
       throw new Error('Authentication failed: No token received');
     }
-  } catch (error) {
-    console.error('Authentication failed:', error.message);
+  } catch (error: unknown) {
+    console.error('Authentication failed:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -259,8 +261,8 @@ async function listCampaignsDemo() {
     
     await question('\nPress Enter to continue...');
     
-  } catch (error) {
-    console.error('Error listing campaigns:', error.message);
+  } catch (error: unknown) {
+    console.error('Error listing campaigns:', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -298,8 +300,8 @@ async function createCampaignDemo() {
     
     await question('\nPress Enter to continue...');
     
-  } catch (error) {
-    console.error('Error creating campaign:', error.message);
+  } catch (error: unknown) {
+    console.error('Error creating campaign:', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -325,8 +327,8 @@ async function validateTokenDemo() {
     
     await question('\nPress Enter to continue...');
     
-  } catch (error) {
-    console.error('Error validating token:', error.message);
+  } catch (error: unknown) {
+    console.error('Error validating token:', error instanceof Error ? error.message : String(error));
   }
 }
 

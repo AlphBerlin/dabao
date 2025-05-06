@@ -62,8 +62,8 @@ async function startGrpcServer() {
         grpcServer.start();
       }
     );
-  } catch (error) {
-    logger.error(`Failed to start gRPC server: ${error.message}`);
+  } catch (error: unknown) {
+    logger.error(`Failed to start gRPC server: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -81,13 +81,13 @@ async function main() {
     }
     
     logger.info("All services started successfully");
-  } catch (error) {
-    logger.error(`Error starting services: ${error.message}`);
+  } catch (error: unknown) {
+    logger.error(`Error starting services: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  logger.error(`Unhandled error: ${error.message}`);
+  logger.error(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });
