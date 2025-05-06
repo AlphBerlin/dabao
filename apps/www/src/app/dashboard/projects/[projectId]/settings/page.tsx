@@ -3,7 +3,6 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BrandingSettings } from "./components/branding-settings";
 import { ApiTokenSettings } from "./components/api-token-settings";
 import { UserSettings } from "./components/user-settings";
-import { BillingSettings } from "./components/billing-settings";
 
 export default async function ProjectSettingsPage({ params }: { params: { projectId: string } }) {
   const { projectId } = await params;
@@ -35,9 +34,6 @@ export default async function ProjectSettingsPage({ params }: { params: { projec
             </TabsContent>
             <TabsContent value="users">
               <UserSettings projectId={projectId} />
-            </TabsContent>
-            <TabsContent value="billing">
-              <BillingSettings projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>
