@@ -1,4 +1,4 @@
-import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData, wait } from '../testHelpers';
+import { createClients, promisifyMethods, authenticateUser, createAuthMetadata, generateTestData, wait } from '../testHelpers.js';
 import * as grpc from '@grpc/grpc-js';
 
 describe('TelegramService', () => {
@@ -93,7 +93,7 @@ describe('TelegramService', () => {
         
         // Should not reach here
         fail('SendMessage should fail without chat_id');
-      } catch (error) {
+      } catch (error : any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }
@@ -109,7 +109,7 @@ describe('TelegramService', () => {
         
         // Should not reach here
         fail('SendMessage should fail without text');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.INVALID_ARGUMENT);
       }
@@ -128,7 +128,7 @@ describe('TelegramService', () => {
         
         // Should not reach here
         fail('SendMessage should fail without authentication');
-      } catch (error) {
+      } catch (error:any) {
         expect(error).toBeDefined();
         expect(error.code).toBe(grpc.status.UNAUTHENTICATED);
       }
@@ -170,7 +170,7 @@ describe('TelegramService', () => {
         expect(Array.isArray(response.templates)).toBe(true);
         
         // All returned templates should match the category
-        response.templates.forEach(template => {
+        response.templates.forEach((template:any) => {
           expect(template.category).toBe(request.category);
         });
       } catch (error) {
@@ -198,7 +198,7 @@ describe('TelegramService', () => {
         }, 3000); // Wait for 3 seconds
         
         // Listen for incoming messages
-        messageStream.on('data', (event) => {
+        messageStream.on('data', (event:any) => {
           expect(event).toBeDefined();
           expect(event.message_id).toBeDefined();
           expect(event.chat_id).toBeDefined();
@@ -213,7 +213,7 @@ describe('TelegramService', () => {
         });
         
         // Handle errors
-        messageStream.on('error', (error) => {
+        messageStream.on('error', (error:any) => {
           // Ignore cancellation error
           if (error.code !== grpc.status.CANCELLED) {
             console.error('ReceiveMessages error:', error);
@@ -222,7 +222,7 @@ describe('TelegramService', () => {
             done();
           }
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('ReceiveMessages test error:', error);
         fail(`ReceiveMessages test error: ${error.message}`);
         done();
@@ -239,7 +239,7 @@ describe('TelegramService', () => {
         const messageStream = clients.telegramClient.receiveMessages(request, new grpc.Metadata());
         
         // Listen for errors (we expect authentication error)
-        messageStream.on('error', (error) => {
+        messageStream.on('error', (error:any) => {
           expect(error).toBeDefined();
           expect(error.code).toBe(grpc.status.UNAUTHENTICATED);
           done();
@@ -251,7 +251,7 @@ describe('TelegramService', () => {
           messageStream.cancel();
           done();
         });
-      } catch (error) {
+      } catch (error:any) {
         console.error('Unauthenticated ReceiveMessages test error:', error);
         fail(`Unauthenticated ReceiveMessages test error: ${error.message}`);
         done();
