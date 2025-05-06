@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { hasProjectAccess } from "@/lib/auth/project-access";
 
 export async function GET(
   request: Request,
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId =(await params).projectId;
+    const projectId = (await params).projectId;
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "week"; // day, week, month
     const limit = Number(searchParams.get("limit") || "50");
@@ -65,7 +66,7 @@ export async function GET(
 
     // Get aggregated data for chart
     let groupByFormat = "%Y-%m-%d"; // Default for week
-    
+
     if (period === "day") {
       groupByFormat = "%Y-%m-%d %H:00:00"; // Group by hour
     } else if (period === "month") {
