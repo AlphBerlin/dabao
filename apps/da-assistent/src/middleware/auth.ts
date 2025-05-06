@@ -1,4 +1,3 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import jwt from "jsonwebtoken";
 import { logger, logAuditEvent } from "../logging/logger.js";
 import { Request, Response, NextFunction } from 'express';
@@ -38,7 +37,7 @@ const rolePermissions = {
 };
 
 // Instead of using middleware, we'll intercept requests with request handlers
-export function setupAuthMiddleware(server: Server) {
+export function setupAuthMiddleware(server: any) {
   // Wrap original handlers with authentication logic
   const originalHandlers = server['_requestHandlers'];
   
