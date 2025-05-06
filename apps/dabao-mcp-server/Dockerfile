@@ -1,24 +1,44 @@
-FROM node:22.12-alpine AS builder
-
-COPY src/postgres /app
-COPY tsconfig.json /tsconfig.json
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/root/.npm npm install
+# Copy package files
+COPY package*.json ./
 
-RUN --mount=type=cache,target=/root/.npm-production npm ci --ignore-scripts --omit-dev
+# Install dependencies
+RUN npm ci
 
-FROM node:22-alpine AS release
+# Copy source code
+COPY . .
 
-COPY --from=builder /app/dist /app/dist
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/package-lock.json /app/package-lock.json
+# Build the application
+RUN npm run build
 
+# Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Set environment to production
 ENV NODE_ENV=production
 
-WORKDIR /app
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
 
-RUN npm ci --ignore-scripts --omit-dev
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/proto ./proto
 
-ENTRYPOINT ["node", "dist/index.js"]
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Set user to non-root for security
+USER node
+
+# Start the server
+CMD ["node", "dist/index.js"]
