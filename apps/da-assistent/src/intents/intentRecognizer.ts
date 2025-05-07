@@ -1,18 +1,22 @@
-import { User } from "../middleware/auth.js";
 import { logger, logPerformance } from "../logging/logger.js";
 import natural from "natural";
 import { z } from "zod";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+
+// Define simplified user type (removing dependency on auth middleware)
+export type User = {
+  id: string;
+  email?: string;
+  name?: string;
+  projectId?: string;
+};
 
 // Define intent types
 export type Intent = {
   name: string;
   response: string;
-  actions?: Array<{
-    type: string;
-    resource_id: string;
-    parameters: Record<string, string>;
-  }>;
-  updatedContext?: Record<string, string>;
+  mcpToolName?: string;
+  mcpToolParams?: Record<string, any>;
   requiresFollowup?: boolean;
 };
 
@@ -28,27 +32,12 @@ export type IntentHandler = (
   context?: Record<string, string>
 ) => Promise<IntentResult>;
 
-// Define schema for campaign creation
-const createCampaignSchema = z.object({
-  name: z.string().min(1, "Campaign name is required"),
-  description: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  scheduledDate: z.string().optional(),
-});
-
-// Define schema for sending telegram message
-const sendTelegramSchema = z.object({
-  chatId: z.string().min(1, "Chat ID is required"),
-  message: z.string().min(1, "Message text is required"),
-  useMarkdown: z.boolean().optional(),
-});
-
 export class IntentRecognizer {
   private tokenizer: natural.WordTokenizer;
   private stemmer: any;
   private classifier: natural.BayesClassifier;
-  private intentHandlers: Map<string, IntentHandler>;
   private entityExtractors: Map<string, (text: string) => Record<string, any>>;
+  private mcpClient: Client | null = null;
 
   constructor() {
     // Initialize NLP tools
@@ -59,10 +48,6 @@ export class IntentRecognizer {
     // Train the classifier with example phrases
     this.trainClassifier();
     
-    // Initialize intent handlers
-    this.intentHandlers = new Map();
-    this.registerIntentHandlers();
-    
     // Initialize entity extractors
     this.entityExtractors = new Map();
     this.registerEntityExtractors();
@@ -70,7 +55,23 @@ export class IntentRecognizer {
     logger.info("Intent recognition system initialized");
   }
 
+  // Set MCP client for tool execution
+  public setMcpClient(client: Client) {
+    this.mcpClient = client;
+    logger.info("MCP client connected to intent recognizer");
+  }
+
   private trainClassifier(): void {
+    // Customer related intents
+    this.classifier.addDocument("get customer", "customer.get");
+    this.classifier.addDocument("find customer", "customer.get");
+    this.classifier.addDocument("customer information", "customer.get");
+    this.classifier.addDocument("customer details", "customer.get");
+    
+    this.classifier.addDocument("customer activity", "customer.activity");
+    this.classifier.addDocument("recent activity", "customer.activity");
+    this.classifier.addDocument("customer history", "customer.activity");
+    
     // Campaign related intents
     this.classifier.addDocument("create a new campaign", "campaign.create");
     this.classifier.addDocument("make a campaign", "campaign.create");
@@ -82,30 +83,47 @@ export class IntentRecognizer {
     this.classifier.addDocument("view campaigns", "campaign.list");
     this.classifier.addDocument("get campaigns", "campaign.list");
     
-    this.classifier.addDocument("delete campaign", "campaign.delete");
-    this.classifier.addDocument("remove campaign", "campaign.delete");
+    // Voucher related intents
+    this.classifier.addDocument("create voucher", "voucher.create");
+    this.classifier.addDocument("new voucher", "voucher.create");
+    this.classifier.addDocument("make a voucher", "voucher.create");
     
-    this.classifier.addDocument("edit campaign", "campaign.update");
-    this.classifier.addDocument("update campaign", "campaign.update");
-    this.classifier.addDocument("change campaign", "campaign.update");
+    this.classifier.addDocument("list vouchers", "voucher.list");
+    this.classifier.addDocument("show vouchers", "voucher.list");
+    this.classifier.addDocument("get vouchers", "voucher.list");
     
-    this.classifier.addDocument("schedule campaign", "campaign.schedule");
-    this.classifier.addDocument("set campaign time", "campaign.schedule");
+    this.classifier.addDocument("validate voucher", "voucher.validate");
+    this.classifier.addDocument("check voucher", "voucher.validate");
+    this.classifier.addDocument("is voucher valid", "voucher.validate");
+    
+    // Tier related intents
+    this.classifier.addDocument("create tier", "tier.create");
+    this.classifier.addDocument("new tier", "tier.create");
+    this.classifier.addDocument("add membership tier", "tier.create");
+    
+    this.classifier.addDocument("list tiers", "tier.list");
+    this.classifier.addDocument("show tiers", "tier.list");
+    this.classifier.addDocument("get tiers", "tier.list");
+    this.classifier.addDocument("membership tiers", "tier.list");
+    
+    this.classifier.addDocument("assign tier", "tier.assign");
+    this.classifier.addDocument("set customer tier", "tier.assign");
+    this.classifier.addDocument("give tier to customer", "tier.assign");
     
     // Telegram related intents
-    this.classifier.addDocument("send telegram message", "telegram.send");
-    this.classifier.addDocument("send message on telegram", "telegram.send");
-    this.classifier.addDocument("post to telegram", "telegram.send");
+    this.classifier.addDocument("telegram settings", "telegram.configure");
+    this.classifier.addDocument("configure telegram", "telegram.configure");
+    this.classifier.addDocument("setup telegram", "telegram.configure");
     
-    this.classifier.addDocument("get telegram templates", "telegram.templates");
-    this.classifier.addDocument("show message templates", "telegram.templates");
-    this.classifier.addDocument("list templates", "telegram.templates");
+    this.classifier.addDocument("telegram analytics", "telegram.analytics");
+    this.classifier.addDocument("telegram stats", "telegram.analytics");
+    this.classifier.addDocument("telegram performance", "telegram.analytics");
     
-    // Analytics related intents
-    this.classifier.addDocument("show analytics", "analytics.overview");
-    this.classifier.addDocument("campaign performance", "analytics.campaign");
-    this.classifier.addDocument("engagement metrics", "analytics.engagement");
-    this.classifier.addDocument("generate report", "analytics.report");
+    // Project related intents
+    this.classifier.addDocument("project info", "project.get");
+    this.classifier.addDocument("about project", "project.get");
+    this.classifier.addDocument("project details", "project.get");
+    this.classifier.addDocument("get project", "project.get");
     
     // Help and fallback intents
     this.classifier.addDocument("help", "system.help");
@@ -117,84 +135,194 @@ export class IntentRecognizer {
     logger.info("Intent classifier trained");
   }
 
-  private registerIntentHandlers(): void {
-    // Campaign handlers
-    this.intentHandlers.set("campaign.create", this.handleCreateCampaign.bind(this));
-    this.intentHandlers.set("campaign.list", this.handleListCampaigns.bind(this));
-    this.intentHandlers.set("campaign.delete", this.handleDeleteCampaign.bind(this));
-    this.intentHandlers.set("campaign.update", this.handleUpdateCampaign.bind(this));
-    this.intentHandlers.set("campaign.schedule", this.handleScheduleCampaign.bind(this));
-    
-    // Telegram handlers
-    this.intentHandlers.set("telegram.send", this.handleSendTelegramMessage.bind(this));
-    this.intentHandlers.set("telegram.templates", this.handleGetTemplates.bind(this));
-    
-    // Analytics handlers
-    this.intentHandlers.set("analytics.overview", this.handleAnalyticsOverview.bind(this));
-    this.intentHandlers.set("analytics.campaign", this.handleCampaignAnalytics.bind(this));
-    this.intentHandlers.set("analytics.engagement", this.handleEngagementAnalytics.bind(this));
-    this.intentHandlers.set("analytics.report", this.handleGenerateReport.bind(this));
-    
-    // System handlers
-    this.intentHandlers.set("system.help", this.handleHelp.bind(this));
-    this.intentHandlers.set("system.fallback", this.handleFallback.bind(this));
-  }
-
   private registerEntityExtractors(): void {
+    // Customer entity extractors
+    this.entityExtractors.set("customer.get", this.extractCustomerEntities.bind(this));
+    this.entityExtractors.set("customer.activity", this.extractCustomerEntities.bind(this));
+    
     // Campaign entity extractors
-    this.entityExtractors.set("campaign.create", this.extractCreateCampaignEntities.bind(this));
-    this.entityExtractors.set("telegram.send", this.extractSendMessageEntities.bind(this));
+    this.entityExtractors.set("campaign.create", this.extractCampaignEntities.bind(this));
+    this.entityExtractors.set("campaign.list", this.extractProjectEntities.bind(this));
+    
+    // Voucher entity extractors
+    this.entityExtractors.set("voucher.create", this.extractVoucherEntities.bind(this));
+    this.entityExtractors.set("voucher.list", this.extractProjectEntities.bind(this));
+    this.entityExtractors.set("voucher.validate", this.extractVoucherValidateEntities.bind(this));
+    
+    // Tier entity extractors
+    this.entityExtractors.set("tier.create", this.extractTierEntities.bind(this));
+    this.entityExtractors.set("tier.list", this.extractProjectEntities.bind(this));
+    this.entityExtractors.set("tier.assign", this.extractTierAssignEntities.bind(this));
+    
+    // Telegram entity extractors
+    this.entityExtractors.set("telegram.configure", this.extractProjectEntities.bind(this));
+    this.entityExtractors.set("telegram.analytics", this.extractProjectEntities.bind(this));
+    
+    // Project entity extractors
+    this.entityExtractors.set("project.get", this.extractProjectEntities.bind(this));
   }
 
   // Entity extraction functions
-  private extractCreateCampaignEntities(text: string): Record<string, any> {
+  private extractCustomerEntities(text: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract customer email
+    const emailRegex = /email\s+([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
+    const emailMatch = text.match(emailRegex);
+    if (emailMatch) {
+      entities.email = emailMatch[1];
+    }
+    
+    // Extract customer id (format: customer-xxx or customerId xxx)
+    const idRegex = /customer(?:[-\s]|Id\s+)([a-zA-Z0-9_-]+)/i;
+    const idMatch = text.match(idRegex);
+    if (idMatch) {
+      entities.customerId = idMatch[1];
+    }
+    
+    // Extract project ID
+    this.extractProjectId(text, entities);
+    
+    return entities;
+  }
+
+  private extractCampaignEntities(text: string): Record<string, any> {
     const entities: Record<string, any> = {};
     
     // Extract campaign name (anything in quotes or after "called" or "named")
-    const nameRegex = /"([^"]+)"|called\s+(\w+)|named\s+(\w+)/i;
+    const nameRegex = /"([^"]+)"|called\s+([^,\.]+)|named\s+([^,\.]+)/i;
     const nameMatch = text.match(nameRegex);
-    if (nameMatch) {
-      entities.name = nameMatch[1] || nameMatch[2] || nameMatch[3];
+    if (nameMatch && (nameMatch[1] || nameMatch[2] || nameMatch[3])) {
+      entities.name = (nameMatch[1] || nameMatch[2] || nameMatch[3])?.trim();
     }
     
     // Extract description
     const descRegex = /description\s+"([^"]+)"|description\s+(.+?)(?=\s+with|\s+on|\s+at|$)/i;
     const descMatch = text.match(descRegex);
-    if (descMatch) {
-      entities.description = descMatch[1] || descMatch[2];
+    if (descMatch && (descMatch[1] || descMatch[2])) {
+      entities.description = (descMatch[1] || descMatch[2])?.trim();
     }
     
-    // Extract schedule date if present
-    const dateRegex = /on\s+(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?)/i;
-    const dateMatch = text.match(dateRegex);
-    if (dateMatch) {
-      entities.scheduledDate = dateMatch[1];
+    // Extract project ID
+    this.extractProjectId(text, entities);
+    
+    return entities;
+  }
+
+  private extractVoucherEntities(text: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract voucher code
+    const codeRegex = /code\s+([A-Z0-9_-]+)|"([A-Z0-9_-]+)"|'([A-Z0-9_-]+)'/i;
+    const codeMatch = text.match(codeRegex);
+    if (codeMatch) {
+      entities.code = codeMatch[1] || codeMatch[2] || codeMatch[3];
+    }
+    
+    // Extract voucher name
+    const nameRegex = /named\s+([^,\.]+)|called\s+([^,\.]+)/i;
+    const nameMatch = text.match(nameRegex);
+    if (nameMatch && (nameMatch[1] || nameMatch[2])) {
+      entities.name = (nameMatch[1] || nameMatch[2])?.trim();
+    }
+    
+    // Extract discount value
+    const valueRegex = /(\d+(?:\.\d+)?)\s*(%|percent|dollars?|$)/i;
+    const valueMatch = text.match(valueRegex);
+    if (valueMatch && valueMatch[1]) {
+      entities.discountValue = parseFloat(valueMatch[1] || "0");
+      // Safe access with optional chaining and nullish coalescing
+      entities.discountType = valueMatch[2]?.toLowerCase().includes('%') || 
+                             valueMatch[2]?.toLowerCase().includes('percent') 
+                           ? "PERCENTAGE" : "FIXED_AMOUNT";
+    }
+    
+    // Extract project ID
+    this.extractProjectId(text, entities);
+    
+    return entities;
+  }
+
+  private extractVoucherValidateEntities(text: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract voucher code
+    const codeRegex = /code\s+([A-Z0-9_-]+)|"([A-Z0-9_-]+)"|'([A-Z0-9_-]+)'/i;
+    const codeMatch = text.match(codeRegex);
+    if (codeMatch) {
+      entities.code = codeMatch[1] || codeMatch[2] || codeMatch[3];
+    }
+    
+    // Extract customer ID
+    const customerRegex = /customer(?:[-\s]|Id\s+)([a-zA-Z0-9_-]+)/i;
+    const customerMatch = text.match(customerRegex);
+    if (customerMatch) {
+      entities.customerId = customerMatch[1];
+    }
+    
+    // Extract project ID
+    this.extractProjectId(text, entities);
+    
+    return entities;
+  }
+
+  private extractTierEntities(text: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract tier name
+    const nameRegex = /named\s+([^,\.]+)|called\s+([^,\.]+)/i;
+    const nameMatch = text.match(nameRegex);
+    if (nameMatch && (nameMatch[1] || nameMatch[2])) {
+      entities.name = (nameMatch[1] || nameMatch[2])?.trim();
+    }
+    
+    // Extract tier level
+    const levelRegex = /level\s+(\d+)/i;
+    const levelMatch = text.match(levelRegex);
+    if (levelMatch && levelMatch[1]) {
+      entities.level = parseInt(levelMatch[1] || "1");
+    }
+    
+    // Extract project ID
+    this.extractProjectId(text, entities);
+    
+    return entities;
+  }
+
+  private extractTierAssignEntities(text: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract customer ID
+    const customerRegex = /customer(?:[-\s]|Id\s+)([a-zA-Z0-9_-]+)/i;
+    const customerMatch = text.match(customerRegex);
+    if (customerMatch) {
+      entities.customerId = customerMatch[1];
+    }
+    
+    // Extract tier ID
+    const tierRegex = /tier(?:[-\s]|Id\s+)([a-zA-Z0-9_-]+)/i;
+    const tierMatch = text.match(tierRegex);
+    if (tierMatch) {
+      entities.tierId = tierMatch[1];
     }
     
     return entities;
   }
 
-  private extractSendMessageEntities(text: string): Record<string, any> {
+  private extractProjectEntities(text: string): Record<string, any> {
     const entities: Record<string, any> = {};
-    
-    // Extract chat ID/recipient
-    const chatRegex = /to\s+@?(\w+)|in\s+chat\s+@?(\w+)|chat\s+@?(\w+)|chat\s+id\s+([a-zA-Z0-9_-]+)/i;
-    const chatMatch = text.match(chatRegex);
-    if (chatMatch) {
-      entities.chatId = chatMatch[1] || chatMatch[2] || chatMatch[3] || chatMatch[4];
-    }
-    
-    // Extract message text (anything in quotes)
-    const msgRegex = /"([^"]+)"|'([^']+)'/;
-    const msgMatch = text.match(msgRegex);
-    if (msgMatch) {
-      entities.message = msgMatch[1] || msgMatch[2];
-    }
-    
-    // Check for markdown flag
-    entities.useMarkdown = text.toLowerCase().includes("markdown") || text.toLowerCase().includes("formatting");
-    
+    this.extractProjectId(text, entities);
     return entities;
+  }
+
+  // Helper method to extract project ID from text
+  private extractProjectId(text: string, entities: Record<string, any>): void {
+    // Extract project ID (format: project-xxx or projectId xxx)
+    const projectRegex = /project(?:[-\s]|Id\s+)([a-zA-Z0-9_-]+)/i;
+    const projectMatch = text.match(projectRegex);
+    if (projectMatch) {
+      entities.projectId = projectMatch[1];
+    }
   }
 
   // Public methods
@@ -229,389 +357,295 @@ export class IntentRecognizer {
     entities: Record<string, any>, 
     context: Record<string, string>
   ): Promise<Intent> {
+    // Map intent to MCP tool
     switch (intentName) {
+      case "customer.get":
+        return {
+          name: "customer.get",
+          response: entities.email 
+            ? `Fetching customer information for ${entities.email}...` 
+            : entities.customerId 
+              ? `Looking up customer ID ${entities.customerId}...`
+              : "Which customer would you like to look up? Please provide an email or customer ID.",
+          mcpToolName: entities.email || entities.customerId ? "get-customer" : undefined,
+          mcpToolParams: {
+            email: entities.email,
+            projectId: entities.projectId || context.projectId,
+            customerId: entities.customerId
+          },
+          requiresFollowup: !entities.email && !entities.customerId
+        };
+        
+      case "customer.activity":
+        return {
+          name: "customer.activity",
+          response: entities.customerId 
+            ? `Getting recent activity for customer ${entities.customerId}...`
+            : "Which customer's activity would you like to see? Please provide a customer ID.",
+          mcpToolName: entities.customerId ? "get-customer-activity" : undefined,
+          mcpToolParams: {
+            customerId: entities.customerId,
+            limit: 10
+          },
+          requiresFollowup: !entities.customerId
+        };
+        
       case "campaign.create":
         return {
           name: "campaign.create",
-          response: entities.name
-            ? `I'll create a new campaign called "${entities.name}". Please confirm the details.`
-            : "I'll help you create a new campaign. What would you like to name it?",
-          actions: entities.name ? [
-            {
-              type: "form",
-              resource_id: "campaign_create",
-              parameters: {
-                name: entities.name || "",
-                description: entities.description || ""
-              }
-            }
-          ] : [],
-          updatedContext: { 
-            ...context, 
-            intent: "campaign.create",
-            ...entities
+          response: entities.name && entities.projectId
+            ? `Creating a new campaign named "${entities.name}" for project ${entities.projectId}...`
+            : !entities.projectId
+              ? "Which project would you like to create the campaign for? Please provide a project ID."
+              : "What would you like to name the campaign?",
+          mcpToolName: entities.name && entities.projectId ? "create-campaign" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            name: entities.name,
+            description: entities.description,
+            type: "STANDARD"
           },
-          requiresFollowup: !entities.name
+          requiresFollowup: !entities.name || !entities.projectId
         };
         
       case "campaign.list":
         return {
           name: "campaign.list",
-          response: "Here are your campaigns:",
-          actions: [
-            {
-              type: "list",
-              resource_id: "campaigns",
-              parameters: {}
-            }
-          ]
-        };
-      
-      case "telegram.send":
-        return {
-          name: "telegram.send",
-          response: entities.message && entities.chatId
-            ? `I'll send the message "${entities.message}" to ${entities.chatId}. Please confirm.`
-            : "I'll help you send a Telegram message. Which chat would you like to send it to?",
-          actions: entities.message && entities.chatId ? [
-            {
-              type: "confirmation",
-              resource_id: "send_telegram",
-              parameters: {
-                chatId: entities.chatId,
-                message: entities.message,
-                useMarkdown: entities.useMarkdown ? "true" : "false"
-              }
-            }
-          ] : [],
-          updatedContext: { 
-            ...context, 
-            intent: "telegram.send",
-            ...entities
+          response: entities.projectId 
+            ? `Fetching campaigns for project ${entities.projectId}...`
+            : "Which project's campaigns would you like to see? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "get-campaigns" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId
           },
-          requiresFollowup: !(entities.message && entities.chatId)
+          requiresFollowup: !entities.projectId
         };
-      
+        
+      case "voucher.create":
+        return {
+          name: "voucher.create",
+          response: entities.code && entities.projectId
+            ? `Creating a new voucher with code "${entities.code}" for project ${entities.projectId}...`
+            : !entities.projectId
+              ? "Which project would you like to create the voucher for? Please provide a project ID."
+              : "What code would you like to use for this voucher?",
+          mcpToolName: entities.code && entities.projectId ? "create-voucher" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            code: entities.code,
+            name: entities.name || `Voucher ${entities.code}`,
+            discountType: entities.discountType || "PERCENTAGE",
+            discountValue: entities.discountValue || 10,
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+          },
+          requiresFollowup: !entities.code || !entities.projectId
+        };
+        
+      case "voucher.list":
+        return {
+          name: "voucher.list",
+          response: entities.projectId 
+            ? `Fetching vouchers for project ${entities.projectId}...`
+            : "Which project's vouchers would you like to see? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "get-vouchers" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            onlyActive: true
+          },
+          requiresFollowup: !entities.projectId
+        };
+        
+      case "voucher.validate":
+        return {
+          name: "voucher.validate",
+          response: entities.code && entities.customerId && entities.projectId
+            ? `Validating voucher code "${entities.code}" for customer ${entities.customerId}...`
+            : "Please provide the voucher code, customer ID, and project ID to validate.",
+          mcpToolName: entities.code && entities.customerId && entities.projectId ? "validate-voucher" : undefined,
+          mcpToolParams: {
+            code: entities.code,
+            customerId: entities.customerId,
+            projectId: entities.projectId || context.projectId
+          },
+          requiresFollowup: !entities.code || !entities.customerId || !entities.projectId
+        };
+        
+      case "tier.create":
+        return {
+          name: "tier.create",
+          response: entities.name && entities.level && entities.projectId
+            ? `Creating a new tier "${entities.name}" (level ${entities.level}) for project ${entities.projectId}...`
+            : "Please provide the tier name, level, and project ID.",
+          mcpToolName: entities.name && entities.level && entities.projectId ? "create-tier" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            name: entities.name,
+            level: entities.level || 1
+          },
+          requiresFollowup: !entities.name || !entities.level || !entities.projectId
+        };
+        
+      case "tier.list":
+        return {
+          name: "tier.list",
+          response: entities.projectId 
+            ? `Fetching membership tiers for project ${entities.projectId}...`
+            : "Which project's tiers would you like to see? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "get-tiers" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId
+          },
+          requiresFollowup: !entities.projectId
+        };
+        
+      case "tier.assign":
+        return {
+          name: "tier.assign",
+          response: entities.customerId && entities.tierId
+            ? `Assigning customer ${entities.customerId} to tier ${entities.tierId}...`
+            : "Please provide both the customer ID and tier ID.",
+          mcpToolName: entities.customerId && entities.tierId ? "assign-tier" : undefined,
+          mcpToolParams: {
+            customerId: entities.customerId,
+            tierId: entities.tierId
+          },
+          requiresFollowup: !entities.customerId || !entities.tierId
+        };
+        
+      case "telegram.configure":
+        return {
+          name: "telegram.configure",
+          response: entities.projectId 
+            ? `Configuring Telegram settings for project ${entities.projectId}...`
+            : "Which project's Telegram settings would you like to configure? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "configure-telegram" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            analyticsEnabled: true
+          },
+          requiresFollowup: !entities.projectId
+        };
+        
+      case "telegram.analytics":
+        return {
+          name: "telegram.analytics",
+          response: entities.projectId 
+            ? `Fetching Telegram analytics for project ${entities.projectId}...`
+            : "Which project's Telegram analytics would you like to see? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "get-telegram-analytics" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId,
+            includeDetails: false
+          },
+          requiresFollowup: !entities.projectId
+        };
+        
+      case "project.get":
+        return {
+          name: "project.get",
+          response: entities.projectId 
+            ? `Fetching details for project ${entities.projectId}...`
+            : "Which project would you like to see? Please provide a project ID.",
+          mcpToolName: entities.projectId ? "get-project" : undefined,
+          mcpToolParams: {
+            projectId: entities.projectId || context.projectId
+          },
+          requiresFollowup: !entities.projectId
+        };
+        
       case "system.help":
         return {
           name: "system.help",
-          response: "I can help you with campaign management, sending Telegram messages, and analytics. Here are some examples of what you can ask:\n\n" +
-            "- Create a new campaign called \"Summer Promotion\"\n" +
-            "- List all campaigns\n" +
-            "- Send message \"Hello everyone!\" to chat @marketing\n" +
-            "- Show analytics for campaign XYZ\n" +
-            "- Generate report for last month"
+          response: "I can help you with the following Dabao features:\n\n" +
+            "- Customer management: Find customer info, view activity\n" +
+            "- Campaign management: Create and list campaigns\n" +
+            "- Voucher management: Create, list, and validate vouchers\n" +
+            "- Membership tiers: Create, list, and assign tiers\n" +
+            "- Telegram integration: Configure settings, view analytics\n" +
+            "- Project information: Get details about a project\n\n" +
+            "Try asking something like:\n" +
+            "- \"Get customer information for customer-123\"\n" +
+            "- \"Create a new campaign called Summer Sale for project-abc\"\n" +
+            "- \"List active vouchers for project-xyz\"\n" +
+            "- \"Create a Gold tier at level 3 for project-123\""
         };
-      
+        
       case "system.fallback":
       default:
         return {
           name: "system.fallback",
-          response: "I'm not sure I understood that. Could you rephrase? You can say 'help' to see what I can do."
+          response: "I'm not sure I understood that request. Could you rephrase or try asking for 'help' to see what I can do?"
         };
     }
   }
 
-  // Intent handler methods
+  // Execute MCP tool based on recognized intent
+  public async executeMcpTool(intent: Intent): Promise<string> {
+    if (!this.mcpClient) {
+      return "I'm not connected to the MCP server yet. Please try again in a moment.";
+    }
+    
+    if (!intent.mcpToolName || !intent.mcpToolParams) {
+      return intent.response;
+    }
+    
+    try {
+      logger.info(`Calling MCP tool: ${intent.mcpToolName}`, { params: intent.mcpToolParams });
+      
+      const result = await this.mcpClient.callTool({
+        name: intent.mcpToolName,
+        arguments: intent.mcpToolParams,
+      });
+      
+      // Format and return the content from the MCP tool
+      return typeof result.content === 'string'
+        ? result.content
+        : JSON.stringify(result.content, null, 2);
+    } catch (error) {
+      logger.error(`Error calling MCP tool ${intent.mcpToolName}:`, error);
+      return `I encountered an error while trying to ${intent.name.replace('.', ' ')}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  // Added method to support grpcServer.ts
   public async executeIntent(
     intentName: string,
     params: Record<string, any>,
-    user: User,
-    context: Record<string, string> = {}
-  ): Promise<IntentResult> {
-    const handler = this.intentHandlers.get(intentName) || this.intentHandlers.get("system.fallback");
-    if (!handler) {
-      return {
-        message: "Sorry, I don't know how to handle that request.",
-        success: false
-      };
-    }
-    
-    try {
-      return await handler(params, user, context);
-    } catch (error: any) {
-      logger.error(`Error executing intent ${intentName}: ${error.message}`);
-      return {
-        message: `An error occurred: ${error.message}`,
-        success: false
-      };
-    }
-  }
-
-  // Campaign intent handlers
-  private async handleCreateCampaign(
-    params: Record<string, any>,
-    user: User,
-    context?: Record<string, string>
+    user: User
   ): Promise<IntentResult> {
     try {
-      // Validate params with schema
-      const result = createCampaignSchema.safeParse(params);
-      if (!result.success) {
+      // Create a context from user info
+      const context: Record<string, string> = {};
+      if (user.projectId) {
+        context.projectId = user.projectId;
+      }
+      
+      // Prepare the intent
+      const intent = await this.prepareIntentResponse(intentName, params, context);
+      
+      // Execute the intent via MCP tool if available
+      if (intent.mcpToolName && this.mcpClient) {
+        const response = await this.executeMcpTool(intent);
         return {
-          message: `Invalid campaign data: ${result.error.errors.map(e => e.message).join(", ")}`,
-          success: false
+          message: response,
+          success: true,
+          data: params
         };
       }
       
-      // Here we would call the actual API to create a campaign
-      // For now, we just return a mock response
-      const campaignId = `campaign_${Date.now()}`;
-      
+      // Fallback response if no MCP tool is available
       return {
-        message: `Campaign "${params.name}" created successfully`,
+        message: intent.response,
         success: true,
-        data: {
-          id: campaignId,
-          name: params.name,
-          description: params.description || "",
-          createdBy: user.id,
-          createdAt: new Date().toISOString()
-        }
+        data: null
       };
-    } catch (error: any) {
-      logger.error(`Error creating campaign: ${error.message}`);
+    } catch (error) {
       return {
-        message: `Failed to create campaign: ${error.message}`,
-        success: false
+        message: `Error executing intent ${intentName}: ${error instanceof Error ? error.message : String(error)}`,
+        success: false,
+        data: null
       };
     }
-  }
-
-  private async handleListCampaigns(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    // Mock implementation
-    const campaigns = Array.from({ length: 5 }, (_, i) => ({
-      id: `campaign_${i + 1}`,
-      name: `Test Campaign ${i + 1}`,
-      status: ["DRAFT", "SCHEDULED", "ACTIVE", "COMPLETED", "PAUSED"][i]
-    }));
-    
-    return {
-      message: `Found ${campaigns.length} campaigns`,
-      success: true,
-      data: { campaigns }
-    };
-  }
-
-  private async handleDeleteCampaign(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    if (!params.id) {
-      return { 
-        message: "Campaign ID is required", 
-        success: false 
-      };
-    }
-    
-    // Mock implementation
-    return {
-      message: `Campaign ${params.id} has been deleted`,
-      success: true
-    };
-  }
-
-  private async handleUpdateCampaign(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    if (!params.id) {
-      return { 
-        message: "Campaign ID is required", 
-        success: false 
-      };
-    }
-    
-    // Mock implementation
-    return {
-      message: `Campaign ${params.id} has been updated`,
-      success: true,
-      data: {
-        id: params.id,
-        name: params.name || "Updated Campaign",
-        updatedAt: new Date().toISOString()
-      }
-    };
-  }
-
-  private async handleScheduleCampaign(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    if (!params.id || !params.scheduledDate) {
-      return { 
-        message: "Campaign ID and scheduled date are required", 
-        success: false 
-      };
-    }
-    
-    // Mock implementation
-    return {
-      message: `Campaign ${params.id} has been scheduled for ${params.scheduledDate}`,
-      success: true,
-      data: {
-        id: params.id,
-        scheduledDate: params.scheduledDate
-      }
-    };
-  }
-
-  // Telegram intent handlers
-  private async handleSendTelegramMessage(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    try {
-      // Validate params with schema
-      const result = sendTelegramSchema.safeParse({
-        chatId: params.chatId,
-        message: params.message,
-        useMarkdown: params.useMarkdown === "true" || params.useMarkdown === true
-      });
-      
-      if (!result.success) {
-        return {
-          message: `Invalid message data: ${result.error.errors.map(e => e.message).join(", ")}`,
-          success: false
-        };
-      }
-      
-      // Here we would call the Telegram API to send the message
-      // For now, we just return a mock response
-      const messageId = `msg_${Date.now()}`;
-      
-      return {
-        message: `Message sent successfully to ${params.chatId}`,
-        success: true,
-        data: { messageId }
-      };
-    } catch (error: any) {
-      logger.error(`Error sending Telegram message: ${error.message}`);
-      return {
-        message: `Failed to send message: ${error.message}`,
-        success: false
-      };
-    }
-  }
-
-  private async handleGetTemplates(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    // Mock implementation
-    const templates = [
-      { id: "template1", name: "Welcome Message", content: "Welcome to our channel!" },
-      { id: "template2", name: "Promotion", content: "Check out our latest offer: {{offer}}" }
-    ];
-    
-    return {
-      message: `Found ${templates.length} templates`,
-      success: true,
-      data: { templates }
-    };
-  }
-
-  // Analytics intent handlers
-  private async handleAnalyticsOverview(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    // Mock implementation
-    return {
-      message: "Here's your analytics overview",
-      success: true,
-      data: {
-        activeCampaigns: 5,
-        totalMessages: 1234,
-        engagementRate: "24.5%",
-        period: "Last 30 days"
-      }
-    };
-  }
-
-  private async handleCampaignAnalytics(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    if (!params.campaignId) {
-      return { 
-        message: "Campaign ID is required", 
-        success: false 
-      };
-    }
-    
-    // Mock implementation
-    return {
-      message: `Here are the analytics for campaign ${params.campaignId}`,
-      success: true,
-      data: {
-        campaignId: params.campaignId,
-        impressions: 5432,
-        clicks: 876,
-        engagement: "16.1%"
-      }
-    };
-  }
-
-  private async handleEngagementAnalytics(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    // Mock implementation
-    return {
-      message: "Here's your engagement data",
-      success: true,
-      data: {
-        overall: "22.3%",
-        segments: [
-          { name: "New users", rate: "18.5%" },
-          { name: "Returning users", rate: "27.8%" }
-        ]
-      }
-    };
-  }
-
-  private async handleGenerateReport(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    // Mock implementation
-    return {
-      message: "Your report is being generated",
-      success: true,
-      data: {
-        reportId: `report_${Date.now()}`,
-        status: "processing",
-        estimatedDelivery: "5 minutes"
-      }
-    };
-  }
-
-  // System intent handlers
-  private async handleHelp(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    return {
-      message: "I can help you with the following:\n\n" +
-        "- Campaign management: create, list, edit, delete, schedule campaigns\n" +
-        "- Telegram messaging: send messages, use templates\n" +
-        "- Analytics: view campaign performance, engagement metrics, generate reports\n\n" +
-        "Try asking something like 'create a new campaign' or 'show me campaign analytics'",
-      success: true
-    };
-  }
-
-  private async handleFallback(
-    params: Record<string, any>,
-    user: User
-  ): Promise<IntentResult> {
-    return {
-      message: "I'm not sure how to help with that. Try asking for 'help' to see what I can do.",
-      success: false
-    };
   }
 }

@@ -84,8 +84,8 @@ function addMCPService(server: grpc.Server, protoDescriptor: any) {
           // Send response back
           call.write({
             message: intent.response,
-            actions: intent.actions || [],
-            context: intent.updatedContext || {},
+            actions: [], // Initialize with empty array instead of accessing intent.actions
+            context: context, // Use existing context instead of intent.updatedContext
             requires_followup: intent.requiresFollowup || false
           });
         } catch (error: any) {

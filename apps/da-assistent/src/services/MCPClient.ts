@@ -75,6 +75,7 @@ class DabaoMCPClient {
   private serverPath: string;
   private chatHistory: { role: 'user' | 'assistant', content: string }[] = [];
   private projectContext: { projectId?: string, customerId?: string } = {};
+  private chatService: any = null;
 
   constructor(serverPath?: string) {
     this.serverPath = serverPath || "/Users/ajithberlin/alphberlin/repos/dabao.in/dabao/apps/dabao-mcp-server/dist/index.js";
@@ -99,6 +100,25 @@ class DabaoMCPClient {
     
     this.mcp = new Client({ name: "dabao-assistant", version: "1.0.0" });
     logger.info("DabaoMCPClient initialized");
+  }
+
+  /**
+   * Get the underlying MCP client instance for use by other services
+   */
+  public getMcpClient(): Client {
+    return this.mcp;
+  }
+
+  /**
+   * Set the chat service to use for natural language processing
+   */
+  public setChatService(service: any): void {
+    this.chatService = service;
+    // Connect the chat service to this client's underlying MCP client
+    if (service && service.setMcpClient) {
+      service.setMcpClient(this.mcp);
+    }
+    logger.info("ChatService connected to DabaoMCPClient");
   }
 
   /**
@@ -280,6 +300,40 @@ class DabaoMCPClient {
   }
 
   /**
+   * Process a user query using intent recognition instead of Claude
+   * This provides a more efficient and focused response for common Dabao tasks
+   */
+  async processQueryWithIntent(query: string, sessionId?: string): Promise<string> {
+    try {
+      if (!this.chatService) {
+        return "Chat service not configured. Falling back to default processing.";
+      }
+      
+      // Extract context for processing
+      this.extractContextFromQuery(query);
+      const userId = "cli-user";  // Default user ID for console interactions
+      
+      const context = {
+        projectId: this.projectContext.projectId,
+        customerId: this.projectContext.customerId
+      };
+      
+      // Process through chat service (which uses intent recognition)
+      const response = await this.chatService.processMessage(
+        sessionId || 'cli-session',
+        query,
+        userId,
+        this.projectContext.projectId
+      );
+      
+      return response.content;
+    } catch (error) {
+      logger.error("Error processing query with intent", { error });
+      return `I'm sorry, I encountered an error processing your query: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  /**
    * Extract project and customer context from query
    */
   private extractContextFromQuery(query: string): void {
@@ -339,6 +393,7 @@ class DabaoMCPClient {
 
   /**
    * Interactive chat loop in console
+   * Update to use intent recognition when possible, and fall back to Claude when needed
    */
   async chatLoop() {
     const rl = readline.createInterface({
@@ -349,6 +404,9 @@ class DabaoMCPClient {
     try {
       console.log("\n🔥 Da Assistant is ready to help with your Dabao tasks!");
       console.log("Type 'help' to see available commands or 'quit' to exit.");
+      
+      const sessionId = `cli-session-${Date.now()}`;
+      let useIntentMode = true; // Default to intent mode for efficiency
   
       while (true) {
         const message = await rl.question("\nYou: ");
@@ -368,10 +426,24 @@ class DabaoMCPClient {
           continue;
         }
         
+        if (message.toLowerCase() === "toggle mode") {
+          useIntentMode = !useIntentMode;
+          console.log(`Da Assistant: ${useIntentMode ? "Switched to intent recognition mode" : "Switched to Claude mode"}`);
+          continue;
+        }
+        
         console.log("\nDa Assistant is thinking... 🤔");
         
         try {
-          const response = await this.processQuery(message);
+          let response;
+          
+          // Use intent recognition for most queries, Claude for complex ones
+          if (useIntentMode && this.chatService) {
+            response = await this.processQueryWithIntent(message, sessionId);
+          } else {
+            response = await this.processQuery(message);
+          }
+          
           console.log("\nDa Assistant: " + response);
         } catch (error) {
           console.error("Error: ", error);
