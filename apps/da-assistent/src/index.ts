@@ -21,7 +21,6 @@ const __dirname = path.dirname(__filename);
 // Define default values
 const serverPath = process.env.MCP_SERVER_PATH || '/Users/ajithberlin/alphberlin/repos/dabao.in/dabao/apps/dabao-mcp-server/dist/index.js';
 const grpcPort = parseInt(process.env.GRPC_PORT || '50051');
-const grpcProto = process.env.GRPC_PROTO_PATH || path.join(__dirname, '../proto/chat.proto');
 
 // Parse simple command line arguments
 const args = process.argv.slice(2);
@@ -64,17 +63,6 @@ async function main() {
     let grpcServer: any;
     if (enableGrpc) {
       try {
-        // Load proto definition
-        const packageDefinition = protoLoader.loadSync(grpcProto, {
-          keepCase: true,
-          longs: String,
-          enums: String,
-          defaults: true,
-          oneofs: true
-        });
-        
-        const proto = grpc.loadPackageDefinition(packageDefinition);
-        
         // Initialize gRPC server with our chat service implementation
         grpcServer = initGrpcServer({
           'chat.ChatService': {
