@@ -1,17 +1,29 @@
 // Extend the default timeout for gRPC tests
 jest.setTimeout(30000);
 
-// Global setup for all tests
-beforeAll(() => {
-  // Set environment variables for testing
-  process.env.GRPC_SERVER_URL = process.env.GRPC_SERVER_URL || 'localhost:50051';
-  
-  console.log(`Using gRPC server at ${process.env.GRPC_SERVER_URL}`);
+// Import mock server
+const { startServer, stopServer, PORT } = require('./mockServer');
+
+// Start mock gRPC server before all tests
+beforeAll(async () => {
+  console.log(`Using gRPC server at localhost:${PORT}`);
   console.log('Starting test suite...');
+  try {
+    await startServer();
+  } catch (error) {
+    console.error('Error starting mock server:', error);
+  }
 });
 
-// Global teardown after all tests
-afterAll(() => {
+// Clean up after all tests
+afterAll(async () => {
+  console.log('Shutting down mock server...');
+  try {
+    await stopServer();
+    console.log('Mock server shut down');
+  } catch (error) {
+    console.error('Error stopping mock server:', error);
+  }
   console.log('All tests completed.');
 });
 
