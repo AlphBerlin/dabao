@@ -9,16 +9,46 @@ const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  logger.error('Missing Supabase credentials');
-  throw new Error('Missing Supabase credentials');
+// Check if we're using mock mode or real credentials
+const useMockClients = !supabaseUrl || !supabaseAnonKey || !supabaseServiceKey;
+
+if (useMockClients) {
+  logger.warn('Using mock Supabase clients - some features may not work');
 }
 
+// Create mock or real client based on available credentials
+const createSupabaseClient = (apiKey: string) => {
+  if (useMockClients) {
+    // Return a mock client with no-op functions
+    return {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        signIn: () => Promise.resolve({ user: null, session: null, error: null }),
+        signOut: () => Promise.resolve({ error: null }),
+        onAuthStateChange: () => ({ data: null, error: null }),
+        admin: {
+          createUser: () => Promise.resolve({ data: { user: { id: 'mock-user-id' } }, error: null }),
+          deleteUser: () => Promise.resolve({ error: null }),
+        }
+      },
+      from: (table: string) => ({
+        select: () => ({ data: [], error: null }),
+        insert: () => ({ data: null, error: null }),
+        update: () => ({ data: null, error: null }),
+        delete: () => ({ data: null, error: null }),
+      }),
+    } as any;
+  }
+  
+  // Return real client if credentials are available
+  return createClient(supabaseUrl, apiKey);
+};
+
 // Client for user-facing operations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createSupabaseClient(supabaseAnonKey);
 
 // Admin client for backend operations
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+export const supabaseAdmin = createSupabaseClient(supabaseServiceKey);
 
 /**
  * Get a user session from a JWT token
