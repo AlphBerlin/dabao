@@ -4,31 +4,31 @@ import path from 'path';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 
-// Import PORT from mock server
-const { PORT } = require('./mockServer');
+// Define the PORT used in mockServer.js
+const PORT = process.env.TEST_GRPC_PORT || '50051';
 
-// Path to proto files
-const MCP_PROTO_PATH = path.resolve(__dirname, '../proto/mcp.proto');
-
-// Load the MCP protobuf definitions
-export const loadMcpProtoDefinitions = () => {
-  const packageDefinition = protoLoader.loadSync(MCP_PROTO_PATH, {
+// Load proto definitions
+const loadProtos = () => {
+  const PROTO_DIR = path.resolve(__dirname, '../proto');
+  
+  const options = {
     keepCase: true,
     longs: String,
     enums: String,
     defaults: true,
     oneofs: true,
-  });
-  
-  // Cast to any to avoid TypeScript errors with dabao.mcp access
-  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
-  
-  return protoDescriptor.dabao?.mcp || {};
-};
+  };
 
+  // Load all proto files
+  const authProto = protoLoader.loadSync(`${PROTO_DIR}/auth.proto`, options);
+  const mcpProto = protoLoader.loadSync(`${PROTO_DIR}/mcp.proto`, options);
+  const telegramProto = protoLoader.loadSync(`${PROTO_DIR}/telegram.proto`, options);
 
-// Create clients for services
-export const createClients = () => {
+  // Get the gRPC objects
+  const authGrpc = grpc.loadPackageDefinition(authProto).dabao.mcp;
+  const mcpGrpc = grpc.loadPackageDefinition(mcpProto).dabao.mcp;
+  const telegramGrpc = grpc.loadPackageDefinition(telegramProto).dabao.mcp;
+  
   const mcpProto = loadMcpProtoDefinitions();
   
   // Use the PORT from mockServer.js
