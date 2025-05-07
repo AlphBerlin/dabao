@@ -1,6 +1,0 @@
-p, admin, *, *
-p, user, message, read
-p, user, message, create
-p, manager, message, *
-p, manager, user, read
-p, manager, audit, read
