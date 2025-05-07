@@ -9,8 +9,6 @@ const { PORT } = require('./mockServer');
 
 // Path to proto files
 const MCP_PROTO_PATH = path.resolve(__dirname, '../proto/mcp.proto');
-const CHAT_PROTO_PATH = path.resolve(__dirname, '../proto/chat.proto');
-const TELEGRAM_PROTO_PATH = path.resolve(__dirname, '../proto/telegram.proto');
 
 // Load the MCP protobuf definitions
 export const loadMcpProtoDefinitions = () => {
@@ -28,41 +26,10 @@ export const loadMcpProtoDefinitions = () => {
   return protoDescriptor.dabao?.mcp || {};
 };
 
-// Load the Chat protobuf definitions
-export const loadChatProtoDefinitions = () => {
-  const packageDefinition = protoLoader.loadSync(CHAT_PROTO_PATH, {
-    keepCase: true,
-    longs: String,
-    enums: String,
-    defaults: true,
-    oneofs: true,
-  });
-  
-  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
-  
-  return protoDescriptor.chat || {};
-};
-
-// Load the Telegram protobuf definitions
-export const loadTelegramProtoDefinitions = () => {
-  const packageDefinition = protoLoader.loadSync(TELEGRAM_PROTO_PATH, {
-    keepCase: true,
-    longs: String,
-    enums: String,
-    defaults: true,
-    oneofs: true,
-  });
-  
-  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
-  
-  return protoDescriptor.telegram || {};
-};
 
 // Create clients for services
 export const createClients = () => {
   const mcpProto = loadMcpProtoDefinitions();
-  const chatProto = loadChatProtoDefinitions();
-  const telegramProto = loadTelegramProtoDefinitions();
   
   // Use the PORT from mockServer.js
   const serverUrl = `localhost:${PORT}`;
@@ -70,19 +37,14 @@ export const createClients = () => {
   const authClient = new mcpProto.AuthService(serverUrl, grpc.credentials.createInsecure());
   const mcpClient = new mcpProto.MCPService(serverUrl, grpc.credentials.createInsecure());
   const campaignClient = new mcpProto.CampaignService(serverUrl, grpc.credentials.createInsecure());
-  const telegramClient = new telegramProto.TelegramService(serverUrl, grpc.credentials.createInsecure());
   const analyticsClient = new mcpProto.AnalyticsService(serverUrl, grpc.credentials.createInsecure());
   
-  // Add ChatService client
-  const chatClient = new chatProto.ChatService(serverUrl, grpc.credentials.createInsecure());
   
   return {
     authClient,
     mcpClient,
     campaignClient,
-    telegramClient,
     analyticsClient,
-    chatClient  // Add the new chat client
   };
 };
 
@@ -169,7 +131,5 @@ export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve,
 
 // Export proto descriptors for mocking in tests
 export const protoDescriptors = {
-  mcp: loadMcpProtoDefinitions(),
-  chat: loadChatProtoDefinitions(),
-  telegram: loadTelegramProtoDefinitions()
+  mcp: loadMcpProtoDefinitions()
 };

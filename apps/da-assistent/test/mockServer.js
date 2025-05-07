@@ -3,9 +3,6 @@ const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
 
 // Load proto definitions
-const CHAT_PROTO_PATH = path.resolve(__dirname, '../proto/chat.proto');
-const TELEGRAM_PROTO_PATH = path.resolve(__dirname, '../proto/telegram.proto');
-const AUTH_PROTO_PATH = path.resolve(__dirname, '../proto/auth.proto');
 const MCP_PROTO_PATH = path.resolve(__dirname, '../proto/mcp.proto');
 
 // Load all the required protos
