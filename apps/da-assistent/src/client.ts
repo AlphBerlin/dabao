@@ -99,8 +99,8 @@ class MCPClient {
     });
 
     // Process response and handle tool calls
-    const finalText = [];
-    const toolResults = [];
+    const finalText: string[] = [];
+    const toolResults: any[] = [];
 
     for (const content of response.content) {
       if (content.type === "text") {
@@ -183,6 +183,9 @@ async function main() {
   const mcpClient = new MCPClient();
   try {
     const serverPath = process.env.MCP_SERVER_PATH || process.argv[2];
+    if (!serverPath) {
+      throw new Error("Server path is required");
+    }
     await mcpClient.connectToServer(serverPath);
     await mcpClient.chatLoop();
   } finally {

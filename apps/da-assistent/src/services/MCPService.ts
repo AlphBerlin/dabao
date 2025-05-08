@@ -1,11 +1,7 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { EventEmitter } from 'events';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Interface for chat message format
 export interface ChatMessage {

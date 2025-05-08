@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Router } from 'express';
 import { AssistantService } from '../services/AssistantService';
 import { ConfigService } from '../config/ConfigService';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +12,7 @@ const assistantService = new AssistantService(
 );
 
 // Create router
-const router = express.Router();
+const router: Router = express.Router();
 
 // Middleware to connect to services if needed
 router.use(async (req, res, next) => {
@@ -32,6 +32,11 @@ router.use(async (req, res, next) => {
 router.get('/sessions/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    
     const sessions = await assistantService.getUserSessions(userId);
     res.json({ sessions });
   } catch (error) {
@@ -67,6 +72,11 @@ router.post('/sessions', async (req: Request, res: Response) => {
 router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
     const success = await assistantService.deleteSession(sessionId);
     
     if (success) {
@@ -87,6 +97,11 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
 router.get('/sessions/:sessionId/messages', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
     const messages = await assistantService.getSessionMessages(sessionId);
     res.json({ messages });
   } catch (error) {
@@ -103,6 +118,10 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
   try {
     const { sessionId } = req.params;
     const { userId, content, parameters } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
     
     if (!userId || !content) {
       return res.status(400).json({ error: 'userId and content are required' });
@@ -130,6 +149,10 @@ router.post('/sessions/:sessionId/messages/stream', async (req: Request, res: Re
   try {
     const { sessionId } = req.params;
     const { userId, content, parameters } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
     
     if (!userId || !content) {
       return res.status(400).json({ error: 'userId and content are required' });

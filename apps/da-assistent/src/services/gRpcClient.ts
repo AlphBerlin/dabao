@@ -1,11 +1,7 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { IMCPClient, ListToolsRequest, ListToolsResponse, CallToolRequest, CallToolResponse } from '../proto/mcp';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * gRPC client implementation for the MCP service
