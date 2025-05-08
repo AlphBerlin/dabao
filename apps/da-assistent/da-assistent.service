@@ -1,0 +1,26 @@
+[Unit]
+Description=Da Assistent AI Chatbot
+Documentation=https://dabao.in
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=node
+WorkingDirectory=/opt/da-assistent
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+Environment=NODE_ENV=production
+Environment=PORT=3100
+Environment=MCP_SERVER_ADDRESS=localhost:50051
+
+# Configure environment file
+EnvironmentFile=/opt/da-assistent/.env
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/da-assistent/logs
+
+[Install]
+WantedBy=multi-user.target

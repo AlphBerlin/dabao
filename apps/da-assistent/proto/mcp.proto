@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package mcp;
+
+// Main MCP service definition
+service MCPService {
+  // Send a message to the model and get a response
+  rpc Chat (ChatRequest) returns (ChatResponse);
+  
+  // Stream response from the model (for incremental responses)
+  rpc ChatStream (ChatRequest) returns (stream ChatResponse);
+  
+  // List available tools
+  rpc ListTools (ListToolsRequest) returns (ListToolsResponse);
+  
+  // Call a tool
+  rpc CallTool (CallToolRequest) returns (CallToolResponse);
+}
+
+// Chat message format
+message ChatMessage {
+  string role = 1;  // "system", "user", "assistant"
+  string content = 2;
+  map<string, string> metadata = 3;
+}
+
+// Request for chat completion
+message ChatRequest {
+  repeated ChatMessage messages = 1;
+  string model = 2;
+  double temperature = 3;
+  int32 max_tokens = 4;
+  string client_id = 5;
+  string session_id = 6;
+  map<string, string> parameters = 7;
+}
+
+// Response from chat completion
+message ChatResponse {
+  ChatMessage message = 1;
+  string error = 2;
+}
+
+// Request to list available tools
+message ListToolsRequest {
+  string client_id = 1;
+}
+
+// Response with available tools
+message ListToolsResponse {
+  repeated Tool tools = 1;
+}
+
+// Tool definition
+message Tool {
+  string name = 1;
+  string description = 2;
+  string input_schema = 3;  // JSON Schema for tool input
+}
+
+// Request to call a tool
+message CallToolRequest {
+  string name = 1;
+  string arguments = 2;  // JSON serialized arguments
+  string client_id = 3;
+  string session_id = 4;
+}
+
+// Response from a tool call
+message CallToolResponse {
+  string content = 1;  // Can be text or JSON
+  string error = 2;    // Error message if applicable
+}
