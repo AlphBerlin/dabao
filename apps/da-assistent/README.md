@@ -1,164 +1,140 @@
-# Dabao MCP Server
+# Da Assistent AI Chatbot
 
-A Model Context Protocol server implementation for Dabao SaaS, providing an intelligent interface for campaign management, Telegram message composition and delivery, and analytics.
+A fully-featured AI chatbot application that connects to a gRPC-based Model Context Protocol (MCP) server, with persistent chat history using Prisma ORM.
 
 ## Features
 
-- **gRPC Communication**: Efficient communication between frontend and server
-- **Intent Recognition**: Maps natural language user requests to specific actions
-- **Secure Authentication**: JWT-based authentication with role-based access control
-- **Campaign Management**: Create, edit, schedule, and delete campaigns
-- **Telegram Integration**: Compose and deliver messages to Telegram
-- **Analytics and Reporting**: Track performance metrics and generate reports
-- **Comprehensive Logging**: Audit trails for security compliance
+- ✅ gRPC communication with MCP server
+- ✅ Session-based chat with persistent history
+- ✅ Prisma ORM integration for database storage
+- ✅ Long-term memory through session summarization
+- ✅ Support for multiple users with isolated sessions
+- ✅ Streaming responses for real-time interaction
+- ✅ RESTful API for integration with front-end applications
 
-## Getting Started
+## System Architecture
+
+The system consists of several key components:
+
+1. **MCPService**: Communicates with the MCP server via gRPC
+2. **ChatService**: Manages chat sessions and message history using Prisma
+3. **AssistantService**: Combines MCPService and ChatService to create a fully-featured assistant
+4. **ConfigService**: Manages application configuration
+5. **REST API**: Exposes the assistant functionality through HTTP endpoints
+
+## Setup
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 16 or higher
 - PostgreSQL database
-- Telegram Bot Token (for messaging features)
+- MCP server running (with gRPC interface)
 
 ### Installation
 
-1. Clone the repository
+1. Copy the sample environment file and configure it with your settings:
+
+```bash
+cp sample.env .env
+```
+
 2. Install dependencies:
 
 ```bash
-cd apps/dabao-mcp-server
-npm install
+pnpm install
 ```
 
-3. Create a `.env` file based on `.env.example`:
+3. Generate Prisma client:
 
 ```bash
-cp .env.example .env
+pnpm db:generate
 ```
 
-4. Update the environment variables in `.env` with your specific configuration.
-
-### Development
-
-To run the server in development mode:
+4. Run database migrations:
 
 ```bash
-npm run dev
+pnpm db:migrate
 ```
 
-### Production Build
+### Running the Application
 
-To build and run in production:
+Start the development server:
 
 ```bash
-npm run build
-npm start
+pnpm dev
 ```
 
-### Docker
-
-Build and run using Docker:
+For production:
 
 ```bash
-docker build -t dabao-mcp-server .
-docker run -p 50051:50051 --env-file .env dabao-mcp-server
+pnpm build
+pnpm start
 ```
 
-## Usage
+## API Endpoints
 
-### Authentication
+### Sessions
 
-All API calls require authentication. First obtain a JWT token:
+- `GET /api/sessions/:userId` - Get all chat sessions for a user
+- `POST /api/sessions` - Create a new chat session
+- `DELETE /api/sessions/:sessionId` - Delete a chat session
 
-```typescript
-// Example client code
-const client = new AuthServiceClient('localhost:50051');
-const response = await client.authenticate({
-  username: 'user@example.com',
-  password: 'password'
-});
+### Messages
 
-const token = response.token;
+- `GET /api/sessions/:sessionId/messages` - Get all messages in a session
+- `POST /api/sessions/:sessionId/messages` - Send a message to the assistant
+- `POST /api/sessions/:sessionId/messages/stream` - Send a message and stream the response
+
+### Simple Chat
+
+- `POST /api/chat` - One-off messaging (creates temporary session)
+
+## Memory Management
+
+Da Assistent intelligently manages conversation history:
+
+1. **Recent Memory**: Keeps the last 20 messages in each session for immediate context
+2. **Long-term Memory**: Automatically summarizes older messages when the history exceeds token limits
+3. **System Summary**: Prepends a summary of previous conversations to maintain continuity
+
+## Examples
+
+### Create a New Session
+
+```bash
+curl -X POST http://localhost:3100/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user123", "title": "Customer Support Chat"}'
 ```
 
-### Making Requests
+### Send a Message
 
-Use the token in the metadata for subsequent requests:
-
-```typescript
-// Example client code
-const metadata = new Metadata();
-metadata.set('authorization', `Bearer ${token}`);
-
-const mcpClient = new MCPServiceClient('localhost:50051');
-const response = await mcpClient.processRequest({
-  user_id: 'user123',
-  intent: 'campaign.list',
-  parameters: {},
-  session_id: 'session123'
-}, metadata);
+```bash
+curl -X POST http://localhost:3100/api/sessions/SESSION_ID/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "content": "How can I reset my password?",
+    "parameters": {
+      "temperature": 0.7
+    }
+  }'
 ```
 
-### Chat Interface
+### Get Chat History
 
-The MCP server supports bidirectional streaming for chat interactions:
-
-```typescript
-// Example client code
-const metadata = new Metadata();
-metadata.set('authorization', `Bearer ${token}`);
-
-const chatStream = mcpClient.chat(metadata);
-
-// Send a message
-chatStream.write({
-  user_id: 'user123',
-  message: 'Create a campaign called Summer Sale',
-  context: {},
-  session_id: 'session123'
-});
-
-// Receive response
-chatStream.on('data', (response) => {
-  console.log('Response:', response.message);
-  console.log('Actions:', response.actions);
-});
+```bash
+curl -X GET http://localhost:3100/api/sessions/SESSION_ID/messages
 ```
 
-## API Reference
+## Database Schema
 
-The MCP server exposes the following services:
+The application uses Prisma ORM with the following core models:
 
-- `MCPService`: Core service for chat and request processing
-- `AuthService`: Authentication and token management
-- `CampaignService`: Campaign management operations
-- `TelegramService`: Messaging operations
-- `AnalyticsService`: Reporting and analytics
-
-For detailed API reference, see the Protocol Buffer definitions in `proto/mcp.proto`.
-
-## Architecture
-
-The server is structured as follows:
-
-- `proto/`: Protocol Buffer definitions
-- `src/`: Source code
-  - `auth/`: Authentication and authorization
-  - `intents/`: Intent recognition system
-  - `logging/`: Comprehensive logging
-  - `middleware/`: Request processing middleware
-  - `services/`: Service implementations
-  - `utils/`: Helper utilities
-
-## Security
-
-The MCP server implements several security measures:
-
-- JWT-based authentication with refresh tokens
-- Role-based access control
-- Rate limiting to prevent abuse
-- Comprehensive security logging
-- Input validation and sanitization
+- **Session**: Tracks conversation sessions with user information and summaries
+- **Message**: Stores individual messages with content, sender, and metadata
+- **Media**: Manages media attachments within messages (images, files, etc.)
+- **AuditLog**: Tracks system activity for security and debugging
 
 ## License
 

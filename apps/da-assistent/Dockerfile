@@ -1,44 +1,46 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Base node image
+FROM node:20-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && \
+    pnpm install --frozen-lockfile
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
+# Build the app
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npm install -g pnpm && \
+    pnpm build && \
+    pnpm prune --prod
 
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine AS production
-
+# Production image
+FROM base AS runner
 WORKDIR /app
 
-# Set environment to production
-ENV NODE_ENV=production
+# Set environment variables
+ENV NODE_ENV production
+ENV PORT 3100
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy built files from builder stage
+# Copy runtime dependencies and built app
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/proto ./proto
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
 
-# Create logs directory
-RUN mkdir -p logs
+# Generate Prisma client
+RUN npm install -g pnpm && \
+    pnpm prisma generate
 
-# Expose gRPC port
-EXPOSE 50051
+# Expose the port the app runs on
+EXPOSE 3100
 
-# Set user to non-root for security
+# Set the user to non-root
 USER node
 
-# Start the server
-CMD ["node", "dist/index.js"]
+# Start the app
+CMD ["node", "dist/server.js"]
