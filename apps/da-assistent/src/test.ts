@@ -1,5 +1,5 @@
-import { AssistantService } from './services/AssistantService';
-import { ConfigService } from './config/ConfigService';
+import { AssistantService } from './services/AssistantService.js';
+import { ConfigService } from './config/ConfigService.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Get configuration

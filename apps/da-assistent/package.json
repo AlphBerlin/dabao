@@ -6,7 +6,6 @@
   "license": "MIT",
   "author": "AlphBerlin",
   "homepage": "https://dabao.in",
-  "type": "module",
   "bin": {
     "da-assistant": "dist/server.js"
   },

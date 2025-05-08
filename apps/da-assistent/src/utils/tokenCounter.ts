@@ -11,7 +11,7 @@ export class TokenCounter {
     // Initialize the encoder when needed
     try {
       // Use cl100k_base encoding which is used for many modern LLMs
-      this.encoder = tiktoken.getEncoding("cl100k_base");
+      this.encoder = tiktoken.get_encoding("cl100k_base");
     } catch (error) {
       console.warn('TokenCounter: Error initializing tiktoken encoder, using fallback method', error);
       this.encoder = null;
