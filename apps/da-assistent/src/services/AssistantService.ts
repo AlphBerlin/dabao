@@ -11,7 +11,7 @@ export class AssistantService extends EventEmitter {
   private mcpService: MCPService;
   private chatService: ChatService;
   private readonly assistantId = 'da-assistant';
-  private readonly defaultModel = 'claude-3-opus-20240229';
+  private readonly defaultModel = process.env.DEFAULT_MODEL || 'claude-3-opus-20240229';
   
   /**
    * Initialize the assistant service
@@ -20,7 +20,7 @@ export class AssistantService extends EventEmitter {
    */
   constructor(mcpServerAddress: string) {
     super();
-    this.mcpService = new MCPService(mcpServerAddress);
+    this.mcpService = new MCPService();
     this.chatService = new ChatService();
   }
   
