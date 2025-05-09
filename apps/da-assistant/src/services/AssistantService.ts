@@ -1,15 +1,16 @@
 import { EventEmitter } from 'events';
 import { ChatService, MessageType, MessageStatus } from './ChatService';
 import { MCPService } from './MCPService';
-import { ChatMessage, ChatRequest } from '../types';
+import { ChatMessage, ChatRequest, ChatResponse } from '../types';
 import { Message } from '@prisma/client';
+import { MCPClient } from './MCPClient';
 
 /**
  * Service that combines the ChatService and MCPService to create
  * a fully-featured assistant with persistent history
  */
 export class AssistantService extends EventEmitter {
-  private mcpService: MCPService;
+  private mcpClient: MCPClient;
   private chatService: ChatService;
   private readonly assistantId = 'da-assistant';
   private readonly defaultModel = process.env.DEFAULT_MODEL || 'claude-3-opus-20240229';
@@ -20,9 +21,10 @@ export class AssistantService extends EventEmitter {
    */
   constructor() {
     super();
-    this.mcpService = new MCPService(process.env.MCP_SERVER_PATH || '');
+    this.mcpClient = new MCPClient();
     this.chatService = new ChatService();
     console.log('Assistant service initialized');
+
   }
   
   /**
@@ -30,14 +32,14 @@ export class AssistantService extends EventEmitter {
    */
   async connect(): Promise<void> {
     console.log('Connecting to MCP service...');
-    await this.mcpService.start();
+    await this.mcpClient.connectToServer(process.env.MCP_SERVER_PATH || '');
   }
   
   /**
    * Disconnect from services
    */
   async disconnect(): Promise<void> {
-    await this.mcpService.stop();
+    // await this.mcpClient.cleanup;
   }
   
   /**
@@ -101,7 +103,7 @@ export class AssistantService extends EventEmitter {
       temperature?: number;
       max_tokens?: number;
     } = {}
-  ): Promise<string> {
+  ): Promise<ChatResponse> {
     // First, save the user message to the database
     await this.chatService.saveMessage(
       sessionId,
@@ -127,14 +129,13 @@ export class AssistantService extends EventEmitter {
       session_id: sessionId
     };
     
+      
+    
     // Send the request to the MCP server
     // TODO: Replace with actual call to MCP service once implemented
-    const response = {
-      error: null,
-      message: {
-      content: "This is a dummy response from the assistant."
-      }
-    };
+    await this.mcpClient.connectToServer(process.env.MCP_SERVER_PATH || '');
+
+    const response = await this.mcpClient.chat(chatRequest);
     
     if (response.error) {
       throw new Error(`Error from MCP server: ${response.error}`);
@@ -158,7 +159,7 @@ export class AssistantService extends EventEmitter {
     // Update the session's summary if needed
     await this.chatService.summarizeOlderMessages(sessionId);
     
-    return assistantResponse;
+    return response;
   }
   
   /**

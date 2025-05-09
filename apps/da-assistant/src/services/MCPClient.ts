@@ -24,6 +24,10 @@ export class MCPClient {
     private tools: Tool[] = [];
     private isConnected: boolean = false;
 
+    public isConnectedFn(): boolean {
+        return this.isConnected;
+    }
+
     constructor() {
         // Initialize Anthropic client and MCP client
         this.anthropic = new Anthropic({
@@ -73,6 +77,7 @@ export class MCPClient {
             );
             
             this.isConnected = true;
+            console.log("Connected to MCP server ", this.isConnected);
         } catch (e) {
             console.log("Failed to connect to MCP server: ", e);
             this.isConnected = false;
@@ -87,6 +92,8 @@ export class MCPClient {
          * @param request - The chat request containing messages, model, etc.
          * @returns A chat response object
          */
+        console.log("isConnected: ", this.isConnected);
+
         if (!this.isConnected) {
             return {
                 error: "Not connected to MCP server"
