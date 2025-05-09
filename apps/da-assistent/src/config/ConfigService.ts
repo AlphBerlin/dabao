@@ -46,11 +46,6 @@ export class ConfigService {
   public getMCPServerAddress(): string {
     return this.get('MCP_SERVER_ADDRESS', 'localhost:50051');
   }
-
-  public getMCPServerScript(): string {
-    return this.get('MCP_SERVER_SCRIPT', 'server.js');
-  
-  
   /**
    * Get the server port
    * 

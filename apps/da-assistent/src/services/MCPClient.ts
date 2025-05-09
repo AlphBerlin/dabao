@@ -8,7 +8,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import dotenv from "dotenv";
-import { ChatMessage, ChatRequest, ChatResponse, CallToolRequest, CallToolResponse, ListToolsRequest, ListToolsResponse } from "./MCPService";
+import { ChatRequest, ChatResponse, CallToolRequest, CallToolResponse, ListToolsRequest, ListToolsResponse } from "../types";
 
 dotenv.config(); // load environment variables from .env
 
