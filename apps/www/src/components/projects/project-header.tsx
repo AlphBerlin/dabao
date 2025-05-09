@@ -8,7 +8,8 @@ import {
   HelpCircle,
   User,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -21,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { AIAssistantWrapper } from "@/components/ai";
 
 interface Project {
   id: string;
@@ -36,6 +38,7 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
   
   if (loading) {
     return (
@@ -58,74 +61,99 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
     console.log(`Searching for: ${searchQuery}`);
   };
 
+  const toggleChat = () => {
+    setChatOpen(prev => !prev);
+  };
+
   return (
-    <header className="h-16 border-b px-6 flex items-center justify-between">
-      <form onSubmit={handleSearch} className="w-full max-w-md">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder={`Search in ${project?.name || 'project'}...`}
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </form>
-      
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-        </Button>
-        
-        <Button variant="ghost" size="icon" aria-label="Help">
-          <HelpCircle className="h-5 w-5" />
-        </Button>
-        
-        <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="h-4 w-4" />
+    <>
+      <header className="h-16 border-b px-6 flex items-center justify-between">
+        <form onSubmit={handleSearch} className="w-full max-w-md">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={`Search in ${project?.name || 'project'}...`}
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <span className="font-medium">Account</span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <a 
-            href="/dashboard/profile" 
-            className="cursor-pointer w-full flex items-center no-underline"
+        </form>
+        
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            aria-label="Assistant"
+            onClick={toggleChat}
           >
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a 
-            href="/dashboard/settings" 
-            className="cursor-pointer w-full flex items-center no-underline"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild variant="destructive">
-          <a 
-            href="/api/auth/signout" 
-            className="cursor-pointer w-full flex items-center text-red-500 hover:text-red-600 no-underline"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Sign out</span>
-          </a>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-      </div>
-    </header>
+            <MessageSquare className="h-5 w-5" />
+          </Button>
+          
+          <Button variant="ghost" size="icon" aria-label="Notifications">
+            <Bell className="h-5 w-5" />
+          </Button>
+          
+          <Button variant="ghost" size="icon" aria-label="Help">
+            <HelpCircle className="h-5 w-5" />
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4" />
+                </div>
+                <span className="font-medium">Account</span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a 
+                  href="/dashboard/profile" 
+                  className="cursor-pointer w-full flex items-center no-underline"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a 
+                  href="/dashboard/settings" 
+                  className="cursor-pointer w-full flex items-center no-underline"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild variant="destructive">
+                <a 
+                  href="/api/auth/signout" 
+                  className="cursor-pointer w-full flex items-center text-red-500 hover:text-red-600 no-underline"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Render the AI Assistant if chat is open */}
+      {chatOpen && (
+        <AIAssistantWrapper 
+          mcpServerUrl={process.env.NEXT_PUBLIC_DA_ASSISTANT_URL || 'http://localhost:50051'}
+          botName="Dabao Assistant"
+          botAvatar="/images/bot-avatar.png"
+          clientId={project?.id}
+        />
+      )}
+    </>
   );
 }
