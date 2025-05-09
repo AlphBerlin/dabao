@@ -6,10 +6,24 @@ import { Avatar, AvatarImage, AvatarFallback } from "@workspace/ui/components/av
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Card } from "@workspace/ui/components/card";
-import { MessageSquare, X, Send, Loader2, Sparkles, Expand, Minimize, RefreshCcw } from "lucide-react";
+import { 
+  MessageSquare, 
+  X, 
+  Send, 
+  Loader2, 
+  Sparkles, 
+  Expand, 
+  Minimize, 
+  RefreshCcw, 
+  Wifi, 
+  WifiOff,
+  AlertTriangle
+} from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { useChat, Message } from './chat-context';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components/tooltip";
+import { Badge } from "@workspace/ui/components/badge";
 
 interface ResizableChatPanelProps {
   defaultSize?: number;
@@ -18,6 +32,7 @@ interface ResizableChatPanelProps {
   className?: string;
   botName?: string;
   botAvatar?: string;
+  showConnectionStatus?: boolean;
 }
 
 export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
@@ -26,15 +41,19 @@ export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
   maxSize = 60,
   className,
   botName = "Dabao Assistant",
-  botAvatar = "/images/bot-avatar.png"
+  botAvatar = "/images/bot-avatar.png",
+  showConnectionStatus = false,
 }) => {
   const { 
     messages, 
     isOpen, 
     isLoading, 
+    isConnected,
+    connectionError,
     sendMessage, 
     toggleChat,
-    clearMessages 
+    clearMessages,
+    testConnection 
   } = useChat();
   const [messageText, setMessageText] = React.useState('');
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -62,6 +81,10 @@ export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
+  };
+  
+  const handleTestConnection = async () => {
+    await testConnection();
   };
 
   if (!isOpen) {
@@ -106,6 +129,31 @@ export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
                     <AvatarFallback><Sparkles className="h-4 w-4" /></AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{botName}</span>
+                  
+                  {showConnectionStatus && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant={isConnected ? "success" : "destructive"}
+                            className="ml-2 cursor-pointer"
+                            onClick={handleTestConnection}
+                          >
+                            {isConnected ? (
+                              <><Wifi className="h-3 w-3 mr-1" /> Connected</>
+                            ) : (
+                              <><WifiOff className="h-3 w-3 mr-1" /> Disconnected</>
+                            )}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isConnected 
+                            ? "The chat is connected to the server" 
+                            : connectionError || "Connection issue - click to retry"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button 
@@ -142,6 +190,22 @@ export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
                 </div>
               </div>
 
+              {/* Connection error alert */}
+              {connectionError && showConnectionStatus && (
+                <div className="px-3 py-2 bg-red-50 border-b border-red-200 flex items-center gap-2 text-sm text-red-700">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span>Connection Issue: {connectionError}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleTestConnection} 
+                    className="ml-auto h-7 text-xs"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+
               {/* Message container */}
               <div className="flex-grow overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
@@ -170,13 +234,13 @@ export const ResizableChatPanel: React.FC<ResizableChatPanelProps> = ({
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    disabled={isLoading}
+                    disabled={isLoading || !isConnected}
                     className="min-h-[60px] resize-none"
                   />
                   <Button
                     size="icon"
                     onClick={handleSendMessage}
-                    disabled={!messageText.trim() || isLoading}
+                    disabled={!messageText.trim() || isLoading || !isConnected}
                     className="h-10 w-10"
                   >
                     {isLoading ? (
@@ -203,6 +267,18 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, botAvatar }) => {
   const isUser = message.role === 'user';
+  const isSystem = message.role === 'system';
+
+  if (isSystem) {
+    return (
+      <div className="flex justify-center my-2">
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-lg max-w-[90%] text-sm flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          {message.content}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>

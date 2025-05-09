@@ -40,6 +40,10 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   
+  // For debugging purposes
+  const DEBUG_MODE = process.env.NODE_ENV === "development";
+  const mcpServerUrl = process.env.NEXT_PUBLIC_DA_ASSISTANT_URL || "http://localhost:50051";
+  
   if (loading) {
     return (
       <header className="h-16 border-b px-6 flex items-center justify-between">
@@ -63,6 +67,9 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
 
   const toggleChat = () => {
     setChatOpen(prev => !prev);
+    if (DEBUG_MODE) {
+      console.log(`Chat toggled: ${!chatOpen}, MCP Server: ${mcpServerUrl}`);
+    }
   };
 
   return (
@@ -148,10 +155,11 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
       {/* Render the AI Assistant if chat is open */}
       {chatOpen && (
         <AIAssistantWrapper 
-          mcpServerUrl={process.env.NEXT_PUBLIC_DA_ASSISTANT_URL || 'http://localhost:50051'}
+          mcpServerUrl={mcpServerUrl}
           botName="Dabao Assistant"
           botAvatar="/images/bot-avatar.png"
           clientId={project?.id}
+          debug={DEBUG_MODE}
         />
       )}
     </>

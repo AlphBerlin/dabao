@@ -9,6 +9,7 @@ interface AIAssistantWrapperProps {
   botName?: string;
   botAvatar?: string;
   clientId?: string;
+  debug?: boolean;
 }
 
 /**
@@ -20,7 +21,18 @@ export const AIAssistantWrapper: React.FC<AIAssistantWrapperProps> = ({
   botName = 'Dabao Assistant',
   botAvatar = '/images/bot-avatar.png',
   clientId,
+  debug = false,
 }) => {
+  // Log configuration in debug mode
+  if (debug) {
+    console.log('AIAssistantWrapper initialized with:', {
+      mcpServerUrl,
+      botName,
+      clientId: clientId || 'undefined (using default)',
+      debug
+    });
+  }
+  
   // Initial welcome message from the assistant
   const initialMessages = [
     {
@@ -36,10 +48,12 @@ export const AIAssistantWrapper: React.FC<AIAssistantWrapperProps> = ({
       mcpServerUrl={mcpServerUrl}
       clientId={clientId}
       initialMessages={initialMessages}
+      debug={debug}
     >
       <ResizableChatPanel
         botName={botName}
         botAvatar={botAvatar}
+        showConnectionStatus={debug}
       />
     </ChatProvider>
   );

@@ -1,0 +1,27 @@
+syntax = "proto3";
+package mcp;
+
+service MCPService {
+  rpc ChatStream (ChatRequest) returns (stream ChatResponse);
+}
+
+message ChatMessage {
+  string role = 1;
+  string content = 2;
+  map<string, string> metadata = 3;
+}
+
+message ChatRequest {
+  repeated ChatMessage messages = 1;
+  string model = 2;
+  double temperature = 3;
+  int32 max_tokens = 4;
+  string client_id = 5;
+  string session_id = 6;
+  map<string, string> parameters = 7;
+}
+
+message ChatResponse {
+  ChatMessage message = 1;
+  string error = 2;
+}
