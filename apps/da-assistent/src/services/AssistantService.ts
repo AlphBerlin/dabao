@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { ChatService, MessageType, MessageStatus } from './ChatService';
-import { MCPService, ChatMessage, ChatRequest } from './MCPService';
+import { MCPService } from './MCPService';
+import { ChatMessage, ChatRequest } from '../types';
 import { Message } from '@prisma/client';
 
 /**

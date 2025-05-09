@@ -13,7 +13,9 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Fix: Add DATABASE_URL environment variable for Prisma and ensure build completes properly
 RUN npm install -g pnpm && \
+    pnpm prisma generate && \
     pnpm build && \
     pnpm prune --prod
 
