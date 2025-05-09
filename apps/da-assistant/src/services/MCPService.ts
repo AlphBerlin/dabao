@@ -30,6 +30,7 @@ export class MCPService extends EventEmitter {
    * 1) Connects the MCP client to your local server/process
    * 2) Boots up the gRPC server and binds all handlers
    */
+
   public async start(address = '0.0.0.0:50051'): Promise<void> {
     if (this.isRunning) return;
 

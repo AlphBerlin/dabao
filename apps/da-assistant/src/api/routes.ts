@@ -202,8 +202,8 @@ router.post('/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'message is required' });
     }
     
-    // Generate temporary user and session IDs
-    const userId = `temp-user-${uuidv4()}`;
+    // TODO: need to change based on the user
+    const userId = `cma45hqxe0000rzlm8ehswbet`;
     const sessionId = await assistantService.createSession(userId, 'Temporary Chat');
     
     // Send the message
