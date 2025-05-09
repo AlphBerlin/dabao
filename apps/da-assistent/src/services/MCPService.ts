@@ -2,6 +2,7 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
 import { EventEmitter } from 'events';
+import { MCPClient } from './MCPClient';
 
 // Interface for chat message format
 export interface ChatMessage {
@@ -62,16 +63,14 @@ export interface CallToolResponse {
  * Service for communicating with the MCP server via gRPC
  */
 export class MCPService extends EventEmitter {
-  private client: any;
+  private client: MCPClient;
   private isConnected: boolean = false;
   private readonly PROTO_PATH: string;
 
   /**
    * Initialize the MCP service
-   * 
-   * @param serverAddress - The address of the MCP gRPC server (host:port)
    */
-  constructor(private serverAddress: string) {
+  constructor() {
     super();
     this.PROTO_PATH = path.resolve(__dirname, '../../proto/mcp.proto');
   }
@@ -95,12 +94,10 @@ export class MCPService extends EventEmitter {
       
       // Create the client
       this.client = new (protoDescriptor.mcp as any).MCPService(
-        this.serverAddress,
         grpc.credentials.createInsecure()
       );
       
       this.isConnected = true;
-      console.log(`Connected to MCP server at ${this.serverAddress}`);
     } catch (error) {
       console.error('Failed to connect to MCP server:', error);
       throw error;
