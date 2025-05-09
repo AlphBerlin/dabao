@@ -63,16 +63,39 @@ export interface CallToolResponse {
  * Service for communicating with the MCP server via gRPC
  */
 export class MCPService extends EventEmitter {
-  private client: MCPClient;
+  private client: any;
   private isConnected: boolean = false;
   private readonly PROTO_PATH: string;
+  private mcpClient: MCPClient;
+  private serverPath: string;
 
   /**
    * Initialize the MCP service
+   * 
+   * @param serverPath - Optional path to the MCP server script
    */
-  constructor() {
+  constructor(serverPath?: string) {
     super();
     this.PROTO_PATH = path.resolve(__dirname, '../../proto/mcp.proto');
+    this.mcpClient = new MCPClient();
+    this.serverPath = serverPath || process.env.MCP_SERVER_PATH || '';
+  }
+
+  /**
+   * Initialize connection to the MCP client
+   */
+  async initializeMCPClient(): Promise<void> {
+    if (!this.serverPath) {
+      throw new Error("MCP server path is required. Set MCP_SERVER_PATH environment variable or pass it to the constructor.");
+    }
+    
+    try {
+      await this.mcpClient.connectToServer(this.serverPath);
+      console.log("Successfully connected to MCP server");
+    } catch (error) {
+      console.error("Failed to initialize MCP client:", error);
+      throw error;
+    }
   }
 
   /**
