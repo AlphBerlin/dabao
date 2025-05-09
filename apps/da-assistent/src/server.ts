@@ -48,14 +48,13 @@ const PORT = configService.getServerPort();
 async function startServer() {
   try {
     // Initialize the assistant service (connections to MCP server)
-    const assistantService = new AssistantService(configService.getMCPServerAddress());
+    const assistantService = new AssistantService();
     await assistantService.connect();
     
     // Start listening for requests
     app.listen(PORT, () => {
       console.log(`Da Assistent server is running on port ${PORT}`);
       console.log(`Environment: ${configService.getNodeEnv()}`);
-      console.log(`MCP Server: ${configService.getMCPServerAddress()}`);
     });
     
     // Handle graceful shutdown

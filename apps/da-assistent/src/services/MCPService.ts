@@ -1,192 +1,168 @@
+// src/services/MCPService.ts
+
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
 import { EventEmitter } from 'events';
-import { MCPClient } from './MCPClient';
-import { 
-  ChatRequest, 
-  ChatResponse, 
-  ListToolsRequest, 
-  ListToolsResponse, 
-  CallToolRequest, 
-  CallToolResponse 
+import {
+  ChatRequest,
+  ChatResponse,
+  ListToolsRequest,
+  ListToolsResponse,
+  CallToolRequest,
+  CallToolResponse,
+  Tool,
 } from '../types';
 
-/**
- * Service for communicating with the MCP server via gRPC
- */
+const PROTO_PATH = path.resolve(__dirname, '../../proto/mcp.proto');
+
+// ─── In-memory tool registry ──────────────────────────────────────────────────
+const tools: Tool[] = [
+  { name: 'echo', description: 'Echoes back your input', input_schema: '{ "type":"string" }' },
+  { name: 'time', description: 'Returns server time',   input_schema: '{}' },
+];
+
+// ─── Module-level gRPC handlers ────────────────────────────────────────────────
+ async function chat(
+  this: MCPService,
+  call: grpc.ServerUnaryCall<ChatRequest, ChatResponse>,
+  callback: grpc.sendUnaryData<ChatResponse>
+) {
+  const msgs = call.request.messages;
+  const lastUser = msgs.slice().reverse().find(m => m.role === 'user');
+  const userText = lastUser?.content ?? '';
+  const reply = `Echoing your last message: "${userText}"`;
+
+  callback(null, {
+    message: { role: 'assistant', content: reply, metadata: {} },
+    error: '',
+  });
+}
+
+async function chatStream(
+  this: MCPService,
+  call: grpc.ServerWritableStream<ChatRequest, ChatResponse>
+) {
+  const msgs = call.request.messages;
+  const userMsg = msgs[msgs.length - 1]?.content ?? '';
+  const fullReply = `Here is a streamed reply to: "${userMsg}"`;
+  let assembled = '';
+
+  for (const word of fullReply.split(' ')) {
+    assembled += (assembled ? ' ' : '') + word;
+    call.write({
+      message: { role: 'assistant', content: assembled, metadata: {} },
+      error: '',
+    });
+    // you could also `await new Promise(r => setTimeout(r, 100));` for pacing
+  }
+
+  call.end();
+}
+
+function listTools(
+  this: MCPService,
+  call: grpc.ServerUnaryCall<ListToolsRequest, ListToolsResponse>,
+  callback: grpc.sendUnaryData<ListToolsResponse>
+) {
+  callback(null, { tools });
+}
+
+function callTool(
+  this: MCPService,
+  call: grpc.ServerUnaryCall<CallToolRequest, CallToolResponse>,
+  callback: grpc.sendUnaryData<CallToolResponse>
+) {
+  const { name, arguments: argsJson } = call.request;
+  const tool = tools.find(t => t.name === name);
+
+  if (!tool) {
+    return callback(null, { content: '', error: `Tool "${name}" not found` });
+  }
+
+  try {
+    const args = JSON.parse(argsJson);
+    let result: any;
+
+    switch (name) {
+      case 'echo':
+        result = { echoed: args };
+        break;
+      case 'time':
+        result = { serverTime: new Date().toISOString() };
+        break;
+      default:
+        result = { ok: true };
+    }
+
+    callback(null, { content: JSON.stringify(result), error: '' });
+  } catch (err: any) {
+    callback(null, { content: '', error: `Invalid args: ${err.message}` });
+  }
+}
+
+
+// ─── The MCPService class ─────────────────────────────────────────────────────
 export class MCPService extends EventEmitter {
-  private client: any;
-  private isConnected: boolean = false;
-  private readonly PROTO_PATH: string;
-  private mcpClient: MCPClient;
-  private serverPath: string;
+  private server: grpc.Server;
+  private isRunning = false;
 
-  /**
-   * Initialize the MCP service
-   * 
-   * @param serverPath - Optional path to the MCP server script
-   */
-  constructor(serverPath?: string) {
+  constructor() {
     super();
-    this.PROTO_PATH = path.resolve(__dirname, '../../proto/mcp.proto');
-    this.mcpClient = new MCPClient();
-    this.serverPath = serverPath || process.env.MCP_SERVER_PATH || '';
+    this.server = new grpc.Server();
   }
 
   /**
-   * Initialize connection to the MCP client
+   * Start the gRPC server and bind service methods.
    */
-  async initializeMCPClient(): Promise<void> {
-    if (!this.serverPath) {
-      throw new Error("MCP server path is required. Set MCP_SERVER_PATH environment variable or pass it to the constructor.");
-    }
-    
-    try {
-      await this.mcpClient.connectToServer(this.serverPath);
-      console.log("Successfully connected to MCP server");
-    } catch (error) {
-      console.error("Failed to initialize MCP client:", error);
-      throw error;
-    }
-  }
+  public async start(address = 'localhost:50051'): Promise<void> {
+    if (this.isRunning) return;
 
-  /**
-   * Connect to the MCP server
-   */
-  async connect(): Promise<void> {
-    try {
-      // Load the protobuf definition
-      const packageDefinition = protoLoader.loadSync(this.PROTO_PATH, {
-        keepCase: true,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true,
-      });
-      
-      // Load the package definition
-      const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
-      
-      // Create the client
-      this.client = new (protoDescriptor.mcp as any).MCPService(
-        grpc.credentials.createInsecure()
+    console.log(`gRPC MCPService starting on ${address}`);
+
+    // 1. Load proto
+    const pkgDef = protoLoader.loadSync(PROTO_PATH, {
+      keepCase: false,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    });
+    const grpcPkg = (grpc.loadPackageDefinition(pkgDef) as any).mcp;
+
+    // 2. Register handlers, bound to `this`
+    this.server.addService(grpcPkg.MCPService.service, {
+      Chat: chat.bind(this),
+      ChatStream: chatStream.bind(this),
+      ListTools: listTools.bind(this),
+      CallTool:  callTool.bind(this),
+    });
+
+    // 3. Start listening
+    await new Promise<void>((resolve, reject) => {
+      this.server.bindAsync(
+        address,
+        grpc.ServerCredentials.createInsecure(),
+        (err, port) => {
+          if (err) return reject(err);
+          this.server.start();
+          this.isRunning = true;
+          console.log(`gRPC MCPService listening on ${address}`);
+          resolve();
+        }
       );
-      
-      this.isConnected = true;
-    } catch (error) {
-      console.error('Failed to connect to MCP server:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if connected to the MCP server
-   */
-  private checkConnection(): void {
-    if (!this.isConnected || !this.client) {
-      throw new Error('Not connected to MCP server. Call connect() first.');
-    }
-  }
-
-  /**
-   * Send a chat request to the MCP server
-   * 
-   * @param request - The chat request
-   * @returns The response from the model
-   */
-  async chat(request: ChatRequest): Promise<ChatResponse> {
-    this.checkConnection();
-    return new Promise((resolve, reject) => {
-      this.client.chat(request, (error: Error | null, response: ChatResponse) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(response);
-        }
-      });
     });
   }
 
   /**
-   * Send a chat request and stream the response
-   * 
-   * @param request - The chat request
-   * @returns Event emitter that emits 'data', 'error', and 'end' events
+   * Gracefully stop the server.
    */
-  chatStream(request: ChatRequest): EventEmitter {
-    this.checkConnection();
-    const emitter = new EventEmitter();
-    
-    try {
-      const call = this.client.chatStream(request);
-      
-      call.on('data', (chunk: ChatResponse) => {
-        emitter.emit('data', chunk);
-      });
-      
-      call.on('error', (error: Error) => {
-        emitter.emit('error', error);
-      });
-      
-      call.on('end', () => {
-        emitter.emit('end');
-      });
-    } catch (error) {
-      setImmediate(() => {
-        emitter.emit('error', error);
-      });
-    }
-    
-    return emitter;
-  }
-
-  /**
-   * List available tools from the MCP server
-   * 
-   * @param request - Optional parameters for the request
-   * @returns List of available tools
-   */
-  async listTools(request: ListToolsRequest = {}): Promise<ListToolsResponse> {
-    this.checkConnection();
-    return new Promise((resolve, reject) => {
-      this.client.listTools(request, (error: Error | null, response: ListToolsResponse) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(response);
-        }
-      });
+  public stop(): void {
+    if (!this.isRunning) return;
+    this.server.tryShutdown(err => {
+      if (err) console.error('Error shutting down gRPC server:', err);
+      else           console.log('gRPC server stopped');
     });
-  }
-
-  /**
-   * Call a tool on the MCP server
-   * 
-   * @param request - The tool call request
-   * @returns The result of the tool call
-   */
-  async callTool(request: CallToolRequest): Promise<CallToolResponse> {
-    this.checkConnection();
-    return new Promise((resolve, reject) => {
-      this.client.callTool(request, (error: Error | null, response: CallToolResponse) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(response);
-        }
-      });
-    });
-  }
-
-  /**
-   * Close the connection to the MCP server
-   */
-  async disconnect(): Promise<void> {
-    if (this.isConnected && this.client) {
-      this.client.close();
-      this.isConnected = false;
-      console.log('Disconnected from MCP server');
-    }
+    this.isRunning = false;
   }
 }
