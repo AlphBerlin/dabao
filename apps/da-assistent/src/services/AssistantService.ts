@@ -17,26 +17,27 @@ export class AssistantService extends EventEmitter {
   /**
    * Initialize the assistant service
    * 
-   * @param mcpServerAddress - The address of the MCP gRPC server
    */
-  constructor(mcpServerAddress: string) {
+  constructor() {
     super();
     this.mcpService = new MCPService();
     this.chatService = new ChatService();
+    console.log('Assistant service initialized');
   }
   
   /**
    * Connect to required services
    */
   async connect(): Promise<void> {
-    await this.mcpService.connect();
+    console.log('Connecting to MCP service...');
+    await this.mcpService.start();
   }
   
   /**
    * Disconnect from services
    */
   async disconnect(): Promise<void> {
-    await this.mcpService.disconnect();
+    await this.mcpService.stop();
   }
   
   /**
@@ -127,7 +128,13 @@ export class AssistantService extends EventEmitter {
     };
     
     // Send the request to the MCP server
-    const response = await this.mcpService.chat(chatRequest);
+    // TODO: Replace with actual call to MCP service once implemented
+    const response = {
+      error: null,
+      message: {
+      content: "This is a dummy response from the assistant."
+      }
+    };
     
     if (response.error) {
       throw new Error(`Error from MCP server: ${response.error}`);
@@ -201,8 +208,21 @@ export class AssistantService extends EventEmitter {
     // Create an event emitter for the response
     const responseEmitter = new EventEmitter();
     
-    // Send the request to the MCP server and stream the response
-    const mcpStream = this.mcpService.chatStream(chatRequest);
+    // TODO: Replace with actual call to MCP service once implemented
+    // For now, simulate a dummy streaming response
+    const mcpStream = new EventEmitter();
+
+    setTimeout(() => {
+      mcpStream.emit('data', { message: { content: "This is a dummy streaming response part 1." } });
+    }, 100);
+
+    setTimeout(() => {
+      mcpStream.emit('data', { message: { content: "This is a dummy streaming response part 2." } });
+    }, 200);
+
+    setTimeout(() => {
+      mcpStream.emit('end');
+    }, 300);
     
     let fullResponse = '';
     

@@ -7,9 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 const configService = ConfigService.getInstance();
 
 // Initialize the assistant service
-const assistantService = new AssistantService(
-  configService.getMCPServerAddress()
-);
+const assistantService = new AssistantService();
 
 // Create router
 const router: Router = express.Router();
@@ -147,12 +145,8 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
  */
 router.post('/sessions/:sessionId/messages/stream', async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.params;
+    const { sessionId } = await req.params;
     const { userId, content, parameters } = req.body;
-    
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required' });
-    }
     
     if (!userId || !content) {
       return res.status(400).json({ error: 'userId and content are required' });
@@ -165,7 +159,7 @@ router.post('/sessions/:sessionId/messages/stream', async (req: Request, res: Re
     
     // Stream the response
     const stream = await assistantService.sendMessageStream(
-      sessionId,
+      sessionId!,
       userId,
       content,
       parameters

@@ -14,7 +14,7 @@ async function testAssistant() {
   console.log(`Connecting to MCP server at ${mcpServerAddress}`);
   
   // Initialize assistant service
-  const assistant = new AssistantService(mcpServerAddress);
+  const assistant = new AssistantService();
   
   try {
     // Connect to MCP server
