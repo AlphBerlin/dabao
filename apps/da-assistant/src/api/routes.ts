@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { AssistantService } from '../services/AssistantService';
 import { ConfigService } from '../config/ConfigService';
-import { v4 as uuidv4 } from 'uuid';
+import { ChatResponse } from '../types';
 
 // Get configuration
 const configService = ConfigService.getInstance();
@@ -23,25 +23,6 @@ router.use(async (req, res, next) => {
   }
 });
 
-/**
- * GET /sessions/:userId
- * Get all chat sessions for a user
- */
-router.get('/sessions/:userId', async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.params;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-    
-    const sessions = await assistantService.getUserSessions(userId);
-    res.json({ sessions });
-  } catch (error) {
-    console.error('Error getting sessions:', error);
-    res.status(500).json({ error: 'Failed to get sessions' });
-  }
-});
 
 /**
  * POST /sessions
@@ -207,7 +188,7 @@ router.post('/chat', async (req: Request, res: Response) => {
     const sessionId = await assistantService.createSession(userId, 'Temporary Chat');
     
     // Send the message
-    const response = await assistantService.sendMessage(
+    const response : ChatResponse = await assistantService.sendMessage(
       sessionId,
       userId,
       message,
