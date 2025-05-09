@@ -8,7 +8,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import dotenv from "dotenv";
-import { ChatRequest, ChatResponse, CallToolRequest, CallToolResponse, ListToolsRequest, ListToolsResponse } from "../types";
+import { ChatMessage, ChatRequest, ChatResponse, CallToolRequest, CallToolResponse, ListToolsRequest, ListToolsResponse } from "../types";
 
 dotenv.config(); // load environment variables from .env
 
@@ -203,23 +203,35 @@ export class MCPClient {
                 let toolInput = "";
                 
                 for await (const chunk of stream) {
-                    if (chunk.type === "content_block_delta" && chunk.delta.type === "text") {
+                    // Handle text content blocks
+                    if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
                         yield {
                             message: {
                                 role: 'assistant',
                                 content: chunk.delta.text
                             }
                         };
-                    } else if (chunk.type === "content_block_start" && chunk.content_block.type === "tool_use") {
+                    } 
+                    // Handle tool use start
+                    else if (chunk.type === "content_block_start" && chunk.content_block.type === "tool_use") {
                         toolCallStarted = true;
                         toolName = chunk.content_block.name;
                         toolInput = "";
-                    } else if (chunk.type === "content_block_delta" && chunk.delta.type === "tool_use" && toolCallStarted) {
-                        // Accumulating tool input JSON
-                        if (chunk.delta.input) {
-                            toolInput += JSON.stringify(chunk.delta.input);
+                    } 
+                    // Handle tool use input accumulation
+                    else if (chunk.type === "content_block_delta" && chunk.delta.type === "input_json_delta" && toolCallStarted) {
+                        // Accumulate tool input as string directly
+                        // The delta content might be coming in different formats, so we'll handle it safely
+                        if (chunk.delta) {
+                            // Use a more type-safe approach to handle various delta formats
+                            const deltaStr = JSON.stringify(chunk.delta);
+                            if (deltaStr && deltaStr !== '{}') {
+                                toolInput += deltaStr;
+                            }
                         }
-                    } else if (chunk.type === "content_block_stop" && toolCallStarted) {
+                    } 
+                    // Handle tool call completion
+                    else if (chunk.type === "content_block_stop" && toolCallStarted) {
                         // Tool call completed, execute it
                         toolCallStarted = false;
                         
@@ -264,11 +276,11 @@ export class MCPClient {
                             });
                             
                             for await (const followupChunk of followupStream) {
-                                if (followupChunk.type === "content_block_delta" && followupChunk.delta.type === "text") {
+                                if (followupChunk.type === "content_block_delta" && followupChunk.delta.type === "text_delta") {
                                     yield {
                                         message: {
                                             role: 'assistant',
-                                            content: followupChunk.delta?.text
+                                            content: followupChunk.delta.text
                                         }
                                     };
                                 }
