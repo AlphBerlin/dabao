@@ -20,7 +20,7 @@ export class AssistantService extends EventEmitter {
    */
   constructor() {
     super();
-    this.mcpService = new MCPService();
+    this.mcpService = new MCPService(process.env.MCP_SERVER_PATH || '');
     this.chatService = new ChatService();
     console.log('Assistant service initialized');
   }
