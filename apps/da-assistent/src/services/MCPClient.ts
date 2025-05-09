@@ -101,7 +101,7 @@ export class MCPClient {
 
             // Initial Claude API call
             const response = await this.anthropic.messages.create({
-                model: request.model || process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
+                model: process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
                 max_tokens: request.max_tokens || (process.env.DEFAULT_MAX_TOKENS ? parseInt(process.env.DEFAULT_MAX_TOKENS) : 1000),
                 messages,
                 tools: this.tools,
@@ -160,6 +160,7 @@ export class MCPClient {
             };
         } catch (error: any) {
             return {
+                message: error.message,
                 error: `Error processing chat request: ${error.message}`
             };
         }
