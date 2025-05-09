@@ -6,9 +6,9 @@ import {
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import readline from "readline/promises";
 
 import dotenv from "dotenv";
+import { ChatMessage, ChatRequest, ChatResponse, CallToolRequest, CallToolResponse, ListToolsRequest, ListToolsResponse } from "./MCPService";
 
 dotenv.config(); // load environment variables from .env
 
@@ -16,21 +16,23 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is not set");
 }
+
 export class MCPClient {
     private mcp: Client;
     private anthropic: Anthropic;
     private transport: StdioClientTransport | null = null;
     private tools: Tool[] = [];
+    private isConnected: boolean = false;
 
     constructor() {
         // Initialize Anthropic client and MCP client
         this.anthropic = new Anthropic({
             apiKey: ANTHROPIC_API_KEY,
         });
-        this.mcp = new Client({ name: "mcp-client-cli", version: "1.0.0" });
+        this.mcp = new Client({ name: "mcp-client", version: "1.0.0" });
     }
 
-    async connectToServer(serverScriptPath: string) {
+    async connectToServer(serverScriptPath: string): Promise<void> {
         /**
          * Connect to an MCP server
          *
@@ -69,107 +71,301 @@ export class MCPClient {
                 "Connected to server with tools:",
                 this.tools.map(({ name }) => name),
             );
+            
+            this.isConnected = true;
         } catch (e) {
             console.log("Failed to connect to MCP server: ", e);
+            this.isConnected = false;
             throw e;
         }
     }
 
-    async processQuery(query: string) {
+    async chat(request: ChatRequest): Promise<ChatResponse> {
         /**
-         * Process a query using Claude and available tools
-         *
-         * @param query - The user's input query
-         * @returns Processed response as a string
+         * Process a chat request using Claude and available tools
+         * 
+         * @param request - The chat request containing messages, model, etc.
+         * @returns A chat response object
          */
-        const messages: MessageParam[] = [
-            {
-                role: "user",
-                content: query,
-            },
-        ];
-
-        // Initial Claude API call
-        const response = await this.anthropic.messages.create({
-            model: process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
-            max_tokens: (process.env.DEFAULT_MAX_TOKENS  || 1000) as number,
-            messages,
-            tools: this.tools,
-        });
-
-        // Process response and handle tool calls
-        const finalText: string[] = [];
-        const toolResults: any[] = [];
-
-        for (const content of response.content) {
-            if (content.type === "text") {
-                finalText.push(content.text);
-            } else if (content.type === "tool_use") {
-                // Execute tool call
-                const toolName = content.name;
-                const toolArgs = content.input as { [x: string]: unknown } | undefined;
-
-                const result = await this.mcp.callTool({
-                    name: toolName,
-                    arguments: toolArgs,
-                });
-                toolResults.push(result);
-                finalText.push(
-                    `[Calling tool ${toolName} with args ${JSON.stringify(toolArgs)}]`,
-                );
-
-                // Continue conversation with tool results
-                messages.push({
-                    role: "user",
-                    content: result.content as string,
-                });
-
-                // Get next response from Claude
-                const response = await this.anthropic.messages.create({
-                    model: "claude-3-5-sonnet-20241022",
-                    max_tokens: 1000,
-                    messages,
-                });
-
-                finalText.push(
-                    response!.content[0]?.type === "text" ? response.content[0].text : "",
-                );
-            }
+        if (!this.isConnected) {
+            return {
+                error: "Not connected to MCP server"
+            };
         }
-
-        return finalText.join("\n");
-    }
-
-    async chatLoop() {
-        /**
-         * Run an interactive chat loop
-         */
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
 
         try {
-            console.log("\nMCP Client Started!");
-            console.log("Type your queries or 'quit' to exit.");
+            const messages: MessageParam[] = request.messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
 
-            while (true) {
-                const message = await rl.question("\nQuery: ");
-                if (message.toLowerCase() === "quit") {
-                    break;
+            // Initial Claude API call
+            const response = await this.anthropic.messages.create({
+                model: request.model || process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
+                max_tokens: request.max_tokens || (process.env.DEFAULT_MAX_TOKENS ? parseInt(process.env.DEFAULT_MAX_TOKENS) : 1000),
+                messages,
+                tools: this.tools,
+            });
+
+            // Process response and handle tool calls
+            const finalText: string[] = [];
+            const toolResults: any[] = [];
+
+            for (const content of response.content) {
+                if (content.type === "text") {
+                    finalText.push(content.text);
+                } else if (content.type === "tool_use") {
+                    // Execute tool call
+                    const toolName = content.name;
+                    const toolArgs = content.input as { [x: string]: unknown } | undefined;
+
+                    const result = await this.mcp.callTool({
+                        name: toolName,
+                        arguments: toolArgs,
+                    });
+                    toolResults.push(result);
+                    finalText.push(
+                        `[Tool result from ${toolName}: ${JSON.stringify(result)}]`,
+                    );
+
+                    // Continue conversation with tool results
+                    messages.push({
+                        role: "assistant",
+                        content: finalText.join("\n"),
+                    });
+                    
+                    messages.push({
+                        role: "user",
+                        content: result.content as string,
+                    });
+
+                    // Get next response from Claude
+                    const followupResponse = await this.anthropic.messages.create({
+                        model: request.model || process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
+                        max_tokens: request.max_tokens || (process.env.DEFAULT_MAX_TOKENS ? parseInt(process.env.DEFAULT_MAX_TOKENS) : 1000),
+                        messages,
+                    });
+
+                    if (followupResponse.content[0]?.type === "text") {
+                        finalText.push(followupResponse.content[0].text);
+                    }
                 }
-                const response = await this.processQuery(message);
-                console.log("\n" + response);
             }
-        } finally {
-            rl.close();
+
+            return {
+                message: {
+                    role: 'assistant',
+                    content: finalText.join("\n")
+                }
+            };
+        } catch (error: any) {
+            return {
+                error: `Error processing chat request: ${error.message}`
+            };
         }
     }
 
-    async cleanup() {
+    async chatStream(request: ChatRequest): Promise<AsyncIterable<ChatResponse>> {
+        /**
+         * Process a chat request and stream responses
+         * 
+         * @param request - The chat request containing messages, model, etc.
+         * @returns An async iterable of chat responses
+         */
+        if (!this.isConnected) {
+            return (async function* () {
+                yield {
+                    error: "Not connected to MCP server"
+                };
+            })();
+        }
+
+        const self = this;
+        return (async function* () {
+            try {
+                const messages: MessageParam[] = request.messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+
+                // Initial Claude API stream call
+                const stream = await self.anthropic.messages.create({
+                    model: request.model || process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
+                    max_tokens: request.max_tokens || (process.env.DEFAULT_MAX_TOKENS ? parseInt(process.env.DEFAULT_MAX_TOKENS) : 1000),
+                    messages,
+                    tools: self.tools,
+                    stream: true,
+                });
+
+                // Process streaming response
+                let toolCallStarted = false;
+                let toolName = "";
+                let toolInput = "";
+                
+                for await (const chunk of stream) {
+                    if (chunk.type === "content_block_delta" && chunk.delta.type === "text") {
+                        yield {
+                            message: {
+                                role: 'assistant',
+                                content: chunk.delta.text
+                            }
+                        };
+                    } else if (chunk.type === "content_block_start" && chunk.content_block.type === "tool_use") {
+                        toolCallStarted = true;
+                        toolName = chunk.content_block.name;
+                        toolInput = "";
+                    } else if (chunk.type === "content_block_delta" && chunk.delta.type === "tool_use" && toolCallStarted) {
+                        // Accumulating tool input JSON
+                        if (chunk.delta.input) {
+                            toolInput += JSON.stringify(chunk.delta.input);
+                        }
+                    } else if (chunk.type === "content_block_stop" && toolCallStarted) {
+                        // Tool call completed, execute it
+                        toolCallStarted = false;
+                        
+                        try {
+                            yield {
+                                message: {
+                                    role: 'assistant',
+                                    content: `[Calling tool: ${toolName}]`
+                                }
+                            };
+                            
+                            const toolArgs = JSON.parse(toolInput);
+                            const result = await self.mcp.callTool({
+                                name: toolName,
+                                arguments: toolArgs,
+                            });
+                            
+                            yield {
+                                message: {
+                                    role: 'assistant',
+                                    content: `[Tool result: ${result.content}]`
+                                }
+                            };
+                            
+                            // Continue conversation with tool results
+                            messages.push({
+                                role: "assistant",
+                                content: `[Called tool: ${toolName}]`
+                            });
+                            
+                            messages.push({
+                                role: "user",
+                                content: result.content as string,
+                            });
+
+                            // Get next response from Claude
+                            const followupStream = await self.anthropic.messages.create({
+                                model: request.model || process.env.DEFAULT_MODEL || "claude-3-5-sonnet-20241022",
+                                max_tokens: request.max_tokens || (process.env.DEFAULT_MAX_TOKENS ? parseInt(process.env.DEFAULT_MAX_TOKENS) : 1000),
+                                messages,
+                                stream: true,
+                            });
+                            
+                            for await (const followupChunk of followupStream) {
+                                if (followupChunk.type === "content_block_delta" && followupChunk.delta.type === "text") {
+                                    yield {
+                                        message: {
+                                            role: 'assistant',
+                                            content: followupChunk.delta?.text
+                                        }
+                                    };
+                                }
+                            }
+                        } catch (error: any) {
+                            yield {
+                                error: `Error processing tool call: ${error.message}`
+                            };
+                        }
+                    }
+                }
+            } catch (error: any) {
+                yield {
+                    error: `Error processing chat stream: ${error.message}`
+                };
+            }
+        })();
+    }
+
+    async listTools(request: ListToolsRequest = {}): Promise<ListToolsResponse> {
+        /**
+         * List available tools from the MCP server
+         * 
+         * @param request - Optional parameters for the request
+         * @returns List of available tools
+         */
+        if (!this.isConnected) {
+            return {
+                tools: []
+            };
+        }
+
+        try {
+            const toolsResult = await this.mcp.listTools();
+            const tools:any = toolsResult.tools.map(tool => ({
+                name: tool.name,
+                description: tool.description,
+                input_schema: tool.inputSchema
+            }));
+            
+            return { tools };
+        } catch (error: any) {
+            console.error("Error listing tools:", error);
+            return { tools: [] };
+        }
+    }
+
+    async callTool(request: CallToolRequest): Promise<CallToolResponse> {
+        /**
+         * Call a tool on the MCP server
+         * 
+         * @param request - The tool call request
+         * @returns The result of the tool call
+         */
+        if (!this.isConnected) {
+            return {
+                content: "",
+                error: "Not connected to MCP server"
+            };
+        }
+
+        try {
+            // Parse arguments if they're provided as a string
+            let args: any;
+            if (typeof request.arguments === 'string') {
+                try {
+                    args = JSON.parse(request.arguments);
+                } catch (e) {
+                    args = request.arguments; // use as-is if not valid JSON
+                }
+            } else {
+                args = request.arguments;
+            }
+            
+            const result = await this.mcp.callTool({
+                name: request.name,
+                arguments: args,
+            });
+            
+            return {
+                content: result.content as string
+            };
+        } catch (error: any) {
+            return {
+                content: "",
+                error: `Error calling tool: ${error.message}`
+            };
+        }
+    }
+
+    async cleanup(): Promise<void> {
         /**
          * Clean up resources
          */
-        await this.mcp.close();
+        if (this.isConnected) {
+            await this.mcp.close();
+            this.isConnected = false;
+        }
     }
 }

@@ -5,6 +5,10 @@ import morgan from 'morgan';
 import { ConfigService } from './config/ConfigService';
 import apiRoutes from './api/routes';
 import { AssistantService } from './services/AssistantService';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Get configuration
 const configService = ConfigService.getInstance();
