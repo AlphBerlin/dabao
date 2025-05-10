@@ -22,7 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { AIAssistantWrapper } from "@/components/ai";
+import AIAssistant from "@/components/ai-assistant/ai-assistant";
+import { useUser } from "@/contexts/user-context";
 
 interface Project {
   id: string;
@@ -39,6 +40,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
+  const {user} = useUser();
   
   // For debugging purposes
   const DEBUG_MODE = process.env.NODE_ENV === "development";
@@ -154,13 +156,11 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
 
       {/* Render the AI Assistant if chat is open */}
       {chatOpen && (
-        <AIAssistantWrapper 
-          mcpServerUrl={mcpServerUrl}
-          botName="Dabao Assistant"
-          botAvatar="/images/bot-avatar.png"
-          clientId={project?.id}
-          debug={DEBUG_MODE}
-        />
+          <AIAssistant 
+            userId={user!.id}
+            initialTitle="Help Session"
+            onClose={() => setChatOpen(false)}
+          />
       )}
     </>
   );
