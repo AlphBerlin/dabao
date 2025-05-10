@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"]
+      "ui": ["../../packages/ui/src/index"],
+      "@workspace/ui": ["../../packages/ui/src"]
     },
     "plugins": [
       {
@@ -17,7 +18,8 @@
     "next.config.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "../../packages/ui/src/hooks/use-media-query.tsx"  ],
+    ".next/types/**/*.ts",
+    "../../packages/ui/src/hooks/use-media-query.tsx"
+  ],
   "exclude": ["node_modules"]
 }
