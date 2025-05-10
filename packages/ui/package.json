@@ -67,6 +67,7 @@
     "typescript": "^5.7.3"
   },
   "exports": {
+    ".": "./src/index.js",
     "./globals.css": "./src/styles/globals.css",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
