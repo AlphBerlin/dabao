@@ -9,11 +9,11 @@ import { Label } from "@workspace/ui/components/label"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { toast } from "sonner"
-import { ColorPicker } from "@/components/ui/ColorPicker"
+import { ColorPicker } from "@workspace/ui/components/ColorPicker"
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { Switch } from "@workspace/ui/components/switch"
-import { Spinner } from "@/components/ui/Spinner"
+import { Spinner } from "@workspace/ui/components/Spinner"
 import { 
   CheckCircle2, 
   ChevronDown, 
