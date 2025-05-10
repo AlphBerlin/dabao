@@ -17,11 +17,17 @@ export interface SessionResponse {
   export interface MessagesResponse {
     messages: Message[];
   }
-  
-  export interface ChatResponse {
+  export interface ChatMessage {
+    role: 'system' | 'user' | 'assistant';
     content: string;
-    // Extend with other response fields if necessary
+    metadata?: Record<string, string>;
   }
+  // Interface for chat completion response
+  export interface ChatResponse {
+    message?: ChatMessage;
+    error?: string;
+  }
+  
   
   export interface ChatResponseEnvelope {
     response: ChatResponse;
