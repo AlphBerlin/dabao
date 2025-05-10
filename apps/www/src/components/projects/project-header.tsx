@@ -39,7 +39,6 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatOpen, setChatOpen] = useState(false);
   const {user} = useUser();
   
   // For debugging purposes
@@ -67,13 +66,6 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
     console.log(`Searching for: ${searchQuery}`);
   };
 
-  const toggleChat = () => {
-    setChatOpen(prev => !prev);
-    if (DEBUG_MODE) {
-      console.log(`Chat toggled: ${!chatOpen}, MCP Server: ${mcpServerUrl}`);
-    }
-  };
-
   return (
     <>
       <header className="h-16 border-b px-6 flex items-center justify-between">
@@ -91,15 +83,7 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
         </form>
         
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            aria-label="Assistant"
-            onClick={toggleChat}
-          >
-            <MessageSquare className="h-5 w-5" />
-          </Button>
-          
+        
           <Button variant="ghost" size="icon" aria-label="Notifications">
             <Bell className="h-5 w-5" />
           </Button>
@@ -153,15 +137,11 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
           </DropdownMenu>
         </div>
       </header>
-
-      {/* Render the AI Assistant if chat is open */}
-      {chatOpen && (
-          <AIAssistant 
-            userId={user!.id}
-            initialTitle="Help Session"
-            onClose={() => setChatOpen(false)}
-          />
-      )}
+        <AIAssistant 
+          userId={user!.id}
+          initialTitle="Help Session"
+          onClose={() => {}}
+        />
     </>
   );
 }
