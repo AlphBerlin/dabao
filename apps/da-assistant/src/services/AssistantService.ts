@@ -209,57 +209,52 @@ export class AssistantService extends EventEmitter {
     // Create an event emitter for the response
     const responseEmitter = new EventEmitter();
     
-    // TODO: Replace with actual call to MCP service once implemented
-    // For now, simulate a dummy streaming response
-    const mcpStream = new EventEmitter();
-
-    setTimeout(() => {
-      mcpStream.emit('data', { message: { content: "This is a dummy streaming response part 1." } });
-    }, 100);
-
-    setTimeout(() => {
-      mcpStream.emit('data', { message: { content: "This is a dummy streaming response part 2." } });
-    }, 200);
-
-    setTimeout(() => {
-      mcpStream.emit('end');
-    }, 300);
+    // Ensure connection to MCP server
+    await this.mcpClient.connectToServer(process.env.MCP_SERVER_PATH || '');
     
+    // Get the AsyncIterable stream from the MCP client
+    const mcpStream = await this.mcpClient.chatStream(chatRequest);
+    
+    // Process the async iterable stream
     let fullResponse = '';
     
-    mcpStream.on('data', (chunk) => {
-      if (chunk.error) {
-        responseEmitter.emit('error', new Error(`Error from MCP server: ${chunk.error}`));
-        return;
-      }
-      
-      if (chunk.message && chunk.message.content) {
-        fullResponse += chunk.message.content;
-        responseEmitter.emit('data', chunk.message.content);
-      }
-    });
-    
-    mcpStream.on('error', (error) => {
-      responseEmitter.emit('error', error);
-    });
-    
-    mcpStream.on('end', async () => {
-      if (fullResponse) {
-        // Save the assistant's complete response to the database
-        await this.chatService.saveMessage(
-          sessionId,
-          fullResponse,
-          this.assistantId,
-          MessageType.TEXT,
-          MessageStatus.SENT
-        );
+    // Start processing the stream asynchronously
+    (async () => {
+      try {
+        // Iterate through the async iterable
+        for await (const chunk of mcpStream) {
+          if (chunk.error) {
+            responseEmitter.emit('error', new Error(`Error from MCP server: ${chunk.error}`));
+            continue;
+          }
+          
+          if (chunk.message && chunk.message.content) {
+            fullResponse += chunk.message.content;
+            responseEmitter.emit('data', chunk.message.content);
+          }
+        }
         
-        // Update the session's summary if needed
-        await this.chatService.summarizeOlderMessages(sessionId);
+        // After stream is complete, save the full response
+        if (fullResponse) {
+          // Save the assistant's complete response to the database
+          await this.chatService.saveMessage(
+            sessionId,
+            fullResponse,
+            this.assistantId,
+            MessageType.TEXT,
+            MessageStatus.SENT
+          );
+          
+          // Update the session's summary if needed
+          await this.chatService.summarizeOlderMessages(sessionId);
+        }
+        
+        // Emit end event when streaming is complete
+        responseEmitter.emit('end');
+      } catch (error) {
+        responseEmitter.emit('error', error);
       }
-      
-      responseEmitter.emit('end');
-    });
+    })();
     
     return responseEmitter;
   }
