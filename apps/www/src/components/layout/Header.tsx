@@ -283,7 +283,7 @@ export function Header() {
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/settings/profile">Profile</Link>
+                        <Link href="/dashboard/profile">Profile</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/settings">Settings</Link>

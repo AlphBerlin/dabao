@@ -32,7 +32,7 @@ export function DashboardQrCode() {
         <p className="text-xs text-mid-gray text-center mb-2">Scan at checkout</p>
 
         <Button variant="ghost" size="sm" className="text-accent-teal w-full" asChild>
-          <Link href="/profile">
+          <Link href="/dashboard/profile">
             <Expand className="h-3 w-3 mr-1" />
             View Full Size
           </Link>

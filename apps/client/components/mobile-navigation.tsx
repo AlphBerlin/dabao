@@ -14,7 +14,7 @@ export function MobileNavigation() {
     { icon: Gift, label: "Rewards", href: "/rewards" },
     { icon: ShoppingBag, label: "Orders", href: "/orders" },
     { icon: Gamepad2, label: "Games", href: "/games" },
-    { icon: User, label: "Profile", href: "/profile" },
+    { icon: User, label: "Profile", href: "/dashboard/profile" },
   ]
 
   return (
