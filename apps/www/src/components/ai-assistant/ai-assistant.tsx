@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   createSession, 
   sendMessage, 
-  streamMessage, 
+  chat,
   getMessages, 
   deleteSession, 
   type Message,
@@ -75,9 +75,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     setError(null);
     
     try {
-      // For streaming implementation
-      let fullResponse = "";
-      let tempMessageId = `temp-${Date.now()}`;
+      // Create AI response message with empty content (for loading state)
+      const tempMessageId = `temp-${Date.now()}`;
       
       setMessages(prev => [
         ...prev, 
@@ -89,28 +88,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         }
       ]);
       
-      for await (const chunk of streamMessage(sessionId, userId, inputValue)) {
-        if ('error' in chunk) {
-          setError(chunk.error);
-          break;
-        }
-        
-        if ('done' in chunk) {
-          break;
-        }
-        
-        if ('content' in chunk) {
-          fullResponse += chunk.content;
-          
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === tempMessageId 
-                ? { ...msg, content: fullResponse } 
-                : msg
-            )
-          );
-        }
+      // Use chat() function instead of streaming
+      const response = await chat(inputValue);
+      
+      if (!response || !response.message?.content) {
+        throw new Error("Empty response from assistant");
       }
+      
+      // Update the message with actual content
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempMessageId 
+            ? { ...msg, content: response.message!.content } 
+            : msg
+        )
+      );
     } catch (err) {
       setError("Failed to send message");
       console.error(err);
@@ -210,10 +202,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                   }`}
                 >
                   {message.content || (isLoading && message.userId !== userId ? (
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <div className="flex space-x-2 mb-1">
+                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                      </div>
+                      <div className="text-xs text-gray-500">AI thinking...</div>
                     </div>
                   ) : null)}
                 </div>
