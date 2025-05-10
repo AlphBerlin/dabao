@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { generateSlug } from '@/lib/utils';
+import { setupProjectPolicies } from '@/lib/scripts/setup-policies'; // Import our policy setup function
 
 // Schema for pagination query parameters
 const paginationQuerySchema = z.object({
@@ -255,6 +256,15 @@ export async function POST(req: NextRequest) {
 
       return newProject;
     });
+
+    // Set up Casbin policies for the new project
+    try {
+      await setupProjectPolicies(project.id);
+    } catch (policyError) {
+      console.error('Error setting up policies for new project:', policyError);
+      // We don't want to fail project creation if policy setup fails,
+      // but we should log the error for investigation
+    }
 
     return NextResponse.json({
       success: true,
