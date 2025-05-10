@@ -69,7 +69,7 @@ export function DashboardHeader() {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/profile">Profile</Link>
+                <Link href="/dashboard/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem>Rewards History</DropdownMenuItem>
               <DropdownMenuSeparator />

@@ -13,7 +13,7 @@ export default function SettingsPage() {
       name: "Profile",
       description: "Manage your personal information and preferences",
       icon: User,
-      path: "/settings/profile",
+      path: "/dashboard/profile",
     },
     {
       id: "billing",

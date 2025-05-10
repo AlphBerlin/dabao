@@ -41,7 +41,7 @@ export function AccountSettingsPage() {
         <motion.div className="max-w-3xl mx-auto" variants={containerVariants} initial="hidden" animate="visible">
           <motion.div variants={itemVariants} className="mb-6">
             <Button variant="ghost" className="mb-4 -ml-2" asChild>
-              <Link href="/profile">
+              <Link href="/dashboard/profile">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Profile
               </Link>

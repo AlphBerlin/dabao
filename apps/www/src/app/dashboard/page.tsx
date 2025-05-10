@@ -161,7 +161,7 @@ export default function Dashboard() {
                     <Users size={24} className="text-secondary-600 dark:text-secondary-400" />
                   </div>
                 </div>
-                <div className="mt-2 text-sm text-green-500">+124 this week</div>
+                {/* <div className="mt-2 text-sm text-green-500">+124 this week</div> */}
               </CardContent>
             </Card>
 
@@ -178,7 +178,7 @@ export default function Dashboard() {
                     <Award size={24} className="text-yellow-600 dark:text-yellow-400" />
                   </div>
                 </div>
-                <div className="mt-2 text-sm text-green-500">+2,540 this week</div>
+                {/* <div className="mt-2 text-sm text-green-500">+2,540 this week</div> */}
               </CardContent>
             </Card>
           </div>
@@ -217,43 +217,6 @@ export default function Dashboard() {
                 ))}
                 <CreateProjectCard />
               </div>
-            )}
-          </div>
-
-          {/* Achievements Section */}
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Recent Achievements</h2>
-              {recentAchievements.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={() => setShowAllAchievements(!showAllAchievements)}>
-                  {showAllAchievements ? "Show Less" : "Show All"}
-                </Button>
-              )}
-            </div>
-
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <CircularProgress size={40} value={100}/>
-              </div>
-            ) : displayedAchievements.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {displayedAchievements.map((achievement) => (
-                  <AchievementCard key={achievement.id} achievement={achievement} />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <div className="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-full mb-4">
-                      <Award size={24} className="text-neutral-400 dark:text-neutral-500" />
-                    </div>
-                    <p className="text-neutral-600 dark:text-neutral-400 text-center">
-                      No achievements yet. Keep building your loyalty programs to earn badges!
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
             )}
           </div>
         </motion.div>
