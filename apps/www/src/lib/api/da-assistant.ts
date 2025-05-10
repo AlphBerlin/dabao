@@ -57,6 +57,22 @@ export interface SessionResponse {
       const error = await res.json();
       throw new Error(error.error || "Failed to create session");
     }
+  } 
+   export async function getSessions(
+    userId: string,
+  ): Promise<any> {
+    const res = await fetch(`${BASE_URL}/api/sessions`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (res.status === 201) {
+      const data: SessionResponse = await res.json();
+      return data.sessionId;
+    } else {
+      const error = await res.json();
+      throw new Error(error.error || "Failed to create session");
+    }
   }
   
   /**

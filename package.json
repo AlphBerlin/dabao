@@ -30,6 +30,11 @@
     "packages/*"
   ],
   "dependencies": {
-    "grammy": "^1.36.1"
+    "@types/react-virtualized": "^9.22.2",
+    "framer-motion": "^12.9.2",
+    "grammy": "^1.36.1",
+    "react-markdown": "^10.1.0",
+    "react-virtualized": "^9.22.6",
+    "remark-gfm": "^4.0.1"
   }
 }
