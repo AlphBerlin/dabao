@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     // Set organization ID cookie in response
     const response = NextResponse.json({
       success: true,
-      organization: dbUser.organizations[0].organization
+      organization: dbUser.organizations[0]!.organization
     });
 
     // Set the organization ID cookie
@@ -82,5 +82,48 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error updating user organization context:', error);
     return NextResponse.json({ error: 'Failed to update organization context' }, { status: 500 });
+  }
+}
+
+/**
+ * GET endpoint to fetch the current user context including user data and organizations
+ */
+export async function GET(req: NextRequest) {
+  try {
+    // Get authenticated user from Supabase
+    const supabase = await createClient();
+    const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+
+    if (!supabaseUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user from database with all their organizations
+    const dbUser = await db.user.findUnique({
+      where: { supabaseUserId: supabaseUser.id },
+      include: {
+        organizations: {
+          include: {
+            organization: true
+          }
+        }
+      }
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Extract organizations from the user's memberships
+    const organizations = dbUser.organizations.map(membership => membership.organization);
+
+    // Return the user and their organizations
+    return NextResponse.json({ 
+      user: dbUser,
+      organizations
+    });
+  } catch (error) {
+    console.error('Error fetching user context:', error);
+    return NextResponse.json({ error: 'Failed to fetch user context' }, { status: 500 });
   }
 }

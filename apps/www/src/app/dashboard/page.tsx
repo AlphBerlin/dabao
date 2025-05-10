@@ -10,7 +10,6 @@ import { CircularProgress } from "@workspace/ui/components/CircularProgress"
 import { ProjectCard } from "@/components/projects/ProjectCard"
 import { CreateProjectCard } from "@/components/projects/CreateProjectCard"
 import { AchievementCard } from "@/components/achievements/AchievementCard"
-import { AIAssistant } from "@/components/ai/AIAssistant"
 import { MainLayout } from "@/components/layout/MainLayout"
 import Link from "next/link"
 import { Project } from "@prisma/client"
@@ -257,8 +256,6 @@ export default function Dashboard() {
               </Card>
             )}
           </div>
-
-          <AIAssistant />
         </motion.div>
       </div>
     </MainLayout>

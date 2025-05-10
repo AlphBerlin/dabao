@@ -135,8 +135,8 @@ export function OrganizationProvider({
         }
         
         // If no match or no cookie, set the first org as default
-        setCurrentOrgState(organizations[0]);
-        await updateOrgIdCookie(organizations[0].id);
+        setCurrentOrgState(organizations[0]!);
+        await updateOrgIdCookie(organizations[0]!.id);
         return;
       }
       

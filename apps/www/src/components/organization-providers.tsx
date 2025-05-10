@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 import { OrganizationProvider } from "@/contexts/organization-context";
+import { UserProvider } from "@/contexts/user-context";
 import { ReactNode } from "react";
 
 interface OrganizationProvidersProps {
@@ -10,7 +11,7 @@ interface OrganizationProvidersProps {
 }
 
 /**
- * Server component that initializes the OrganizationProvider with data from the server
+ * Server component that initializes the OrganizationProvider and UserProvider with data from the server
  */
 export async function OrganizationProviders({
   children,
@@ -19,8 +20,9 @@ export async function OrganizationProviders({
   const orgId = await getCurrentOrganizationId();
 
   // Fetch organizations and selected organization details
-  let organizations = [];
+  let organizations :any[]= [];
   let currentOrganization = null;
+  let userData = null;
 
   try {
     const supabase = await createClient();
@@ -40,6 +42,9 @@ export async function OrganizationProviders({
       });
 
       if (dbUser) {
+        // Store user data for the UserProvider
+        userData = dbUser;
+        
         // Transform organizations data for the client
         organizations = dbUser.organizations.map((userOrg) => ({
           id: userOrg.organization.id,
@@ -72,15 +77,20 @@ export async function OrganizationProviders({
       }
     }
   } catch (error) {
-    console.error("Error initializing organization context:", error);
+    console.error("Error initializing user and organization context:", error);
   }
 
   return (
-    <OrganizationProvider
-      initialOrganization={currentOrganization}
-      initialOrganizations={organizations}
+    <UserProvider 
+      initialUser={userData} 
+      initialOrganizations={organizations.map(org => org.organization)}
     >
-      {children}
-    </OrganizationProvider>
+      <OrganizationProvider
+        initialOrganization={currentOrganization}
+        initialOrganizations={organizations}
+      >
+        {children}
+      </OrganizationProvider>
+    </UserProvider>
   );
 }
