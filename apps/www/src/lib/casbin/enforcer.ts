@@ -48,6 +48,7 @@ class CasbinEnforcerSingleton {
         this._enforcer = await newEnforcer(modelPath, adapter)
   
         await setupAll()
+        await this._enforcer.loadPolicy()
         console.log('Casbin enforcer initialized successfully')
       } catch (e) {
         console.error('Error initializing Casbin enforcer:', e)

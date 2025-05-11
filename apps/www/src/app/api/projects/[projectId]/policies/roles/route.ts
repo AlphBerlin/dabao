@@ -33,7 +33,7 @@ export async function GET(
   try {
     // await casbinEnforcer.init();
     
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -110,7 +110,7 @@ export async function POST(
   try {
     // await casbinEnforcer.init();
     
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -208,7 +208,7 @@ export async function DELETE(
   try {
     // await casbinEnforcer.init();
     
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();

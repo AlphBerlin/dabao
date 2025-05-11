@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get the timeframe from query params
     const url = new URL(request.url);

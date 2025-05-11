@@ -21,7 +21,7 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();

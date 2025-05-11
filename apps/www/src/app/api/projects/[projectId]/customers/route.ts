@@ -22,7 +22,7 @@ export const GET = withAuthorization(
     { params }: { params: { projectId: string } }
   ) => {
     try {
-      const projectId = params.projectId;
+      const projectId = (await params).projectId;
       
       // Get query parameters
       const url = new URL(req.url);
@@ -81,7 +81,7 @@ export const POST = withAuthorization(
     { params }: { params: { projectId: string } }
   ) => {
     try {
-      const projectId = params.projectId;
+      const projectId = (await params).projectId;
       
       // Parse and validate request body
       const body = await req.json();

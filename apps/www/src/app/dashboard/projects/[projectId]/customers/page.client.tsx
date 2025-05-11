@@ -213,7 +213,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                 </div>
               ))}
             </div>
-          ) : customers.length > 0 ? (
+          ) : customers?.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -324,7 +324,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
             </div>
           )}
           
-          {!loading && customers.length > 0 && (
+          {!loading && customers?.length > 0 && (
             <div className="mt-4">
               <Pagination
                 totalItems={totalCount}
