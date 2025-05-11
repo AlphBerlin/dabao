@@ -24,6 +24,7 @@ export async function checkPermission(projectId: string, resource: string, actio
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
+            console.log('No authenticated user found');
             return false;
         }
 
@@ -34,25 +35,31 @@ export async function checkPermission(projectId: string, resource: string, actio
         });
 
         if (!dbUser) {
+            console.log('User not found in database:', user.id);
             return false;
         }
 
-        console.log(dbUser.id,
-            resource,
-            action,
-            projectId, await casbinEnforcer.enforce(
-                dbUser.id,
-                resource,
-                action,
-                projectId
-            ))
+        // Get user roles for this project
+        const userRoles = await casbinEnforcer.getRolesForUserInDomain(dbUser.id, projectId);
+        console.log('User roles for project:', dbUser.id, projectId, userRoles);
+
         // Check if user has permission
-        return casbinEnforcer.enforce(
+        const hasPermission = await casbinEnforcer.enforce(
             dbUser.id,
             resource,
             action,
             projectId
         );
+        
+        console.log('Permission check result:', {
+            userId: dbUser.id,
+            resource,
+            action,
+            projectId,
+            hasPermission
+        });
+
+        return hasPermission;
     } catch (error) {
         console.error('Error checking permission:', error);
         return false;
