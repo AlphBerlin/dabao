@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { hasProjectAccess } from "@/lib/auth/project-access";
 import { z } from "zod";
+import { withAuthorization } from "@/lib/middleware/withAuthorization";
+import { ACTION_TYPES, RESOURCE_TYPES } from "@/lib/casbin/enforcer";
 
 // Schema for validation
 const BrandingSchema = z.object({
@@ -19,10 +21,11 @@ const BrandingSchema = z.object({
 });
 
 // GET handler for branding settings
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export const GET = withAuthorization(
+  async (
+    req: NextRequest,
+    { params }: { params: { projectId: string } }
+  ) => {
   try {
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -121,7 +124,8 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+}, RESOURCE_TYPES.PROJECT, ACTION_TYPES.READ
+)
 
 // PUT handler for updating branding settings
 export async function PUT(

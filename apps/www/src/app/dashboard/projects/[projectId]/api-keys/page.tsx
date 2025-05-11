@@ -1,36 +1,36 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth/server-auth";
-import IntegrationsPage  from "./page.client";
+import { ApiKeysPage } from "@/components/api-keys-page";
 import { RESOURCE_TYPES, ACTION_TYPES } from "@/lib/casbin/enforcer";
 
-interface IntegrationsProps {
+interface ApiKeysProps {
   params: {
     projectId: string;
   };
 }
 
 export const metadata: Metadata = {
-  title: "Integrations",
-  description: "Manage third-party integrations and connections",
+  title: "API Keys",
+  description: "Manage your API keys and tokens",
 };
 
-export default async function Integrations({ params }: IntegrationsProps) {
+export default async function ApiKeys({ params }: ApiKeysProps) {
   const { projectId } = params;
 
-  // Server-side authorization check - users need MANAGE permission for integrations
+  // Server-side authorization check - users need ADMIN permission for API keys
   await requirePermission(
     projectId,
-    RESOURCE_TYPES.INTEGRATION,
-    ACTION_TYPES.MANAGE,
+    RESOURCE_TYPES.API_KEY,
+    ACTION_TYPES.ADMIN,
     `/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {
     // Once we've confirmed authorization, render the page
-    return <IntegrationsPage projectId={projectId} />;
+    return <ApiKeysPage projectId={projectId} />;
   } catch (error) {
-    console.error("Error loading integrations page:", error);
+    console.error("Error loading API keys page:", error);
     return notFound();
   }
 }

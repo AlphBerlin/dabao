@@ -17,7 +17,6 @@ const createOrgSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Get the authenticated user from Supabase
-    const cookieStore = cookies();
     const supabase = await createClient();
     
     const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser();
@@ -100,7 +99,6 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Get the authenticated user from Supabase
-    const cookieStore = cookies();
     const supabase = await createClient();
     
     const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser();

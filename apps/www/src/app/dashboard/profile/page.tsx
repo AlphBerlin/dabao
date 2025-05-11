@@ -1,12 +1,15 @@
-import { MainLayout } from "@/components/layout/MainLayout";
-import { UserProfile } from "@/components/user-profile";
+import { Metadata } from "next";
+import { requireAuth } from "@/lib/auth/server-auth";
+import  ProfilePage  from "./page.client";
 
-export default function Page() {
-  return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <UserProfile />
-      </div>
-    </MainLayout>
-  );
+export const metadata: Metadata = {
+  title: "Profile",
+  description: "Manage your user profile",
+};
+
+export default async function Profile() {
+  // Server-side authentication check - only requires the user to be logged in
+  const session = await requireAuth("/login");
+
+  return <ProfilePage />;
 }

@@ -195,11 +195,15 @@ export const RESOURCE_TYPES = {
   USER: 'user',
   BILLING: 'billing',
   API_TOKEN: 'api_token',
+  API_KEY: 'api_key',
+  AUDIT_LOG: 'audit_log',
   AUTH_TOKEN: 'auth_token',
   CUSTOMER: 'customer',
   REWARD: 'reward',
   CAMPAIGN: 'campaign',
   MEMBERSHIP: 'membership',
+  INTEGRATION: 'integration',
+  PROJECT_SETTINGS: 'project_settings',
   POLICY: 'policy',
   ALL: '*', // Wildcard for all resources
 };
