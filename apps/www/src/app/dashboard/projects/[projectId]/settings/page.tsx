@@ -13,7 +13,7 @@ export default async function ProjectSettingsPage({ params }: { params: { projec
       projectId,
       RESOURCE_TYPES.PROJECT_SETTINGS,
       ACTION_TYPES.READ,
-      `/projects/${projectId}`  // Redirect to project page if unauthorized
+      `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
     );
   return (
     <div className="min-h-screen bg-background">

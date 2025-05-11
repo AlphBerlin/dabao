@@ -23,7 +23,7 @@ export default async function ProjectSettings({ params }: ProjectSettingsProps) 
     projectId,
     RESOURCE_TYPES.PROJECT,
     ACTION_TYPES.MANAGE,
-    `/projects/${projectId}`  // Redirect to project page if unauthorized
+    `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {

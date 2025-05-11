@@ -23,7 +23,7 @@ export default async function Integrations({ params }: IntegrationsProps) {
     projectId,
     RESOURCE_TYPES.INTEGRATION,
     ACTION_TYPES.MANAGE,
-    `/projects/${projectId}`  // Redirect to project page if unauthorized
+    `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {

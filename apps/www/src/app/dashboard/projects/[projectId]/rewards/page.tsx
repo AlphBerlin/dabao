@@ -26,7 +26,7 @@ export default async function RewardsPage({
     projectId,
     RESOURCE_TYPES.REWARD,
     ACTION_TYPES.READ,
-    `/projects/${projectId}`
+    `/dashboard/projects/${projectId}`
   );
   // Get project by ID instead of slug
   const project = await db.project.findUnique({
