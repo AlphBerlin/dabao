@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Download, Loader2, MoreVertical, Copy, Trash2, Expand } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader } from '@workspace/ui/components/card';
+import { Card, CardContent, CardFooter } from '@workspace/ui/components/card';
 import { Button } from '@workspace/ui/components/button';
 import { toast } from '@workspace/ui/components/sonner';
 import {
@@ -25,6 +25,7 @@ import {
 import { SavedAIImage } from '@/lib/services/ai-image.service';
 import { Badge } from '@workspace/ui/components/badge';
 import { Skeleton } from '@workspace/ui/components/skeleton';
+import { getImageSignedUrl, downloadImage } from '@/lib/utils/supabase-images';
 
 interface ImageGalleryProps {
   projectId: string;
@@ -33,10 +34,58 @@ interface ImageGalleryProps {
   onImageDeleted: (imageId: string) => void;
 }
 
+interface ImageWithUrl extends SavedAIImage {
+  signedUrl?: string;
+}
+
 export function ImageGallery({ projectId, images, loading = false, onImageDeleted }: ImageGalleryProps) {
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<SavedAIImage | null>(null);
+  const [previewImage, setPreviewImage] = useState<ImageWithUrl | null>(null);
+  const [imagesWithUrls, setImagesWithUrls] = useState<ImageWithUrl[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(true);
+
+  // Load signed URLs for all images
+  useEffect(() => {
+    const loadSignedUrls = async () => {
+      if (images.length === 0) {
+        setImagesWithUrls([]);
+        setLoadingUrls(false);
+        return;
+      }
+      
+      setLoadingUrls(true);
+      
+      try {
+        const withUrls = await Promise.all(
+          images.map(async (image) => {
+            try {
+              const signedUrl = await getImageSignedUrl(image.storageKey);
+              return { ...image, signedUrl };
+            } catch (error) {
+              console.error(`Failed to get signed URL for image ${image.id}:`, error);
+              return { ...image };
+            }
+          })
+        );
+        
+        setImagesWithUrls(withUrls);
+      } catch (error) {
+        console.error('Error loading signed URLs:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load some images. Please try again.',
+          variant: 'destructive',
+        });
+        // Still set the images even if some failed
+        setImagesWithUrls(images.map(img => ({ ...img })));
+      } finally {
+        setLoadingUrls(false);
+      }
+    };
+
+    loadSignedUrls();
+  }, [images, toast]);
 
   // Handle image deletion
   const handleDeleteImage = async (imageId: string) => {
@@ -79,18 +128,49 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
     });
   };
 
-  // Handle image download
-  const handleDownload = (imageUrl: string, prompt: string) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `ai-image-${prompt.slice(0, 20).replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Handle image download using Supabase storage
+  const handleDownload = async (image: SavedAIImage) => {
+    try {
+      const filename = `ai-image-${image.prompt.slice(0, 20).replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+      await downloadImage(image.storageKey, filename);
+      
+      toast({
+        title: 'Download Started',
+        description: 'Your image is being downloaded.',
+      });
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      toast({
+        title: 'Download Failed',
+        description: 'Failed to download the image. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  if (loading) {
+  // Handle preview image - get a fresh signed URL
+  const handlePreviewImage = async (image: ImageWithUrl) => {
+    try {
+      // If we already have a signed URL that's fresh, use it
+      if (image.signedUrl) {
+        setPreviewImage(image);
+        return;
+      }
+      
+      // Otherwise get a fresh URL
+      const signedUrl = await getImageSignedUrl(image.storageKey);
+      setPreviewImage({ ...image, signedUrl });
+    } catch (error) {
+      console.error('Error getting preview URL:', error);
+      toast({
+        title: 'Preview Failed',
+        description: 'Failed to load the image preview. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (loading || loadingUrls) {
     return (
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">AI Image Gallery</h2>
@@ -130,19 +210,25 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
       <h2 className="text-2xl font-bold">AI Image Gallery</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {images.map((image) => (
+        {imagesWithUrls.map((image) => (
           <Card key={image.id} className="overflow-hidden flex flex-col">
             <div 
               className="relative aspect-square cursor-pointer"
-              onClick={() => setPreviewImage(image)}
+              onClick={() => handlePreviewImage(image)}
             >
-              <Image
-                src={image.imageUrl}
-                alt={image.prompt}
-                fill
-                className="object-cover transition-transform hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-              />
+              {image.signedUrl ? (
+                <Image
+                  src={image.signedUrl}
+                  alt={image.prompt}
+                  fill
+                  className="object-cover transition-transform hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-muted">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
             
             <CardContent className="p-3 flex-col items-start">
@@ -171,11 +257,11 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
                       <Copy className="mr-2 h-4 w-4" />
                       Copy Prompt
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDownload(image.imageUrl, image.prompt)}>
+                    <DropdownMenuItem onClick={() => handleDownload(image)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setPreviewImage(image)}>
+                    <DropdownMenuItem onClick={() => handlePreviewImage(image)}>
                       <Expand className="mr-2 h-4 w-4" />
                       View Larger
                     </DropdownMenuItem>
@@ -212,12 +298,18 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
             </DialogHeader>
             
             <div className="relative flex-1 min-h-[50vh]">
-              <Image
-                src={previewImage.imageUrl}
-                alt={previewImage.prompt}
-                fill
-                className="object-contain"
-              />
+              {previewImage.signedUrl ? (
+                <Image
+                  src={previewImage.signedUrl}
+                  alt={previewImage.prompt}
+                  fill
+                  className="object-contain"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              )}
             </div>
             
             <DialogFooter className="flex justify-between items-center">
@@ -244,7 +336,7 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
                   Copy Prompt
                 </Button>
                 <Button 
-                  onClick={() => handleDownload(previewImage.imageUrl, previewImage.prompt)}
+                  onClick={() => handleDownload(previewImage)}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download
