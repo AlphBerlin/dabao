@@ -9,8 +9,17 @@ import { voucherService } from "./services/voucherService.js";
 import { tierService } from "./services/tierService.js";
 import { campaignService } from "./services/campaignService.js";
 import { telegramService } from "./services/telegramService.js";
-import { Campaign } from "@prisma/client";
-
+import { imageService } from "./services/imageService.js";
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
+import { GoogleGenAI } from "@google/genai";
+import * as fs from "node:fs";
+import * as path from "path";
+import * as os from "os";
 // Load environment variables
 dotenv.config();
 
@@ -1382,6 +1391,92 @@ Total Activity: ${user.totalActivity}
     }
   }
 );
+
+// Get the user's desktop path based on their OS
+function getUserDesktopPath(): string {
+  try {
+    // Try to get the desktop path in a cross-platform way
+    const userHomeDir = os.homedir();
+    
+    if (process.platform === 'win32') {
+      // Windows: Use USERPROFILE environment variable or fallback to homedir
+      return path.join(process.env.USERPROFILE || userHomeDir, 'Desktop');
+    } else if (process.platform === 'darwin') {
+      // macOS
+      return path.join(userHomeDir, 'Desktop');
+    } else {
+      // Linux and others: Check XDG_DESKTOP_DIR first
+      const xdgConfig = path.join(userHomeDir, '.config', 'user-dirs.dirs');
+      if (fs.existsSync(xdgConfig)) {
+        try {
+          const config = fs.readFileSync(xdgConfig, 'utf-8');
+          const match = config.match(/XDG_DESKTOP_DIR="(.+)"/);
+          if (match) {
+            return match[1]!.replace('$HOME', userHomeDir);
+          }
+        } catch (error) {
+          console.warn('Could not read XDG config:', error);
+        }
+      }
+      // Fallback to standard Desktop directory
+      return path.join(userHomeDir, 'Desktop');
+    }
+  } catch (error) {
+    console.warn('Error getting desktop path:', error);
+    // Fallback to current directory if we can't determine desktop
+    return process.cwd();
+  }
+}
+
+// Get the storage location for generated images
+function getImageStorageDir(): string {
+  const desktopPath = getUserDesktopPath();
+  const storageDir = path.join(desktopPath, 'AI-Generated-Images');
+  
+  // Log the directory being used
+  console.log(`Storage directory for current OS (${process.platform}):`, storageDir);
+  
+  return storageDir;
+}
+
+// Function to normalize file paths for the current OS
+function normalizeFilePath(filePath: string): string {
+  // Remove common prefixes that might come from different environments
+  filePath = filePath.replace(/^(\/app\/|\/root\/|\\root\\)/, '');
+  
+  // Convert to absolute path if relative
+  if (!path.isAbsolute(filePath)) {
+    filePath = path.join(getImageStorageDir(), filePath);
+  }
+  
+  // Normalize path for current OS
+  return path.normalize(filePath);
+}
+
+// Function to generate web-friendly path
+function getWebPath(filePath: string): string {
+  // Normalize for current OS first
+  const normalizedPath = normalizeFilePath(filePath);
+  // Convert to web URL format (always use forward slashes)
+  return `file://${normalizedPath.replace(/\\/g, '/')}`;
+}
+
+// Function to ensure directory exists
+async function ensureDirectoryExists(dirPath: string): Promise<void> {
+  try {
+    await fs.promises.mkdir(dirPath, { recursive: true });
+  } catch (error) {
+    console.error(`Failed to create directory ${dirPath}:`, error);
+    throw error;
+  }
+}
+
+// Define available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: []
+  };
+});
 
 // Start the server
 async function main() {

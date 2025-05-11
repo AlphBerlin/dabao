@@ -169,24 +169,28 @@ model Project {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  apiKeys           ApiKey[]
-  invites           ProjectInvite[]
-  preferences       ProjectPreference?
-  rewards           Reward[]
-  customers         Customer[]
-  campaigns         Campaign[]
-  membershipTiers   MembershipTier[]
-  vouchers          Voucher[]
-  stampCards        StampCard[]
-  redemptionRules   RedemptionRule[]
+  organization            Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys                 ApiKey[]
+  invites                 ProjectInvite[]
+  preferences             ProjectPreference?
+  rewards                 Reward[]
+  customers               Customer[]
+  campaigns               Campaign[]
+  membershipTiers         MembershipTier[]
+  vouchers                Voucher[]
+  stampCards              StampCard[]
+  redemptionRules         RedemptionRule[]
   // New Telegram relations
-  telegramSettings  TelegramSettings?
-  telegramCampaigns TelegramCampaign[]
-  telegramMessages  TelegramMessage[]
-  TelegramUser      TelegramUser[]
-  telegramCommands  TelegramCommand[]
-  telegramMenus     TelegramMenu[]
+  telegramSettings        TelegramSettings?
+  telegramCampaigns       TelegramCampaign[]
+  telegramMessages        TelegramMessage[]
+  TelegramUser            TelegramUser[]
+  telegramCommands        TelegramCommand[]
+  telegramMenus           TelegramMenu[]
+  // Image generation relations
+  generatedImages         GeneratedImage[]
+  imageGenerations        ImageGeneration[]
+  imageGenerationSettings ImageGenerationSettings?
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -272,6 +276,8 @@ model Customer {
   pointsTransactions  CustomerPointsTransaction[]
   voucherRedemptions  VoucherRedemption[]
   telegramUsers       TelegramUser[]
+  generatedImages     GeneratedImage[]
+  imageGenerations    ImageGeneration[]
 
   @@unique([projectId, email])
   @@unique([projectId, externalId])
@@ -372,7 +378,7 @@ model Campaign {
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   rewards          CampaignReward[]
   telegramCampaign TelegramCampaign? // Add relation to TelegramCampaign
 
@@ -731,17 +737,17 @@ model TelegramMessage {
 
 // TelegramCommand model for custom bot commands
 model TelegramCommand {
-  id          String             @id @default(cuid())
-  projectId   String             @map("project_id") 
-  command     String             // The command text (without the /)
-  description String             // Description shown in command list
-  response    String?            // Text response for simple commands
+  id          String              @id @default(cuid())
+  projectId   String              @map("project_id")
+  command     String // The command text (without the /)
+  description String // Description shown in command list
+  response    String? // Text response for simple commands
   type        TelegramCommandType
-  isEnabled   Boolean            @default(true) @map("is_enabled")
-  sortOrder   Int                @default(0) @map("sort_order")
-  metadata    Json?              // For storing button configurations, custom actions, etc.
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
+  isEnabled   Boolean             @default(true) @map("is_enabled")
+  sortOrder   Int                 @default(0) @map("sort_order")
+  metadata    Json? // For storing button configurations, custom actions, etc.
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -753,16 +759,16 @@ model TelegramCommand {
 
 // TelegramMenu model for storing menu structures
 model TelegramMenu {
-  id          String    @id @default(cuid())
-  projectId   String    @map("project_id")
-  menuId      String    @map("menu_id")  // Identifier used in callback_data
-  name        String    // Display name for the menu
-  description String?   // Description for admin UI
-  items       Json      // Array of menu items with text and actions
-  isDefault   Boolean   @default(false) @map("is_default")
-  sortOrder   Int       @default(0) @map("sort_order")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  menuId      String   @map("menu_id") // Identifier used in callback_data
+  name        String // Display name for the menu
+  description String? // Description for admin UI
+  items       Json // Array of menu items with text and actions
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -770,6 +776,65 @@ model TelegramMenu {
   @@unique([projectId, menuId])
   @@map("telegram_menus")
   @@schema("dabao_tenant")
+}
+
+// Image generation database models
+model GeneratedImage {
+  id         String    @id @default(cuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id])
+  prompt     String    @db.Text
+  filePath   String    @db.Text
+  category   String    @default("general")
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  metadata   Json?     @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Tracking records
+  imageGenerationRecords ImageGeneration[]
+
+  @@index([projectId])
+  @@index([customerId])
+  @@index([category])
+
+  @@map("generated_images")
+  @@schema("dabao")
+}
+
+model ImageGenerationSettings {
+  projectId           String   @id
+  project             Project  @relation(fields: [projectId], references: [id])
+  defaultModel        String   @default("imagen-3.0-generate-002")
+  maxImagesPerRequest Int      @default(4)
+  storageLocation     String?  @db.Text
+  limitPerDay         Int      @default(50)
+  limitPerUser        Int      @default(20)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("image_generation_settings")
+  @@schema("dabao")
+}
+
+model ImageGeneration {
+  id               String         @id @default(cuid())
+  projectId        String
+  project          Project        @relation(fields: [projectId], references: [id])
+  generatedImageId String
+  generatedImage   GeneratedImage @relation(fields: [generatedImageId], references: [id])
+  prompt           String         @db.Text
+  customerId       String?
+  customer         Customer?      @relation(fields: [customerId], references: [id])
+  metadata         Json?          @default("{}")
+  timestamp        DateTime       @default(now())
+
+  @@index([projectId])
+  @@index([customerId])
+  @@index([generatedImageId])
+  @@schema("dabao")
+  @@map("image_generation_records")
 }
 
 // -----------------------------
