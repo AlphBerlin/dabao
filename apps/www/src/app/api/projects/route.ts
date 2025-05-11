@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { generateSlug } from '@/lib/utils';
 import { setupProjectPolicies } from '@/lib/scripts/setup-policies'; // Import our policy setup function
+import { assignRoleToUser } from '@/lib/api/policy-service'; // Import the role assignment function
 
 // Schema for pagination query parameters
 const paginationQuerySchema = z.object({
@@ -260,6 +261,11 @@ export async function POST(req: NextRequest) {
     // Set up Casbin policies for the new project
     try {
       await setupProjectPolicies(project.id);
+      
+      // Assign OWNER role to the user who created the project
+      await assignRoleToUser(project.id, dbUser.id, 'OWNER');
+      
+      console.log(`Role OWNER assigned to user ${dbUser.id} for project ${project.id}`);
     } catch (policyError) {
       console.error('Error setting up policies for new project:', policyError);
       // We don't want to fail project creation if policy setup fails,

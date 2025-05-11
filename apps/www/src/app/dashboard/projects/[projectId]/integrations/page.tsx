@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Integrations({ params }: IntegrationsProps) {
-  const { projectId } = params;
+  const { projectId } = await params;
 
   // Server-side authorization check - users need MANAGE permission for integrations
   await requirePermission(

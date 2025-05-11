@@ -1,8 +1,7 @@
-import { newEnforcer } from 'casbin';
+import { Enforcer, newEnforcer } from 'casbin';
 import path from 'path';
 import fs from 'fs';
 import { PrismaAdapter } from 'casbin-prisma-adapter';
-import { db } from '@/lib/db';
 import { setupAll } from '../scripts/setup-policies';
 
 /**
@@ -10,7 +9,7 @@ import { setupAll } from '../scripts/setup-policies';
  */
 class CasbinEnforcerSingleton {
   private static instance: CasbinEnforcerSingleton;
-  private _enforcer: any | null = null;
+  private _enforcer: Enforcer | null = null;
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
 
@@ -80,7 +79,7 @@ class CasbinEnforcerSingleton {
     dom: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer();
-    return enforcer.enforce(sub, obj, act, dom);
+    return enforcer!.enforce(sub, obj, act, dom);
   }
 
   /**
@@ -93,7 +92,7 @@ class CasbinEnforcerSingleton {
     dom: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer();
-    return enforcer.addPolicy(sub, obj, act, dom);
+    return enforcer!.addPolicy(sub, obj, act, dom);
   }
 
   /**
@@ -105,7 +104,7 @@ class CasbinEnforcerSingleton {
     domain: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer();
-    return enforcer.addNamedGroupingPolicy('g', user, role, domain);
+    return enforcer!.addNamedGroupingPolicy('g', user, role, domain);
   }
 
   /**
@@ -118,7 +117,7 @@ class CasbinEnforcerSingleton {
     dom: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer();
-    return enforcer.removePolicy(sub, obj, act, dom);
+    return enforcer!.removePolicy(sub, obj, act, dom);
   }
 
   /**
@@ -130,7 +129,7 @@ class CasbinEnforcerSingleton {
     domain: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer();
-    return enforcer.removeNamedGroupingPolicy('g', user, role, domain);
+    return enforcer!.removeNamedGroupingPolicy('g', user, role, domain);
   }
 
   /**
@@ -141,7 +140,7 @@ class CasbinEnforcerSingleton {
     domain: string
   ): Promise<string[]> {
     const enforcer = await this.getEnforcer();
-    return enforcer.getRolesForUserInDomain(user, domain);
+    return enforcer!.getRolesForUserInDomain(user, domain);
   }
 
   /**
@@ -149,7 +148,7 @@ class CasbinEnforcerSingleton {
    */
   public async getFilteredPolicy(domain: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer();
-    return enforcer.getFilteredPolicy(3, domain);
+    return enforcer!.getFilteredPolicy(3, domain);
   }
 }
 
