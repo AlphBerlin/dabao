@@ -2,7 +2,8 @@ import { newEnforcer } from 'casbin';
 import path from 'path';
 import fs from 'fs';
 import { PrismaAdapter } from 'casbin-prisma-adapter';
-import { prisma } from '../prisma';
+import { db } from '@/lib/db';
+import { setupAll } from '../scripts/setup-policies';
 
 /**
  * Singleton class for managing the Casbin enforcer
@@ -27,6 +28,7 @@ class CasbinEnforcerSingleton {
    * Initialize the enforcer with the model and adapter
    */
   public async init(): Promise<void> {
+    console.log('Initializing Casbin enforcer...');
     if (this.isInitializing) {
       return this.initPromise!;
     }
@@ -41,7 +43,7 @@ class CasbinEnforcerSingleton {
       this.initPromise = new Promise<void>(async (resolve, reject) => {
         try {
           // Create the Prisma adapter with the correct parameter structure
-          const adapter = await PrismaAdapter.newAdapter(prisma);
+          const adapter = await PrismaAdapter.newAdapter(db);
 
           // Get the model path - resolving relative to this file
           const modelPath = path.join(__dirname, 'model.conf');
@@ -52,6 +54,7 @@ class CasbinEnforcerSingleton {
           
           // Load the policies from the database
           await this._enforcer.loadPolicy();
+          await setupAll()
           console.log('Casbin enforcer initialized successfully');
           
           resolve();
