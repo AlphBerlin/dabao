@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { hasProjectAccess } from "@/lib/auth/project-access";
+import { uploadFile, generateFilePath } from '@/lib/supabase/storage';
 
-// Mock file upload - in a real implementation, this would upload to cloud storage
+// Upload logo to Supabase storage
 async function uploadFileToStorage(file: File, projectId: string): Promise<string> {
-  // In a real implementation, this would upload the file to a service like AWS S3, Cloudinary, etc.
-  // For now, return a placeholder URL
-  return `https://placehold.co/400x400?text=Logo+For+${projectId}`;
+  console.log("Uploading file to storage...", file.type, file.size);
+  // Generate a unique file path for the logo
+  const filePath = generateFilePath(file, `projects/${projectId}/logos/`);
+  
+  // Upload to Supabase Storage in the dabao-brands bucket (non-public)
+  return await uploadFile(file, 'dabao-brands', filePath);
 }
 
 export async function POST(
@@ -26,7 +30,7 @@ export async function POST(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await hasProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(user.id, projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },

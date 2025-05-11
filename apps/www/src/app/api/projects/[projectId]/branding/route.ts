@@ -38,7 +38,7 @@ export const GET = withAuthorization(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await hasProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(user.id, projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
@@ -144,7 +144,7 @@ export async function PUT(
     const { projectId } = await params;
     
     // Check if user has access to this project
-    const hasAccess = await hasProjectAccess(projectId, user.id);
+    const hasAccess = await hasProjectAccess(user.id, projectId);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "You don't have access to this project" },
