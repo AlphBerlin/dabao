@@ -1452,32 +1452,6 @@ function normalizeFilePath(filePath: string): string {
   // Normalize path for current OS
   return path.normalize(filePath);
 }
-
-// Function to generate web-friendly path
-function getWebPath(filePath: string): string {
-  // Normalize for current OS first
-  const normalizedPath = normalizeFilePath(filePath);
-  // Convert to web URL format (always use forward slashes)
-  return `file://${normalizedPath.replace(/\\/g, '/')}`;
-}
-
-// Function to ensure directory exists
-async function ensureDirectoryExists(dirPath: string): Promise<void> {
-  try {
-    await fs.promises.mkdir(dirPath, { recursive: true });
-  } catch (error) {
-    console.error(`Failed to create directory ${dirPath}:`, error);
-    throw error;
-  }
-}
-
-// Define available tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: []
-  };
-});
-
 // Start the server
 async function main() {
   const transport = new StdioServerTransport();
