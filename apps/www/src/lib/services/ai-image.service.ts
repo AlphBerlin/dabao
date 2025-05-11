@@ -3,9 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { GenerateImageRequest, generateImages } from '@/lib/api/da-assistant';
 import { uploadFile, generateFilePath } from '@/lib/supabase/storage';
 import { dataURLtoFile } from '@/lib/utils/file';
-
-// Storage bucket name for AI-generated images
-const AI_IMAGES_BUCKET = 'ai-images';
+import { AI_IMAGES_BUCKET } from '@/lib/utils/supabase-images';
 
 /**
  * Interface for saved AI image data
@@ -14,6 +12,7 @@ export interface SavedAIImage {
   id: string;
   prompt: string;
   imageUrl: string;
+  storageKey: string; // Added storageKey to make it available in the frontend
   provider: string;
   size?: string;
   style?: string;
@@ -88,6 +87,7 @@ export async function generateAndSaveImages({
           id: savedImage.id,
           prompt: savedImage.prompt,
           imageUrl: savedImage.imageUrl,
+          storageKey: savedImage.storageKey,
           provider: savedImage.provider,
           size: savedImage.size || undefined,
           style: savedImage.style || undefined,
@@ -118,6 +118,7 @@ export async function getProjectImages(projectId: string, limit = 50, offset = 0
     id: img.id,
     prompt: img.prompt,
     imageUrl: img.imageUrl,
+    storageKey: img.storageKey,
     provider: img.provider,
     size: img.size || undefined,
     style: img.style || undefined,
@@ -139,6 +140,7 @@ export async function getImageById(imageId: string): Promise<SavedAIImage | null
     id: image.id,
     prompt: image.prompt,
     imageUrl: image.imageUrl,
+    storageKey: image.storageKey,
     provider: image.provider,
     size: image.size || undefined,
     style: image.style || undefined,

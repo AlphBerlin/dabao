@@ -6,7 +6,13 @@ const nextConfig: NextConfig = {
   /* config options here */
   transpilePackages: ["@workspace/ui"],
   images: {
-    remotePatterns: [new URL("https://sxjunqrsjgomtnjxssni.supabase.co/storage/v1/object/public/**")],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'sxjunqrsjgomtnjxssni.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
+    ],
   },
 };
 
