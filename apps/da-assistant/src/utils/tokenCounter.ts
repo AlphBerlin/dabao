@@ -1,4 +1,4 @@
-import * as tiktoken from 'tiktoken';
+import tiktoken from 'tiktoken';
 
 /**
  * Utility class for counting tokens in text

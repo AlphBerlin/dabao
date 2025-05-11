@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import path from 'path';
 import { ChatService, MessageType, MessageStatus } from './ChatService';
 import { MCPService } from './MCPService';
 import { ChatMessage, ChatRequest, ChatResponse } from '../types';
@@ -32,7 +33,13 @@ export class AssistantService extends EventEmitter {
    */
   async connect(): Promise<void> {
     console.log('Connecting to MCP service...');
-    await this.mcpClient.connectToServer(process.env.MCP_SERVER_PATH || '');
+    
+    // Use our built-in MCP server if no custom path is specified
+    const mcpServerPath = process.env.MCP_SERVER_PATH || 
+      path.resolve(__dirname, '../mcp/server.js');
+    
+    console.log(`Using MCP server at: ${mcpServerPath}`);
+    await this.mcpClient.connectToServer(mcpServerPath);
   }
   
   /**
