@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaAdapter } from 'casbin-prisma-adapter';
 import { prisma } from '../prisma';
-import type { UserRole } from '@prisma/client';
 
 /**
  * Singleton class for managing the Casbin enforcer
@@ -29,7 +28,7 @@ class CasbinEnforcerSingleton {
    */
   public async init(): Promise<void> {
     if (this.isInitializing) {
-      return this.initPromise;
+      return this.initPromise!;
     }
 
     if (this._enforcer) {
@@ -39,13 +38,10 @@ class CasbinEnforcerSingleton {
     this.isInitializing = true;
     
     try {
-      this.initPromise = new Promise(async (resolve, reject) => {
+      this.initPromise = new Promise<void>(async (resolve, reject) => {
         try {
-          // Create the Prisma adapter
-          const adapter = await PrismaAdapter.newAdapter({
-            prisma,
-            tableName: 'CasbinRule',
-          });
+          // Create the Prisma adapter with the correct parameter structure
+          const adapter = await PrismaAdapter.newAdapter(prisma);
 
           // Get the model path - resolving relative to this file
           const modelPath = path.join(__dirname, 'model.conf');
@@ -185,7 +181,7 @@ export const ACTION_TYPES = {
   UPDATE: 'update',
   DELETE: 'delete',
   MANAGE: 'manage', // Special action for management permissions
-  ADMIN: '*', // Wildcard for all actions
+  ALL: '*', // Wildcard for all actions
 };
 
 // Define constants for common resource types

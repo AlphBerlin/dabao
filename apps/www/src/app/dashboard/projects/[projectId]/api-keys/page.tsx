@@ -22,7 +22,7 @@ export default async function ApiKeys({ params }: ApiKeysProps) {
   await requirePermission(
     projectId,
     RESOURCE_TYPES.API_KEY,
-    ACTION_TYPES.ADMIN,
+    ACTION_TYPES.ALL,
     `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 

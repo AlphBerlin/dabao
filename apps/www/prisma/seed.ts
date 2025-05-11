@@ -47,22 +47,22 @@ async function seedDefaultPolicies() {
   await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.UPDATE, 'default');
   
   // API admin policy
-  await casbinEnforcer.addPolicy('api_admin', RESOURCE_TYPES.ALL, ACTION_TYPES.ADMIN, 'default');
+  await casbinEnforcer.addPolicy('api_admin', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, 'default');
   
   // Seed basic role policies for future role assignments
   console.log('Seeding role policies...');
   
   // Organization level roles
   // OWNER role
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ADMIN, 'default');
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ORGANIZATION, ACTION_TYPES.ADMIN, 'default');
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.BILLING, ACTION_TYPES.ADMIN, 'default');
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ADMIN, 'default');
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ADMIN, 'default');
-  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ADMIN, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ORGANIZATION, ACTION_TYPES.ALL, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.BILLING, ACTION_TYPES.ALL, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ALL, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ALL, 'default');
+  await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ALL, 'default');
   
   // ADMIN role
-  await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ADMIN, 'default');
+  await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ALL, 'default');
   await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.USER, ACTION_TYPES.MANAGE, 'default');
   await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.BILLING, ACTION_TYPES.READ, 'default');
   await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.ORGANIZATION, ACTION_TYPES.READ, 'default');

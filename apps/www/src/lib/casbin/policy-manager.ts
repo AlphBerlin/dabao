@@ -150,14 +150,14 @@ export class PolicyManager {
    */
   private static async addOwnerPolicies(organizationId: string): Promise<void> {
     // Owners have full access to all resources in the organization
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ADMIN, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, organizationId);
     
     // Extra explicit policies for clarity
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ORGANIZATION, ACTION_TYPES.ADMIN, organizationId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.BILLING, ACTION_TYPES.ADMIN, organizationId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ADMIN, organizationId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ADMIN, organizationId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ADMIN, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ORGANIZATION, ACTION_TYPES.ALL, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.BILLING, ACTION_TYPES.ALL, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ALL, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ALL, organizationId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ALL, organizationId);
   }
 
   /**
@@ -166,8 +166,8 @@ export class PolicyManager {
    */
   private static async addAdminPolicies(organizationId: string): Promise<void> {
     // Admins can manage most things except billing and organization settings
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ADMIN, organizationId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.USER, ACTION_TYPES.ADMIN, organizationId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ALL, organizationId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.USER, ACTION_TYPES.ALL, organizationId);
     
     // Read-only for billing
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.BILLING, ACTION_TYPES.READ, organizationId);
@@ -207,18 +207,18 @@ export class PolicyManager {
    */
   private static async addProjectOwnerPolicies(projectId: string): Promise<void> {
     // Owners have full access to all resources in the project
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ADMIN, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, projectId);
     
     // Explicit policies for project resources
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.REWARD, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ADMIN, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.REWARD, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.POLICY, ACTION_TYPES.ALL, projectId);
   }
 
   /**
@@ -229,11 +229,11 @@ export class PolicyManager {
     // Admins have full access to most resources in the project except critical settings
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.PROJECT, ACTION_TYPES.UPDATE, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.USER, ACTION_TYPES.MANAGE, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.REWARD, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ADMIN, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ADMIN, projectId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.REWARD, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ALL, projectId);
+    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.MANAGE, projectId);
   }
 
