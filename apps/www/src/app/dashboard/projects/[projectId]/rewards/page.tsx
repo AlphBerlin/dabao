@@ -7,6 +7,8 @@ import RewardSystemSettings from '@/components/rewards/reward-system-settings';
 import MembershipTiersList from '@/components/rewards/membership-tiers-list';
 import VouchersList from '@/components/rewards/vouchers-list';
 import RedemptionRulesList from '@/components/rewards/redemption-rules-list';
+import { requirePermission } from '@/lib/auth/server-auth';
+import { ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
 
 export const metadata: Metadata = {
   title: 'Rewards Management',
@@ -20,6 +22,12 @@ export default async function RewardsPage({
 }) {
   const { projectId } = await params;
   
+  await requirePermission(
+    projectId,
+    RESOURCE_TYPES.REWARD,
+    ACTION_TYPES.READ,
+    `/projects/${projectId}`
+  );
   // Get project by ID instead of slug
   const project = await db.project.findUnique({
     where: { id: projectId }, // Fixed: search by ID instead of slug

@@ -3,10 +3,18 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BrandingSettings } from "./components/branding-settings";
 import { ApiTokenSettings } from "./components/api-token-settings";
 import { UserSettings } from "./components/user-settings";
+import { requirePermission } from "@/lib/auth/server-auth";
+import { ACTION_TYPES, RESOURCE_TYPES } from "@/lib/casbin/enforcer";
 
 export default async function ProjectSettingsPage({ params }: { params: { projectId: string } }) {
   const { projectId } = await params;
 
+  await requirePermission(
+      projectId,
+      RESOURCE_TYPES.PROJECT_SETTINGS,
+      ACTION_TYPES.READ,
+      `/projects/${projectId}`  // Redirect to project page if unauthorized
+    );
   return (
     <div className="min-h-screen bg-background">
       <main className="px-4 sm:px-6 lg:px-8 pb-20 pt-20">

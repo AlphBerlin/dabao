@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { casbinEnforcer } from '../casbin/enforcer';
+import { ACTION_TYPES, casbinEnforcer, RESOURCE_TYPES } from '../casbin/enforcer';
 import { PolicyManager } from '../casbin/policy-manager';
 import { UserRole } from '@prisma/client';
 
