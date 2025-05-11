@@ -33,7 +33,6 @@ export async function hasProjectAccess(userId: string, projectId: string): Promi
         organizationId: project.organizationId,
       },
     });
-    console.log("User organization found:", user?.id, userOrganization);
 
     return !!userOrganization; // Return true if the user is a member of the organization
   } catch (error) {

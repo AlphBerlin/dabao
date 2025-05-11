@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PolicyManager } from '@/lib/casbin/policy-manager';
+import {db} from '@/lib/db';
 
 // Flag to track if policies have been initialized
 let policiesInitialized = false;
@@ -35,17 +36,14 @@ async function initializePoliciesIfNeeded() {
     // Initialize default policies
     console.log('Initializing Casbin policies...');
 
-    // Get all organizations
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
     
-    const organizations = await prisma.organization.findMany();
+    const organizations = await db.organization.findMany();
     for (const org of organizations) {
       await PolicyManager.setupOrganizationPolicies(org.id);
     }
 
     // Get all projects
-    const projects = await prisma.project.findMany();
+    const projects = await db.project.findMany();
     for (const project of projects) {
       await PolicyManager.setupProjectPolicies(project.id);
     }
