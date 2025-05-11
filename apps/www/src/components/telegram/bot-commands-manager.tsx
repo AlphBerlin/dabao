@@ -6,7 +6,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from '@workspace/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -15,20 +15,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@workspace/ui/components/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+} from "@workspace/ui/components/select";
+import { Button } from '@workspace/ui/components/button';
+import { Input } from '@workspace/ui/components/input';
+import { Label } from '@workspace/ui/components/label';
+import { Textarea } from '@workspace/ui/components/textarea';
+import { Switch } from '@workspace/ui/components/switch';
+import { Checkbox } from '@workspace/ui/components/checkbox';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Plus, Trash2, GripVertical, Save, Pencil, Command } from 'lucide-react';
 import { toast } from 'sonner';
