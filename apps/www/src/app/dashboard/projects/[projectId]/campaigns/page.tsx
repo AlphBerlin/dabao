@@ -23,7 +23,7 @@ export default async function Campaigns({ params }: CampaignsProps) {
     projectId,
     RESOURCE_TYPES.CAMPAIGN,
     ACTION_TYPES.READ,
-    `/projects/${projectId}`  // Redirect to project page if unauthorized
+    `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {

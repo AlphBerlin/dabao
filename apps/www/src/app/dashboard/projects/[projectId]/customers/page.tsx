@@ -23,7 +23,7 @@ export default async function Customers({ params }: CustomersProps) {
     projectId,
     RESOURCE_TYPES.CUSTOMER,
     ACTION_TYPES.READ,
-    `/projects/${projectId}`  // Redirect to project page if unauthorized
+    `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {

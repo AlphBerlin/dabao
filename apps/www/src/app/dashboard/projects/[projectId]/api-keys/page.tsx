@@ -23,7 +23,7 @@ export default async function ApiKeys({ params }: ApiKeysProps) {
     projectId,
     RESOURCE_TYPES.API_KEY,
     ACTION_TYPES.ADMIN,
-    `/projects/${projectId}`  // Redirect to project page if unauthorized
+    `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
   );
 
   try {
