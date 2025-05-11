@@ -204,6 +204,7 @@ model Project {
   telegramCommands  TelegramCommand[]
   telegramMenus     TelegramMenu[]
   brandingSettings  BrandingSettings?  // Add relation to BrandingSettings
+  aiImages          AIImage[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -823,6 +824,30 @@ model BrandingSettings {
   @@map("branding_settings")
   @@schema("dabao_tenant")
 }
+
+// AIImage model for storing AI-generated images
+model AIImage {
+  id           String   @id @default(cuid())
+  projectId    String   @map("project_id")
+  userId       String   @map("user_id")
+  prompt       String   @db.Text
+  provider     String   // e.g., "openai", "google", "stability"
+  size         String?  // e.g., "1024x1024"
+  style        String?  // e.g., "vivid", "photographic"
+  quality      String?  // e.g., "hd"
+  imageUrl     String   @map("image_url")
+  storageKey   String   @map("storage_key") // Path in the Supabase bucket
+  metadata     Json?    // Additional parameters and response data
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("ai_images")
+  @@schema("dabao_tenant")
+}
+
+// -----------------------------
 
 // -----------------------------
 // Authentication / Shared user

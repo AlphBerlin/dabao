@@ -32,6 +32,31 @@ export interface SessionResponse {
   export interface ChatResponseEnvelope {
     response: ChatResponse;
   }
+
+  // Image generation interfaces
+  export interface GenerateImageRequest {
+    prompt: string;
+    provider?: string;
+    size?: string;
+    style?: string;
+    quality?: string;
+    numberOfImages?: number;
+    userId?: string;
+  }
+
+  export interface GeneratedImage {
+    url: string;
+    provider: string;
+    prompt: string;
+    size?: string;
+    style?: string;
+    createdAt: string;
+  }
+
+  export interface GenerateImageResponse {
+    images: GeneratedImage[];
+    prompt: string;
+  }
   
   const BASE_URL = process.env.DA_ASSISTANT_BASE_URL || "http://localhost:3001";
   
@@ -218,4 +243,23 @@ export interface SessionResponse {
     const data: ChatResponseEnvelope = await res.json();
     return data.response;
   }
-  
+
+  /**
+   * Generate AI images based on the provided prompt.
+   * @param request Image generation request with prompt and parameters
+   * @returns Generated image URLs and metadata
+   */
+  export async function generateImages(request: GenerateImageRequest): Promise<GenerateImageResponse> {
+    const res = await fetch(`${BASE_URL}/api/images/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || "Failed to generate image");
+    }
+    
+    return await res.json();
+  }
