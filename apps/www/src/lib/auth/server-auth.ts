@@ -13,39 +13,50 @@ import { UserRole } from '@prisma/client';
  * @param action The action to check permissions for
  */
 export async function checkPermission(projectId: string, resource: string, action: string): Promise<boolean> {
-  try {
-    // Initialize Casbin enforcer
-    await casbinEnforcer.init();
+    try {
+        // Initialize Casbin enforcer
+        if (!casbinEnforcer.isInitialized()) {
+            await casbinEnforcer.init();
+        }
 
-    // Get authenticated user from Supabase
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+        // Get authenticated user from Supabase
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      return false;
+        if (!user) {
+            return false;
+        }
+
+        // Find user in database
+        const dbUser = await prisma.user.findUnique({
+            where: { supabaseUserId: user.id },
+            select: { id: true }
+        });
+
+        if (!dbUser) {
+            return false;
+        }
+
+        console.log(dbUser.id,
+            resource,
+            action,
+            projectId, await casbinEnforcer.enforce(
+                dbUser.id,
+                resource,
+                action,
+                projectId
+            ))
+        // Check if user has permission
+        return casbinEnforcer.enforce(
+            dbUser.id,
+            resource,
+            action,
+            projectId
+        );
+    } catch (error) {
+        console.error('Error checking permission:', error);
+        return false;
     }
-
-    // Find user in database
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseUserId: user.id },
-      select: { id: true }
-    });
-
-    if (!dbUser) {
-      return false;
-    }
-
-    // Check if user has permission
-    return casbinEnforcer.enforce(
-      dbUser.id,
-      resource,
-      action,
-      projectId
-    );
-  } catch (error) {
-    console.error('Error checking permission:', error);
-    return false;
-  }
 }
 
 /**
@@ -54,35 +65,35 @@ export async function checkPermission(projectId: string, resource: string, actio
  * @param minRole The minimum role required
  */
 export async function checkRole(projectId: string, minRole: UserRole): Promise<boolean> {
-  try {
-    // Get authenticated user from Supabase
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        // Get authenticated user from Supabase
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      return false;
+        if (!user) {
+            return false;
+        }
+
+        // Find user in database
+        const dbUser = await prisma.user.findUnique({
+            where: { supabaseUserId: user.id },
+            select: { id: true }
+        });
+
+        if (!dbUser) {
+            return false;
+        }
+
+        // Check if user has the required role
+        return PolicyManager.hasRoleForProject(
+            dbUser.id,
+            projectId,
+            minRole
+        );
+    } catch (error) {
+        console.error('Error checking role:', error);
+        return false;
     }
-
-    // Find user in database
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseUserId: user.id },
-      select: { id: true }
-    });
-
-    if (!dbUser) {
-      return false;
-    }
-
-    // Check if user has the required role
-    return PolicyManager.hasRoleForProject(
-      dbUser.id,
-      projectId,
-      minRole
-    );
-  } catch (error) {
-    console.error('Error checking role:', error);
-    return false;
-  }
 }
 
 /**
@@ -90,14 +101,14 @@ export async function checkRole(projectId: string, minRole: UserRole): Promise<b
  * @param redirectTo Where to redirect unauthenticated users
  */
 export async function requireAuth(redirectTo: string = '/login') {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    redirect(redirectTo);
-  }
-  
-  return session;
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        redirect(redirectTo);
+    }
+
+    return session;
 }
 
 /**
@@ -108,22 +119,22 @@ export async function requireAuth(redirectTo: string = '/login') {
  * @param redirectTo Where to redirect unauthorized users
  */
 export async function requirePermission(
-  projectId: string, 
-  resource: string, 
-  action: string, 
-  redirectTo: string = '/dashboard'
+    projectId: string,
+    resource: string,
+    action: string,
+    redirectTo: string = '/dashboard'
 ) {
-  // First require auth
-  const session = await requireAuth();
-  
-  // Then check permission
-  const hasPermission = await checkPermission(projectId, resource, action);
-  
-  if (!hasPermission) {
-    redirect(redirectTo);
-  }
-  
-  return { session, hasPermission };
+    // First require auth
+    const session = await requireAuth();
+
+    // Then check permission
+    const hasPermission = await checkPermission(projectId, resource, action);
+
+    if (!hasPermission) {
+        redirect(redirectTo);
+    }
+
+    return { session, hasPermission };
 }
 
 /**
@@ -133,19 +144,19 @@ export async function requirePermission(
  * @param redirectTo Where to redirect unauthorized users
  */
 export async function requireRole(
-  projectId: string, 
-  minRole: UserRole, 
-  redirectTo: string = '/dashboard'
+    projectId: string,
+    minRole: UserRole,
+    redirectTo: string = '/dashboard'
 ) {
-  // First require auth
-  const session = await requireAuth();
-  
-  // Then check role
-  const hasRole = await checkRole(projectId, minRole);
-  
-  if (!hasRole) {
-    redirect(redirectTo);
-  }
-  
-  return { session, hasRole };
+    // First require auth
+    const session = await requireAuth();
+
+    // Then check role
+    const hasRole = await checkRole(projectId, minRole);
+
+    if (!hasRole) {
+        redirect(redirectTo);
+    }
+
+    return { session, hasRole };
 }

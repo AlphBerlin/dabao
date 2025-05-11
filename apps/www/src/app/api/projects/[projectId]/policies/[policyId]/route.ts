@@ -15,7 +15,7 @@ export async function DELETE(
 ) {
   try {
     // Initialize Casbin enforcer
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
 
     const { projectId, policyId } = params;
     

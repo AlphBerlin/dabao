@@ -23,7 +23,7 @@ export async function GET(
 ) {
   try {
     // Initialize Casbin enforcer
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
 
     const projectId = params.projectId;
     
@@ -101,7 +101,7 @@ export async function POST(
 ) {
   try {
     // Initialize Casbin enforcer
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
 
     const projectId = params.projectId;
     

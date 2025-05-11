@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Customers({ params }: CustomersProps) {
-  const { projectId } = params;
+  const { projectId } = await params;
 
   // Server-side authorization check - users need READ permission for customers
   await requirePermission(

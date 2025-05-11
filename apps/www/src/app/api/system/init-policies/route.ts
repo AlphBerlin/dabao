@@ -1,5 +1,5 @@
 // filepath: /Users/ajithberlin/alphberlin/repos/dabao.in/dabao/apps/www/src/app/api/system/init-policies/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PolicyManager } from '@/lib/casbin/policy-manager';
 import { db } from '@/lib/db';
 
@@ -47,7 +47,7 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to initialize policies:', error);
     return NextResponse.json(
-      { status: 'error', message: 'Failed to initialize policies', error: String(error) },
+      { status: 'error', message: `Failed to initialize policies: ${error}` },
       { status: 500 }
     );
   }
