@@ -1,4 +1,4 @@
-import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from "@google/genai";
 import { 
   GeneratedImage, 
   ImageGenerationOptions, 
@@ -10,8 +10,7 @@ import {
 import { BaseImageProvider } from './BaseImageProvider';
 
 export class GoogleImageProvider extends BaseImageProvider {
-  private client: GoogleGenerativeAI;
-  private model: GenerativeModel;
+  private client: GoogleGenAI;
   
   constructor(config: { apiKey: string, modelName?: string }) {
     super(ImageProvider.GOOGLE, config);
@@ -20,17 +19,20 @@ export class GoogleImageProvider extends BaseImageProvider {
       throw new Error('Google API key is required');
     }
     
-    this.client = new GoogleGenerativeAI(config.apiKey);
-    const modelName = config.modelName || 'gemini-1.5-pro';
-    this.model = this.client.getGenerativeModel({ model: modelName });
+    this.client = new GoogleGenAI({ apiKey: config.apiKey });
   }
 
   async isAvailable(): Promise<boolean> {
     try {
       // Simple test to check if the API is available
-      // Just generate a tiny image to test connectivity
-      const testResult = await this.model.generateContent('Generate a small image of a test pattern');
-      return testResult.response.promptFeedback?.blockReason ? false : true;
+      const testResult = await this.client.models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: 'Generate a test pattern',
+        config: {
+          numberOfImages: 1,
+        },
+      });
+      return !!testResult.generatedImages && testResult.generatedImages.length > 0;
     } catch (error) {
       console.error('Google Imagen provider is not available:', error);
       return false;
@@ -78,70 +80,49 @@ export class GoogleImageProvider extends BaseImageProvider {
         promptWithSize += ` Do not include: ${options.negativePrompt}.`;
       }
 
-      const numberOfImages = options.numberOfImages || 1;
-      const generatedImages: GeneratedImage[] = [];
+      const numberOfImages = Math.min(Math.max(1, options.numberOfImages || 1), 4);
       
-      // Generate multiple images if requested
-      const imagePromises = Array(numberOfImages).fill(0).map(async (_, index) => {
-        try {
-          const result = await this.model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: promptWithSize }] }],
-            generationConfig: {
-              responseMimeType: 'image/png',
-            },
-          });
-          
-          const response = result.response;
-          
-          // Check if the content contains images
-          if (response.candidates && 
-              response.candidates[0] && 
-              response.candidates[0].content && 
-              response.candidates[0].content.parts) {
-                
-            for (const part of response.candidates[0].content.parts) {
-              if (part.inlineData && part.inlineData.data) {
-                // This is a base64 encoded image, we need to convert it to a URL
-                // For a production app, you would likely save this to storage
-                // and return a URL to that storage
-                const base64Image = part.inlineData.data;
-                
-                // For testing purposes, we'll return a data URL
-                // In a real app, you'd upload this to a storage service
-                const imageUrl = `data:${part.inlineData.mimeType};base64,${base64Image}`;
-                
-                return this.createGeneratedImage(imageUrl, options);
-              }
-            }
-          }
-          return null;
-        } catch (error) {
-          console.error(`Error generating image ${index + 1} with Google:`, error);
-          return null;
-        }
+      // Call the Imagen 3.0 API
+      const response = await this.client.models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: promptWithSize,
+        config: {
+          numberOfImages,
+        },
       });
       
-      // Process the results and filter out any failed generations
-      const results = await Promise.all(imagePromises);
-      for (const result of results) {
-        if (result) {
-          generatedImages.push(result);
+      // Process the generated images
+      if (!response.generatedImages || response.generatedImages.length === 0) {
+        return {
+          images: [],
+          error: 'No images were generated'
+        };
+      }
+      
+      const generatedImages: GeneratedImage[] = [];
+      
+      for (const genImage of response.generatedImages) {
+        if (genImage.image?.imageBytes) {
+          // Convert base64 to data URL
+          const imageUrl = `data:image/png;base64,${genImage.image.imageBytes}`;
+          const generatedImage = this.createGeneratedImage(imageUrl, options);
+          generatedImages.push(generatedImage);
         }
       }
 
       if (generatedImages.length === 0) {
         return {
           images: [],
-          error: 'Failed to generate images with Google'
+          error: 'Failed to extract image data from Google Imagen response'
         };
       }
 
       return { images: generatedImages };
     } catch (error: any) {
-      console.error('Error generating image with Google:', error);
+      console.error('Error generating image with Google Imagen:', error);
       return {
         images: [],
-        error: `Error generating image with Google: ${error.message || error}`
+        error: `Error generating image with Google Imagen: ${error.message || error}`
       };
     }
   }
