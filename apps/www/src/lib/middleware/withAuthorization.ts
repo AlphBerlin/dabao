@@ -32,7 +32,7 @@ export function withAuthorization(
     context: { params: { projectId: string; [key: string]: string } }
   ) {
     try {
-      const projectId = context.params.projectId;
+      const projectId = (await context.params).projectId;
 
       // Initialize Casbin enforcer if needed
       await casbinEnforcer.init();

@@ -50,7 +50,7 @@ export async function checkPermission(projectId: string, resource: string, actio
             action,
             projectId
         );
-        
+
         console.log('Permission check result:', {
             userId: dbUser.id,
             resource,

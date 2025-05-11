@@ -25,7 +25,7 @@ export async function GET(
     // Initialize Casbin enforcer
     // await casbinEnforcer.init();
 
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -103,7 +103,7 @@ export async function POST(
     // Initialize Casbin enforcer
     // await casbinEnforcer.init();
 
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();

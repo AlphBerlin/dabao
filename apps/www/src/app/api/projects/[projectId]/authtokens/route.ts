@@ -37,7 +37,7 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -88,7 +88,7 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -187,7 +187,7 @@ export async function POST(
   }
   
   try {
-    const projectId = params.projectId;
+    const projectId = (await params).projectId;
     
     // Get authenticated user from Supabase
     const supabase = await createClient();
