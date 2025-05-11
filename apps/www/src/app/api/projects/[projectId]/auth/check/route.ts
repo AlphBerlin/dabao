@@ -22,7 +22,7 @@ export async function POST(
     const projectId = params.projectId;
     
     // Initialize Casbin enforcer if needed
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     // Get authenticated user from Supabase
     const supabase = await createClient();

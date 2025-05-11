@@ -12,7 +12,7 @@ async function seedCasbinPolicies() {
   
   try {
     // Initialize the enforcer
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     const enforcer = await casbinEnforcer.getEnforcer();
     
     // First check if policies already exist to avoid duplicates

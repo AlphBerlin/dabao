@@ -31,7 +31,7 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     const projectId = params.projectId;
     
@@ -108,7 +108,7 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     const projectId = params.projectId;
     
@@ -206,7 +206,7 @@ export async function DELETE(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     const projectId = params.projectId;
     

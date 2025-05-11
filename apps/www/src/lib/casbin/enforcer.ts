@@ -24,53 +24,40 @@ class CasbinEnforcerSingleton {
     return CasbinEnforcerSingleton.instance;
   }
 
+  public isInitialized(): boolean {
+    return this._enforcer !== null;
+  }
   /**
    * Initialize the enforcer with the model and adapter
    */
   public async init(): Promise<void> {
-    console.log('Initializing Casbin enforcer...');
-    if (this.isInitializing) {
-      return this.initPromise!;
-    }
-
-    if (this._enforcer) {
-      return Promise.resolve();
-    }
-
-    this.isInitializing = true;
-    
-    try {
-      this.initPromise = new Promise<void>(async (resolve, reject) => {
-        try {
-          // Create the Prisma adapter with the correct parameter structure
-          const adapter = await PrismaAdapter.newAdapter(db);
-
-          // Get the model path - resolving relative to this file
-          const modelPath = path.join(__dirname, 'model.conf');
-          const modelContent = fs.readFileSync(modelPath, 'utf-8');
-          
-          // Create the enforcer
-          this._enforcer = await newEnforcer(modelContent, adapter);
-          
-          // Load the policies from the database
-          await this._enforcer.loadPolicy();
-          await setupAll()
-          console.log('Casbin enforcer initialized successfully');
-          
-          resolve();
-        } catch (error) {
-          console.error('Error initializing Casbin enforcer:', error);
-          reject(error);
-        } finally {
-          this.isInitializing = false;
+    if (this.isInitializing) return this.initPromise!
+    if (this._enforcer)  return Promise.resolve()
+  
+    this.isInitializing = true
+    this.initPromise = (async () => {
+      try {
+        const adapter = await PrismaAdapter.newAdapter()
+        const modelPath = path.resolve(
+          process.cwd(),
+          'src/lib/casbin/model.conf'
+        )
+        if (!fs.existsSync(modelPath)) {
+          throw new Error(`casbin model.conf not found at ${modelPath}`)
         }
-      });
-      
-      return this.initPromise;
-    } catch (error) {
-      this.isInitializing = false;
-      throw error;
-    }
+        // **Pass the path**, not the file contents**
+        this._enforcer = await newEnforcer(modelPath, adapter)
+  
+        await setupAll()
+        console.log('Casbin enforcer initialized successfully')
+      } catch (e) {
+        console.error('Error initializing Casbin enforcer:', e)
+        throw e
+      } finally {
+        this.isInitializing = false
+      }
+    })()
+    return this.initPromise
   }
 
   /**
@@ -163,14 +150,6 @@ class CasbinEnforcerSingleton {
   public async getFilteredPolicy(domain: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer();
     return enforcer.getFilteredPolicy(3, domain);
-  }
-
-  /**
-   * Reload all policies from the database
-   */
-  public async reloadPolicy(): Promise<void> {
-    const enforcer = await this.getEnforcer();
-    await enforcer.loadPolicy();
   }
 }
 

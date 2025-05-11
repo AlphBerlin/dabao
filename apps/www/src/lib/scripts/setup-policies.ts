@@ -11,7 +11,7 @@ import { UserRole } from '@prisma/client';
 export async function setupAllPolicies() {
   try {
     console.log('Initializing Casbin enforcer...');
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     console.log('Setting up policies for all organizations...');
     const organizations = await prisma.organization.findMany({
@@ -62,7 +62,7 @@ export async function setupAllPolicies() {
 export async function setupOrganizationPolicies(organizationId: string) {
   try {
     console.log(`Setting up policies for organization: ${organizationId}`);
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     // Setup organization policies
     await PolicyManager.setupOrganizationPolicies(organizationId);
@@ -109,7 +109,7 @@ export async function setupOrganizationPolicies(organizationId: string) {
 export async function setupProjectPolicies(projectId: string) {
   try {
     console.log(`Setting up policies for project: ${projectId}`);
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     // Get the project with organization details
     const project = await prisma.project.findUnique({
@@ -155,7 +155,7 @@ export async function setupProjectPolicies(projectId: string) {
 export async function migrateExistingRoles() {
   try {
     console.log('Migrating existing roles to Casbin policies...');
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     // Migrate organization roles
     const userOrgs = await prisma.userOrganization.findMany({
@@ -203,7 +203,7 @@ export async function migrateExistingRoles() {
 export async function setupDefaultTokenPolicies() {
   try {
     console.log('Setting up default token policies...');
-    await casbinEnforcer.init();
+    // await casbinEnforcer.init();
     
     // Get all projects
     const projects = await prisma.project.findMany();
