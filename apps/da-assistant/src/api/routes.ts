@@ -2,6 +2,7 @@ import express, { Request, Response, Router } from 'express';
 import { AssistantService } from '../services/AssistantService';
 import { ConfigService } from '../config/ConfigService';
 import { ChatResponse } from '../types';
+import imageRoutes from '../routes/imageRoutes';
 
 // Get configuration
 const configService = ConfigService.getInstance();
@@ -23,6 +24,8 @@ router.use(async (req, res, next) => {
   }
 });
 
+// Register image generation routes
+router.use('/images', imageRoutes);
 
 /**
  * POST /sessions
