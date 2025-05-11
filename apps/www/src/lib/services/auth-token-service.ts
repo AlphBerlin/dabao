@@ -200,7 +200,7 @@ export class AuthTokenService {
         break;
       case 'admin':
         resources = [RESOURCE_TYPES.ALL];
-        actions = [ACTION_TYPES.ADMIN];
+        actions = [ACTION_TYPES.ALL];
         break;
     }
     

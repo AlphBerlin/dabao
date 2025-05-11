@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { PolicyManager } from '@/lib/casbin/policy-manager';
+
+// Flag to track if policies have been initialized
+let policiesInitialized = false;
 
 // List of public paths that do not require authentication
 const PUBLIC_PATHS = [
@@ -22,9 +26,44 @@ const API_PATHS = [
 ];
 
 /**
+ * Initialize policies if not already done
+ */
+async function initializePoliciesIfNeeded() {
+  if (policiesInitialized) return;
+  
+  try {
+    // Initialize default policies
+    console.log('Initializing Casbin policies...');
+
+    // Get all organizations
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const organizations = await prisma.organization.findMany();
+    for (const org of organizations) {
+      await PolicyManager.setupOrganizationPolicies(org.id);
+    }
+
+    // Get all projects
+    const projects = await prisma.project.findMany();
+    for (const project of projects) {
+      await PolicyManager.setupProjectPolicies(project.id);
+    }
+
+    policiesInitialized = true;
+    console.log('Casbin policies initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize policies:', error);
+  }
+}
+
+/**
  * Global middleware for authentication and authorization
  */
 export async function middleware(request: NextRequest) {
+  // Initialize policies on first request
+  await initializePoliciesIfNeeded();
+  
   const { pathname } = request.nextUrl;
   
   // Skip middleware for public paths

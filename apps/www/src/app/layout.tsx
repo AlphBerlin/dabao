@@ -5,6 +5,7 @@ import { AuthProvider } from '@workspace/auth/contexts/auth-context'
 import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { Providers } from '@/components/providers'
 import { OrganizationProviders } from '@/components/organization-providers'
+import { PolicyInitializer } from '@/components/policy-initializer'
 
 export const metadata: Metadata = {
   title: 'Dabao Studio',
@@ -24,6 +25,7 @@ export default function RootLayout({
             <AuthProvider>
               <OrganizationProviders>
                 <Providers>
+                  <PolicyInitializer />
                   {children}
                 </Providers>
               </OrganizationProviders>

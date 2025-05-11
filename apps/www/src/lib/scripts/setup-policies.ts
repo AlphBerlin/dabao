@@ -226,7 +226,7 @@ export async function setupDefaultTokenPolicies() {
       await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.UPDATE, project.id);
       
       // Create admin API policy
-      await casbinEnforcer.addPolicy('api_admin', RESOURCE_TYPES.ALL, ACTION_TYPES.ADMIN, project.id);
+      await casbinEnforcer.addPolicy('api_admin', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, project.id);
     }
     
     console.log('Default token policies created successfully.');
