@@ -89,7 +89,6 @@ export async function GET(req: NextRequest) {
       include: {
         organizations: {
           where: {
-            
             organizationId: orgId
           }
         }
@@ -137,6 +136,12 @@ export async function GET(req: NextRequest) {
       where: filter,
       include: {
         preferences: true,
+        _count: {
+          select: {
+            customers: true,
+            rewards: true
+          }
+        }
       },
       orderBy,
       skip,
@@ -146,8 +151,60 @@ export async function GET(req: NextRequest) {
     // Calculate total pages
     const totalPages = Math.ceil(totalProjects / pageSize);
 
+    // Fetch additional data for each project (points, rewards stats)
+    const enhancedProjects = await Promise.all(projects.map(async (project) => {
+      try {
+        // Get total points issued for this project
+        const pointsStats = await db.customerPointsTransaction.aggregate({
+          where: {
+            customer: {
+              projectId: project.id
+            },
+            points: {
+              gt: 0
+            }
+          },
+          _sum: {
+            points: true
+          }
+        });
+
+        // Get active rewards count
+        const activeRewards = await db.reward.count({
+          where: {
+            projectId: project.id,
+            active: true
+          }
+        });
+
+
+        // Enhance project with additional metrics
+        return {
+          ...project,
+          settings: {
+            ...(project.settings as any || {}),
+            totalCustomers: project._count.customers,
+            totalPoints: pointsStats._sum.points || 0,
+            totalRewards: activeRewards,
+          }
+        };
+      } catch (err) {
+        console.error(`Error enhancing project ${project.id} data:`, err);
+        // Return project with fallback data if enhancement fails
+        return {
+          ...project,
+          settings: {
+            ...(project.settings as any || {}),
+            totalCustomers: project._count.customers,
+            totalPoints: 0,
+            totalRewards: project._count.rewards,
+          }
+        };
+      }
+    }));
+
     return NextResponse.json({
-      data: projects,
+      data: enhancedProjects,
       meta: {
         total: totalProjects,
         page,
@@ -237,7 +294,12 @@ export async function POST(req: NextRequest) {
             borderRadius: 'rounded',
             fontSize: 'base',
           },
-          settings: {},
+          settings: {
+            totalCustomers: 0,
+            totalPoints: 0,
+            totalRewards: 0,
+            goalProgress: 0
+          },
         },
       });
 
