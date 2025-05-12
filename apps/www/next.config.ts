@@ -3,6 +3,7 @@ const path = require('path')
 
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   /* config options here */
   transpilePackages: ["@workspace/ui"],
   eslint: {
