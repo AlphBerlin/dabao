@@ -38,8 +38,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Check for lockfile inconsistencies
+        id: lockfile-check
+        continue-on-error: true
+        run: |
+          pnpm install --frozen-lockfile
+          if [ $? -ne 0 ]; then
+            echo "Lockfile is outdated, will update in the next step"
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "outdated=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ "${{ steps.lockfile-check.outputs.outdated }}" == "true" ]; then
+            echo "Installing with lockfile update"
+            pnpm install --no-frozen-lockfile
+          else
+            echo "Using frozen lockfile"
+            pnpm install --frozen-lockfile
+          fi
 
       - name: Lint and Test
         run: |

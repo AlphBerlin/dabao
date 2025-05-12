@@ -76,7 +76,9 @@ export function Hero() {
         </motion.div>
         
         {/* Scroll indicator - improved positioning and alignment */}
-        <motion.div 
+        
+      </div>
+      <motion.div 
           variants={bounce}
           initial="hidden"
           animate="animate"
@@ -89,7 +91,6 @@ export function Hero() {
             <ChevronDown className="h-5 w-5" />
           </a>
         </motion.div>
-      </div>
     </motion.section>
   );
 }

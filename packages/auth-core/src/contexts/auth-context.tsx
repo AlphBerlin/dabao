@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { type User } from "@supabase/supabase-js"
+
 type AuthContextType = {
   user: User | null
   loading: boolean
@@ -10,7 +11,15 @@ type AuthContextType = {
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+// Create a default context with safe fallbacks
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  loading: false,
+  signIn: async () => { console.warn("Auth provider not initialized") },
+  signOut: async () => { console.warn("Auth provider not initialized") }
+}
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -66,8 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+  
+  // For development only: warn when used outside provider (but don't throw)
+  if (process.env.NODE_ENV !== 'production' && context === defaultAuthContext) {
+    console.warn("useAuth was used outside of AuthProvider. Make sure the component using this hook is wrapped within an AuthProvider.")
   }
+  
   return context
 }

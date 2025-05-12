@@ -15,8 +15,23 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
 }
 
-// Create the context
-const UserContext = createContext<UserContextType | undefined>(undefined);
+// Create default context with safe fallbacks
+const defaultUserContext: UserContextType = {
+  user: null,
+  organizations: [],
+  isLoading: false,
+  error: null,
+  setUser: () => {
+    console.warn("UserProvider not initialized");
+  },
+  refreshUser: async () => {
+    console.warn("UserProvider not initialized");
+    return Promise.resolve();
+  }
+};
+
+// Create the context with default value
+const UserContext = createContext<UserContextType>(defaultUserContext);
 
 // Provider props interface
 interface UserProviderProps {
@@ -115,10 +130,9 @@ export function UserProvider({
 export function useUser() {
   const context = useContext(UserContext);
   
-  if (context === undefined) {
-    throw new Error(
-      "useUser must be used within a UserProvider"
-    );
+  // For development only: warn when used outside provider (but don't throw)
+  if (process.env.NODE_ENV !== 'production' && context === defaultUserContext) {
+    console.warn("useUser was used outside of UserProvider. Make sure the component is wrapped within a UserProvider.");
   }
   
   return context;

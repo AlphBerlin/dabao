@@ -1,0 +1,51 @@
+name: Update Lockfiles
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # Run weekly to keep dependencies fresh
+  schedule:
+    - cron: '0 0 * * 0'  # Runs at midnight on Sunday
+
+jobs:
+  update-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.5
+          run_install: false
+
+      - name: Update lockfiles
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Check for lockfile changes
+        id: check-changes
+        run: |
+          if [[ -n "$(git status --porcelain pnpm-lock.yaml)" ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update pnpm lockfiles"
+          title: "chore: update pnpm lockfiles"
+          body: |
+            This PR updates the pnpm lockfiles to match the current package.json files.
+            This helps prevent CI/CD failures due to outdated lockfiles.
+          branch: update-lockfiles
+          delete-branch: true

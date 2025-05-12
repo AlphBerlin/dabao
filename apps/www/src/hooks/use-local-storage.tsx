@@ -39,5 +39,39 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   };
 
+  // Effect for syncing state with other tabs/windows
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    // Handler to sync state with localStorage when changed in other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === key && e.newValue !== null) {
+        try {
+          // Only update state if the value is different to avoid loops
+          const newValue = JSON.parse(e.newValue);
+          // Use functional update to guarantee we're working with the latest state
+          setStoredValue(current => {
+            // Only update if the value has actually changed to prevent loops
+            const currentStr = JSON.stringify(current);
+            const newStr = e.newValue;
+            return currentStr !== newStr ? newValue : current;
+          });
+        } catch (error) {
+          console.error("Error parsing storage change", error);
+        }
+      }
+    };
+
+    // Listen for storage changes
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [key]); // Only re-run effect if key changes
+
   return [storedValue, setValue] as const;
 }
