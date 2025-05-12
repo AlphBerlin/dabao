@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { slugify } from '@/lib/utils';
+import { slugify } from '@/lib/utils/index';
 import { UserRole } from '@prisma/client';
 import { createClient } from '@/lib/supabase/server';
 
