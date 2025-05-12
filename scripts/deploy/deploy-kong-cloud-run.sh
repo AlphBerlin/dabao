@@ -179,15 +179,15 @@ push_image() {
 ensure_repository() {
   echo "Ensuring Artifact Registry repository exists: $REPOSITORY"
   
-  # Check if repository exists with a timeout
-  if timeout 30s gcloud artifacts repositories describe "$REPOSITORY" \
+  # Check if repository exists
+  if gcloud artifacts repositories describe "$REPOSITORY" \
     --location="$REGION" --project="$PROJECT_ID" >/dev/null 2>&1; then
     
     echo "Repository $REPOSITORY already exists."
   else    
     echo "Creating Artifact Registry repository: $REPOSITORY"
-    # Use timeout to prevent hanging
-    if ! timeout 60s gcloud artifacts repositories create "$REPOSITORY" \
+    # Create repository
+    if ! gcloud artifacts repositories create "$REPOSITORY" \
       --repository-format=docker \
       --location="$REGION" \
       --project="$PROJECT_ID" \
@@ -197,7 +197,7 @@ ensure_repository() {
       
       # Check again after a brief pause - it might have been created despite the error
       sleep 5
-      if timeout 30s gcloud artifacts repositories describe "$REPOSITORY" \
+      if gcloud artifacts repositories describe "$REPOSITORY" \
         --location="$REGION" --project="$PROJECT_ID" >/dev/null 2>&1; then
         echo "Repository exists despite error. Continuing..."
       else
