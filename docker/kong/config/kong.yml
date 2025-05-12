@@ -1,37 +1,55 @@
-_format_version: "3.0"
+_format_version: "2.1"
 _transform: true
 
-# update the host file for locals
 services:
   - name: client-service
-    url: http://dabao-app-local:3002
+    url: ${CLIENT_SERVICE_URL}
+    routes:
+      - name: client-route
+        paths:
+          - /client
 
-  - name: default-service
-    url: http://dabao-app-local:3000
+  - name: da-assistant-service
+    url: ${DA_ASSISTANT_SERVICE_URL}
+    routes:
+      - name: da-assistant-route
+        paths:
+          - /assistant
 
-routes:
+  - name: dabao-mcp-server-service
+    url: ${DABAO_MCP_SERVER_SERVICE_URL}
+    routes:
+      - name: dabao-mcp-server-route
+        paths:
+          - /mcp
 
-  # 2a) Host-based: *.domain.com → http://localhost:3002
-  - name: client-host-route
-    service: client-service
-    protocols: [ http, https ]
-    hosts: [ 'client.dabao-app-local' ]
-    strip_path: false
-    preserve_host: true
+  - name: web-service
+    url: ${WEB_SERVICE_URL}
+    routes:
+      - name: web-route
+        paths:
+          - /web
 
-  # 2b) Header-based: X-client-id exists → http://localhost:3002
-  - name: client-header-route
-    service: client-service
-    protocols: [ http, https ]
-    headers:
-      X-client-id: [ "*" ]
-    strip_path: false
-    preserve_host: true
+  - name: www-service
+    url: ${WWW_SERVICE_URL}
+    routes:
+      - name: www-route
+        paths:
+          - /
 
-  # 3) All other traffic → http://localhost:3000
-  - name: default-route
-    service: default-service
-    protocols: [ http, https ]
-    paths: [ / ]
-    strip_path: false
-    preserve_host: true
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      headers:
+        - Content-Type
+        - Authorization
+      credentials: true
+      max_age: 3600
