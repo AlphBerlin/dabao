@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "prisma:generate": "prisma generate",
     "generate-proto": "pbjs -t static-module -w es6 -o src/lib/proto/mcp_pb.js src/lib/proto/mcp.proto && pbts -o src/lib/proto/mcp_pb.d.ts src/lib/proto/mcp_pb.js"
   },
   "dependencies": {
