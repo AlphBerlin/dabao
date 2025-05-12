@@ -161,10 +161,10 @@ build_www_image() {
   echo "Building WWW Docker image: $full_image_name"
   
   # Navigate to the www app directory
-  cd "$(dirname "$0")/../../apps/www" || exit 1
+  cd "$(dirname "$0")/../../" || exit 1
   
   # Build the Docker image
-  docker build -t "$full_image_name" .
+  docker build -t "$full_image_name" -f apps/www/Dockerfile .
   
   echo "WWW Docker image built successfully."
   
