@@ -13,9 +13,10 @@ export async function GET(
         if (!user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        const { projectId } = await params;
         const categories = await db.emailTemplateCategory.findMany({
             where: {
-                projectId: params.projectId,
+                projectId: projectId,
             },
             include: {
                 _count: {
@@ -55,6 +56,7 @@ export async function POST(
         if (!user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        const { projectId } = await params;
 
         const body = await request.json();
 
@@ -70,7 +72,7 @@ export async function POST(
         // Check if category with the same name already exists
         const existingCategory = await db.emailTemplateCategory.findFirst({
             where: {
-                projectId: params.projectId,
+                projectId: projectId,
                 name: validationResult.data.name,
             },
         });
@@ -85,7 +87,7 @@ export async function POST(
         // Create the category
         const category = await db.emailTemplateCategory.create({
             data: {
-                projectId: params.projectId,
+                projectId: projectId,
                 name: validationResult.data.name,
                 description: validationResult.data.description,
             },

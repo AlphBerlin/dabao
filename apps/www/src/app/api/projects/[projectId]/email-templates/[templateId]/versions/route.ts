@@ -48,10 +48,11 @@ export async function GET(
 
 // Schema for creating a version
 const createVersionSchema = z.object({
-    htmlContent: z.string().min(1, "HTML content is required"),
-    textContent: z.string().optional(),
+    html: z.string().min(1, "HTML content is required"),
+    plainText: z.string().optional(),
+    name: z.string().optional(),
+    isActive: z.boolean().default(false),
     variables: z.array(z.string()).optional(),
-    setActive: z.boolean().default(false),
 });
 
 // POST /api/projects/[projectId]/email-templates/[templateId]/versions
@@ -102,7 +103,7 @@ export async function POST(
         });
 
         const nextVersion = latestVersion ? latestVersion.version + 1 : 1;
-        const { htmlContent, textContent, variables, setActive } = validationResult.data;
+        const { html: htmlContent, plainText: textContent, variables, isActive: setActive, name } = validationResult.data;
 
         // Begin transaction
         const version = await db.$transaction(async (tx) => {

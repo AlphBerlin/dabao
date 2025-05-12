@@ -53,8 +53,8 @@ import {
   deleteTemplateCategory,
   fetchTemplateCategories,
   EmailTemplateCategory,
-  CreateTemplateCategoryInput,
-  UpdateTemplateCategoryInput
+  CreateCategoryData,
+  UpdateCategoryData
 } from "@/lib/api/email-templates";
 
 // Form schemas
@@ -113,7 +113,7 @@ export default function TemplateCategories({ projectId }: TemplateCategoriesProp
 
   // Create category mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateTemplateCategoryInput) => createTemplateCategory(projectId, data),
+    mutationFn: (data: CreateCategoryData) => createTemplateCategory(projectId, data),
     onSuccess: () => {
       toast.success("Email template category has been created successfully.");
       setIsCreateDialogOpen(false);
@@ -127,7 +127,7 @@ export default function TemplateCategories({ projectId }: TemplateCategoriesProp
 
   // Update category mutation
   const updateMutation = useMutation({
-    mutationFn: ({ categoryId, data }: { categoryId: string; data: UpdateTemplateCategoryInput }) => 
+    mutationFn: ({ categoryId, data }: { categoryId: string; data: UpdateCategoryData }) => 
       updateTemplateCategory(projectId, categoryId, data),
     onSuccess: () => {
       toast.success("Email template category has been updated successfully.");
@@ -367,11 +367,13 @@ export default function TemplateCategories({ projectId }: TemplateCategoriesProp
                 Organize your email templates into categories for better management.
               </CardDescription>
             </div>
-            <DialogTrigger asChild onClick={() => setIsCreateDialogOpen(true)}>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" /> Add Category
-              </Button>
-            </DialogTrigger>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Category
+                </Button>
+              </DialogTrigger>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
