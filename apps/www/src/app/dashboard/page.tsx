@@ -8,7 +8,7 @@ import DashboardPage from "./page.client";
 // };
 
 export default async function Dashboard() {
-  const session = await requireAuth("/login");
+  const session = await requireAuth("/auth/login");
 
   return <DashboardPage />;
 }

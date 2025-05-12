@@ -24,6 +24,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import AIAssistant from "@/components/ai-assistant/ai-assistant";
 import { useUser } from "@/contexts/user-context";
+import { useAuth } from "@workspace/auth/contexts/auth-context";
 
 interface Project {
   id: string;
@@ -40,6 +41,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const {user} = useUser();
+  const {signOut} = useAuth();
   
   // For debugging purposes
   const DEBUG_MODE = process.env.NODE_ENV === "development";
@@ -126,7 +128,9 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild variant="destructive">
                 <a 
-                  href="/api/auth/signout" 
+                  onClick={() => {
+                    signOut();
+                  }} 
                   className="cursor-pointer w-full flex items-center text-red-500 hover:text-red-600 no-underline"
                 >
                   <LogOut className="mr-2 h-4 w-4" />

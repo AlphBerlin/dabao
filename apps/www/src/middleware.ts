@@ -18,6 +18,7 @@ const PUBLIC_PATHS = [
   '/favicon.ico',
   '/manifest.json',
   '/images',
+  '/'
 ];
 
 // List of API paths that should check for API tokens
