@@ -1,0 +1,134 @@
+name: Deploy Kong to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/kong/**'
+      - '.github/workflows/kong-deploy.yml'
+      - 'scripts/deploy/deploy-kong-cloud-run.sh'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-southeast1
+  REPOSITORY: dabao-repo
+  SERVICE_NAME: dabao-kong
+
+jobs:
+  deploy-kong:
+    name: Build and Deploy Kong
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.PROJECT_ID }}
+          token_format: access_token
+      
+      - name: Set environment-specific variables
+        id: env_vars
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "dev" ]]; then
+            echo "MIN_INSTANCES=0" >> $GITHUB_OUTPUT
+            echo "MAX_INSTANCES=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.environment }}" == "staging" ]]; then
+            echo "MIN_INSTANCES=1" >> $GITHUB_OUTPUT
+            echo "MAX_INSTANCES=2" >> $GITHUB_OUTPUT
+          else
+            echo "MIN_INSTANCES=1" >> $GITHUB_OUTPUT
+            echo "MAX_INSTANCES=10" >> $GITHUB_OUTPUT
+          fi
+          
+          # Set image tag based on git commit
+          echo "IMAGE_TAG=${GITHUB_SHA::8}-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Configure Docker to use gcloud credentials
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # Retrieve service URLs from the deployed services or from secrets
+      - name: Get Service URLs
+        id: services
+        run: |
+          # Retrieve URLs of deployed services
+          # For production, we should use stored URLs from previous deployments or from secrets
+          
+          # Check if we have URLs stored in secrets
+          if [[ -n "${{ secrets.CLIENT_SERVICE_URL }}" ]]; then
+            echo "CLIENT_SERVICE_URL=${{ secrets.CLIENT_SERVICE_URL }}" >> $GITHUB_OUTPUT
+          else
+            # Fallback to getting URLs from existing Cloud Run services
+            CLIENT_URL=$(gcloud run services describe dabao-client --region=${{ env.REGION }} --format="value(status.url)" 2>/dev/null || echo "https://dabao-client-example.run.app")
+            echo "CLIENT_SERVICE_URL=${CLIENT_URL}" >> $GITHUB_OUTPUT
+          fi
+          
+          # Repeat for other services
+          DA_ASSISTANT_URL=$(gcloud run services describe dabao-da-assistant --region=${{ env.REGION }} --format="value(status.url)" 2>/dev/null || echo "https://dabao-da-assistant-example.run.app") 
+          echo "DA_ASSISTANT_SERVICE_URL=${DA_ASSISTANT_URL}" >> $GITHUB_OUTPUT
+          
+          MCP_SERVER_URL=$(gcloud run services describe dabao-dabao-mcp-server --region=${{ env.REGION }} --format="value(status.url)" 2>/dev/null || echo "https://dabao-mcp-server-example.run.app")
+          echo "DABAO_MCP_SERVER_SERVICE_URL=${MCP_SERVER_URL}" >> $GITHUB_OUTPUT
+          
+          WEB_URL=$(gcloud run services describe dabao-web --region=${{ env.REGION }} --format="value(status.url)" 2>/dev/null || echo "https://dabao-web-example.run.app")
+          echo "WEB_SERVICE_URL=${WEB_URL}" >> $GITHUB_OUTPUT
+          
+          WWW_URL=$(gcloud run services describe dabao-www --region=${{ env.REGION }} --format="value(status.url)" 2>/dev/null || echo "https://dabao-www-example.run.app")
+          echo "WWW_SERVICE_URL=${WWW_URL}" >> $GITHUB_OUTPUT
+
+      # Run the deployment script
+      - name: Deploy Kong to Cloud Run
+        run: |
+          ./scripts/deploy/deploy-kong-cloud-run.sh \
+            --project-id=${{ env.PROJECT_ID }} \
+            --region=${{ env.REGION }} \
+            --service-name=${{ env.SERVICE_NAME }} \
+            --image-name=dabao-kong \
+            --image-tag=${{ steps.env_vars.outputs.IMAGE_TAG }} \
+            --repository=${{ env.REPOSITORY }} \
+            --min-instances=${{ steps.env_vars.outputs.MIN_INSTANCES }} \
+            --max-instances=${{ steps.env_vars.outputs.MAX_INSTANCES }} \
+            --client-url=${{ steps.services.outputs.CLIENT_SERVICE_URL }} \
+            --da-assistant-url=${{ steps.services.outputs.DA_ASSISTANT_SERVICE_URL }} \
+            --mcp-server-url=${{ steps.services.outputs.DABAO_MCP_SERVER_SERVICE_URL }} \
+            --web-url=${{ steps.services.outputs.WEB_SERVICE_URL }} \
+            --www-url=${{ steps.services.outputs.WWW_SERVICE_URL }}
+
+      - name: Output Service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region=${{ env.REGION }} --format="value(status.url)")
+          echo "Kong API Gateway is now available at: $SERVICE_URL"
+          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
+          
+      # Optional: Update DNS or other services with the new Kong URL
+      - name: Post Deployment Tasks
+        run: |
+          echo "Kong deployment completed. Running post-deployment tasks..."
+          # Add any additional tasks here, such as:
+          # - Updating DNS records
+          # - Performing health checks
+          # - Sending notifications
