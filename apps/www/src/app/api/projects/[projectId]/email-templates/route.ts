@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAuth } from "@/lib/auth";
+import { getServerUser } from "@/lib/auth";
 import { z } from "zod";
 import { EmailTemplateStatus, EmailTemplateType } from "@/lib/api/email-templates";
 
@@ -10,11 +10,12 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const auth = await getAuth();
-    if (!auth.userId) {
+    const user = await getServerUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const {projectId} =await params;
     // Parse query params for filtering
     const url = new URL(request.url);
     const categoryId = url.searchParams.get("categoryId") || undefined;
@@ -23,7 +24,7 @@ export async function GET(
 
     // Build filter conditions
     const where: any = {
-      projectId: params.projectId,
+      projectId: projectId,
       ...(categoryId && { categoryId }),
       ...(type && { type }),
       ...(status && { status }),
@@ -80,11 +81,11 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const auth = await getAuth();
-    if (!auth.userId) {
+    const user = await getServerUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+const { projectId } = await params;
     const body = await request.json();
     
     // Validate request body
@@ -113,7 +114,7 @@ export async function POST(
       const category = await db.emailTemplateCategory.findUnique({
         where: {
           id: categoryId,
-          projectId: params.projectId,
+          projectId: projectId,
         },
       });
 
@@ -128,7 +129,7 @@ export async function POST(
     // Create the template
     const template = await db.emailTemplate.create({
       data: {
-        projectId: params.projectId,
+        projectId: projectId,
         name,
         description,
         type,

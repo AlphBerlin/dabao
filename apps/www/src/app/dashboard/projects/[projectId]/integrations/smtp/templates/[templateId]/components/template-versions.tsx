@@ -2,32 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@workspace/ui/components/table";
 import { Badge } from "@workspace/ui/components/badge";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -35,17 +35,25 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
 } from "@workspace/ui/components/alert-dialog";
-import { MoreVertical, EyeIcon, CheckCircle, AlertCircle, Trash, Clock } from "lucide-react";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import {
+  MoreVertical,
+  EyeIcon,
+  CheckCircle,
+  AlertCircle,
+  Trash,
+  Clock,
+} from "lucide-react";
+import { toast } from "@workspace/ui/components/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  EmailTemplateVersion, 
-  deleteTemplateVersion, 
-  updateTemplateVersion 
+import {
+  EmailTemplateVersion,
+  activateTemplateVersion,
+  updateTemplate,
 } from "@/lib/api/email-templates";
 import { formatDistanceToNow } from "date-fns";
+import { api } from "@/lib/api/api";
 
 interface TemplateVersionsProps {
   versions: EmailTemplateVersion[];
@@ -56,58 +64,62 @@ interface TemplateVersionsProps {
   hasUnsavedChanges: boolean;
 }
 
-export default function TemplateVersions({ 
-  versions, 
+// Custom function to delete a template version
+const deleteTemplateVersion = async (
+  projectId: string,
+  templateId: string,
+  versionId: string
+): Promise<void> => {
+  return api.delete<void>(
+    `/projects/${projectId}/email-templates/${templateId}/versions/${versionId}`
+  );
+};
+
+export default function TemplateVersions({
+  versions,
   currentVersionId,
   onSwitchVersion,
   projectId,
   templateId,
-  hasUnsavedChanges
+  hasUnsavedChanges,
 }: TemplateVersionsProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const router = useRouter();
-  
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
 
   // Delete version mutation
   const deleteMutation = useMutation({
-    mutationFn: (versionId: string) => deleteTemplateVersion(projectId, templateId, versionId),
+    mutationFn: (versionId: string) =>
+      deleteTemplateVersion(projectId, templateId, versionId),
     onSuccess: () => {
-      toast({
-        title: "Version deleted",
-        description: "Template version has been deleted successfully."
+      toast.success("Template version has been deleted successfully.");
+      queryClient.invalidateQueries({
+        queryKey: ["templateVersions", projectId, templateId],
       });
-      queryClient.invalidateQueries({ queryKey: ["templateVersions", projectId, templateId] });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to delete version: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
-      });
-    }
+      toast.error(`Failed to delete version: ${error instanceof Error ? error.message : "Unknown error"}`);
+    },
   });
 
   // Set active version mutation
   const setActiveMutation = useMutation({
-    mutationFn: (versionId: string) => updateTemplateVersion(projectId, templateId, versionId, { isActive: true }),
+    mutationFn: (versionId: string) =>
+      activateTemplateVersion(projectId, templateId, versionId),
     onSuccess: () => {
-      toast({
-        title: "Version activated",
-        description: "Template version has been set as active successfully."
+      toast.success("Template version has been set as active successfully.");
+      queryClient.invalidateQueries({
+        queryKey: ["templateVersions", projectId, templateId],
       });
-      queryClient.invalidateQueries({ queryKey: ["templateVersions", projectId, templateId] });
-      queryClient.invalidateQueries({ queryKey: ["emailTemplate", projectId, templateId] });
+      queryClient.invalidateQueries({
+        queryKey: ["emailTemplate", projectId, templateId],
+      });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to activate version: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
-      });
-    }
+      toast.error( `Failed to activate version: ${error instanceof Error ? error.message : "Unknown error"}`);
+    },
   });
 
   // Handle delete version
@@ -132,7 +144,9 @@ export default function TemplateVersions({
 
   // Handle preview version
   const handlePreviewVersion = (versionId: string) => {
-    router.push(`/dashboard/projects/${projectId}/integrations/smtp/templates/${templateId}/versions/${versionId}/preview`);
+    router.push(
+      `/dashboard/projects/${projectId}/integrations/smtp/templates/${templateId}/versions/${versionId}/preview`
+    );
   };
 
   // Format date
@@ -146,12 +160,16 @@ export default function TemplateVersions({
 
   return (
     <>
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Version</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this version? This action cannot be undone.
+              Are you sure you want to delete this version? This action cannot
+              be undone.
               <br />
               <br />
               Note: You cannot delete an active version.
@@ -159,8 +177,8 @@ export default function TemplateVersions({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteVersion} 
+            <AlertDialogAction
+              onClick={confirmDeleteVersion}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
@@ -168,16 +186,17 @@ export default function TemplateVersions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Template Versions</CardTitle>
           <CardDescription>
-            Manage your template versions. Each version contains a snapshot of your template content.
+            Manage your template versions. Each version contains a snapshot of
+            your template content.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {versions.length === 0 ? (
+          {versions?.length === 0 ? (
             <div className="text-center p-8 text-muted-foreground">
               <p>No versions found. Save your template to create a version.</p>
             </div>
@@ -195,20 +214,29 @@ export default function TemplateVersions({
                 </TableHeader>
                 <TableBody>
                   {versions.map((version) => (
-                    <TableRow key={version.id} className={version.id === currentVersionId ? "bg-accent/30" : ""}>
+                    <TableRow
+                      key={version.id}
+                      className={
+                        version.id === currentVersionId ? "bg-accent/30" : ""
+                      }
+                    >
                       <TableCell>
-                        <div className="font-medium">v{version.version}</div>
+                        <div className="font-medium">v{version.name}</div>
                       </TableCell>
                       <TableCell>
                         {version.isActive ? (
-                          <Badge variant="default" className="bg-green-600">Active</Badge>
+                          <Badge variant="default" className="bg-green-600">
+                            Active
+                          </Badge>
                         ) : (
                           <Badge variant="outline">Draft</Badge>
                         )}
                       </TableCell>
                       <TableCell>{formatDate(version.createdAt)}</TableCell>
                       <TableCell>
-                        {version.publishedAt ? formatDate(version.publishedAt) : "—"}
+                        {version.createdAt
+                          ? formatDate(version.createdAt)
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -219,9 +247,9 @@ export default function TemplateVersions({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            
+
                             {version.id !== currentVersionId && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => onSwitchVersion(version)}
                                 disabled={hasUnsavedChanges}
                               >
@@ -229,20 +257,24 @@ export default function TemplateVersions({
                                 View & Edit
                               </DropdownMenuItem>
                             )}
-                            
+
                             {!version.isActive && (
-                              <DropdownMenuItem onClick={() => handleSetActive(version.id)}>
+                              <DropdownMenuItem
+                                onClick={() => handleSetActive(version.id)}
+                              >
                                 <CheckCircle className="w-4 h-4 mr-2" />
                                 Set as Active
                               </DropdownMenuItem>
                             )}
-                            
+
                             {!version.isActive && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteVersion(version.id)}
-                                  className="text-destructive focus:text-destructive" 
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleDeleteVersion(version.id)
+                                  }
+                                  className="text-destructive focus:text-destructive"
                                 >
                                   <Trash className="w-4 h-4 mr-2" />
                                   Delete

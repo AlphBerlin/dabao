@@ -158,3 +158,5 @@ export function TemplatePreview({ html, subject, previewText }: TemplatePreviewP
     </div>
   );
 }
+
+export default TemplatePreview;

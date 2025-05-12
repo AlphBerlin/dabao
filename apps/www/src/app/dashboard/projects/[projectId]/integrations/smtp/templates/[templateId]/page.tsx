@@ -2,18 +2,22 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@workspace/ui/components/breadcrumb";
 import { TemplateEditor } from "../components/template-editor";
-import { TemplateSettings } from "../components/template-settings";
-import { TemplateVersions } from "../components/template-versions";
+import  TemplateSettings  from "./components/template-settings";
+import TemplateVersions  from "./components/template-versions";
 import { fetchTemplate } from "@/lib/api/email-templates";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 
-export default function TemplateEditorPage() {
+// Create a new QueryClient instance
+const queryClient = new QueryClient();
+
+// Create a wrapped component that uses React Query hooks
+function TemplateEditorPageContent() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.projectId as string;
@@ -122,5 +126,14 @@ export default function TemplateEditorPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+// Export the component wrapped with QueryClientProvider
+export default function TemplateEditorPage() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TemplateEditorPageContent />
+    </QueryClientProvider>
   );
 }

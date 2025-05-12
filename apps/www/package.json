@@ -12,6 +12,7 @@
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.0.1",
+    "@monaco-editor/react": "^4.7.0",
     "@nivo/bar": "^0.92.2",
     "@prisma/client": "6.7.0",
     "@supabase/ssr": "^0.6.1",

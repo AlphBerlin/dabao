@@ -32,7 +32,7 @@ import {
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import { toast } from "@workspace/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { 
   EmailTemplate, 
@@ -66,7 +66,6 @@ export default function TemplateSettings({
   onUpdate,
   projectId
 }: TemplateSettingsProps) {
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch categories for dropdown
@@ -84,7 +83,7 @@ export default function TemplateSettings({
       type: template.type,
       subject: template.subject,
       previewText: template.previewText || "",
-      categoryId: template.categoryId || null,
+      categoryId: template.category?.id || null,
       status: template.status,
     },
   });
@@ -97,7 +96,7 @@ export default function TemplateSettings({
       type: template.type,
       subject: template.subject,
       previewText: template.previewText || "",
-      categoryId: template.categoryId || null,
+      categoryId: template.category?.id || null,
       status: template.status,
     });
   }, [template, form]);
@@ -107,16 +106,9 @@ export default function TemplateSettings({
     setIsSubmitting(true);
     try {
       await onUpdate(data);
-      toast({
-        title: "Template updated",
-        description: "Template settings have been updated successfully."
-      });
+      toast.success( "Template settings have been updated successfully.");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to update template: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
-      });
+      toast.success(`Failed to update template: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }

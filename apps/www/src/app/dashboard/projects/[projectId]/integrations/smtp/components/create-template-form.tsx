@@ -61,7 +61,7 @@ export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: C
       description: "",
       previewText: "",
       type: "TRANSACTIONAL" as EmailTemplateType,
-      categoryId: undefined,
+      categoryId: "NONE", // Changed from undefined to "NONE"
     },
   });
 
@@ -76,7 +76,14 @@ export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: C
 
   // Create template mutation
   const createMutation = useMutation({
-    mutationFn: (data: z.infer<typeof formSchema>) => createTemplate(projectId, data),
+    mutationFn: (data: z.infer<typeof formSchema>) => {
+      // Convert "NONE" back to undefined or empty string as needed by the API
+      const payload = {
+        ...data,
+        categoryId: data.categoryId === "NONE" ? undefined : data.categoryId,
+      };
+      return createTemplate(projectId, payload);
+    },
     onSuccess: (template) => {
       onSuccess(template);
     },
@@ -226,7 +233,7 @@ export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: C
                 <Select
                   disabled={categoriesLoading}
                   onValueChange={field.onChange}
-                  value={field.value || ""}
+                  value={field.value || "NONE"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -234,7 +241,7 @@ export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: C
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="NONE">None</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}

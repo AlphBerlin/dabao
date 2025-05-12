@@ -5,9 +5,9 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import { toast } from "@workspace/ui/components/sonner";
 import { Eye, Code, Save, Check, Loader2 } from "lucide-react";
-import { TemplatePreview } from "./template-preview";
+import  TemplatePreview  from "./template-preview";
 import { createTemplateVersion, EmailTemplate } from "@/lib/api/email-templates";
 import Editor from "@monaco-editor/react";
 
@@ -18,7 +18,6 @@ interface TemplateEditorProps {
 }
 
 export function TemplateEditor({ projectId, template, refetchTemplate }: TemplateEditorProps) {
-  const { toast } = useToast();
   const [activeView, setActiveView] = useState<"design" | "code" | "preview">("design");
   const [htmlContent, setHtmlContent] = useState(template.activeVersion?.html || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -40,20 +39,13 @@ export function TemplateEditor({ projectId, template, refetchTemplate }: Templat
       });
     },
     onSuccess: () => {
-      toast({
-        title: "Template saved",
-        description: "Your template has been saved and set as the active version.",
-      });
+      toast.success("Your template has been saved and set as the active version.");
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
       refetchTemplate();
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to save template: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
+      toast.error( `Failed to save template: ${error instanceof Error ? error.message : "Unknown error"}`);
     },
   });
 

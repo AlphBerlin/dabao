@@ -77,7 +77,9 @@ import { toast } from "@workspace/ui/components/sonner";
 import {
   useQuery,
   useMutation,
-  useQueryClient
+  useQueryClient,
+  QueryClient,
+  QueryClientProvider
 } from "@tanstack/react-query";
 import { 
   fetchTemplates,
@@ -96,19 +98,32 @@ interface EmailTemplatesPageProps {
   projectId: string;
 }
 
-export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProps) {
+// Create a new QueryClient instance
+const queryClient = new QueryClient();
+
+// Create a wrapped component that uses React Query hooks
+function EmailTemplatesPageContent({ projectId }: EmailTemplatesPageProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   
   // State for dialog/alert management
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<EmailTemplateType | "">("");
-  const [selectedStatus, setSelectedStatus] = useState<EmailTemplateStatus | "">("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedType, setSelectedType] = useState<EmailTemplateType | "ALL">("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<EmailTemplateStatus | "ALL">("ALL");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("ALL");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<EmailTemplate | null>(null);
   const [templateTabIndex, setTemplateTabIndex] = useState("all"); // 'all' or 'categories'
+
+  // Handle type and status changes with proper type casting
+  const handleTypeChange = (value: string) => {
+    setSelectedType(value as EmailTemplateType | "ALL");
+  };
+
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value as EmailTemplateStatus | "ALL");
+  };
 
   // Queries
   const { 
@@ -118,9 +133,9 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
   } = useQuery({
     queryKey: ["emailTemplates", projectId, selectedType, selectedStatus, selectedCategoryId],
     queryFn: () => fetchTemplates(projectId, {
-      type: selectedType as EmailTemplateType | undefined,
-      status: selectedStatus as EmailTemplateStatus | undefined,
-      categoryId: selectedCategoryId || undefined,
+      type: selectedType !== "ALL" ? selectedType as EmailTemplateType : undefined,
+      status: selectedStatus !== "ALL" ? selectedStatus as EmailTemplateStatus : undefined,
+      categoryId: selectedCategoryId !== "ALL" ? selectedCategoryId : undefined,
     }),
   });
 
@@ -289,7 +304,7 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
               />
             </div>
             <div className="flex gap-2 items-center">
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select value={selectedType} onValueChange={handleTypeChange}>
                 <SelectTrigger className="w-[160px]">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
@@ -297,7 +312,7 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="ALL">All Types</SelectItem>
                   <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
                   <SelectItem value="MARKETING">Marketing</SelectItem>
                   <SelectItem value="NOTIFICATION">Notification</SelectItem>
@@ -305,7 +320,7 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
                 </SelectContent>
               </Select>
               
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <Select value={selectedStatus} onValueChange={handleStatusChange}>
                 <SelectTrigger className="w-[160px]">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
@@ -313,7 +328,7 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="ALL">All Statuses</SelectItem>
                   <SelectItem value="DRAFT">Draft</SelectItem>
                   <SelectItem value="PUBLISHED">Published</SelectItem>
                   <SelectItem value="ARCHIVED">Archived</SelectItem>
@@ -341,8 +356,8 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
                       variant="link"
                       onClick={() => {
                         setSearchQuery("");
-                        setSelectedType("");
-                        setSelectedStatus("");
+                        setSelectedType('TRANSACTIONAL');
+                        setSelectedStatus('DRAFT');
                         setSelectedCategoryId("");
                       }}
                     >
@@ -443,5 +458,14 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+// Export the component wrapped with QueryClientProvider
+export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <EmailTemplatesPageContent projectId={projectId} />
+    </QueryClientProvider>
   );
 }
