@@ -45,7 +45,6 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   
   // For debugging purposes
   const DEBUG_MODE = process.env.NODE_ENV === "development";
-  const mcpServerUrl = process.env.NEXT_PUBLIC_DA_ASSISTANT_URL || "http://localhost:50051";
   
   if (loading) {
     return (
