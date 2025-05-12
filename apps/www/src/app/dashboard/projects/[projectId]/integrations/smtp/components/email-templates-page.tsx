@@ -5,12 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@workspace/ui/components/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  Card
 } from "@workspace/ui/components/card";
 import {
   DropdownMenu,
@@ -78,7 +73,7 @@ import {
   Clock
 } from "lucide-react";
 import { format } from "date-fns";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import { toast } from "@workspace/ui/components/sonner";
 import {
   useQuery,
   useMutation,
@@ -103,7 +98,6 @@ interface EmailTemplatesPageProps {
 
 export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // State for dialog/alert management
@@ -145,20 +139,13 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
       return deleteTemplate(projectId, templateToDelete.id);
     },
     onSuccess: () => {
-      toast({
-        title: "Template deleted",
-        description: "Email template has been deleted successfully."
-      });
+      toast.success("Email template has been deleted successfully.");
       setIsDeleteDialogOpen(false);
       setTemplateToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["emailTemplates"] });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to delete template: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
-      });
+      toast.error(`Failed to delete template: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   });
 
@@ -176,10 +163,7 @@ export default function EmailTemplatesPage({ projectId }: EmailTemplatesPageProp
   // Handle template creation
   const handleCreateSuccess = (template: EmailTemplate) => {
     setIsCreateDialogOpen(false);
-    toast({
-      title: "Template created",
-      description: "Your new email template has been created successfully."
-    });
+    toast.success("Your new email template has been created successfully.");
     // Navigate to the newly created template
     router.push(`/dashboard/projects/${projectId}/integrations/smtp/templates/${template.id}`);
   };

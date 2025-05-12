@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +25,7 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import { toast } from "@workspace/ui/components/sonner";
 import {
   createTemplate,
   fetchTemplateCategories,
@@ -52,7 +51,6 @@ interface CreateTemplateFormProps {
 }
 
 export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: CreateTemplateFormProps) {
-  const { toast } = useToast();
   
   // Form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -83,11 +81,7 @@ export default function CreateTemplateForm({ projectId, onSuccess, onCancel }: C
       onSuccess(template);
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to create template: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to create template: ${error instanceof Error ? error.message : "Unknown error"}`);
     },
   });
 

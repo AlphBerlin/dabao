@@ -5,7 +5,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { Smartphone, Tablet, Monitor } from "lucide-react";
-import { useToast } from "@workspace/ui/components/toast/use-toast";
+import { toast } from "@workspace/ui/components/sonner";
 
 interface TemplatePreviewProps {
   html: string;
@@ -14,7 +14,6 @@ interface TemplatePreviewProps {
 }
 
 export function TemplatePreview({ html, subject, previewText }: TemplatePreviewProps) {
-  const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [loading, setLoading] = useState(true);
