@@ -45,6 +45,8 @@ export interface ImageGenerationOptions {
   modelName?: string;
   customApiEndpoint?: string;
   customApiKey?: string;
+  organizationId?: string;   // Organization context
+  projectId?: string;        // Project context
 }
 
 export interface GeneratedImage {

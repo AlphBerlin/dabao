@@ -1,6 +1,8 @@
 // da-assistant.ts
 // API invocation library for DA Assistant
 
+import { createClient } from '../supabase/client';
+
 export interface SessionResponse {
     sessionId: string;
   }
@@ -61,6 +63,33 @@ export interface SessionResponse {
   const BASE_URL = process.env.DA_ASSISTANT_BASE_URL || "http://localhost:3001";
   
   /**
+   * Helper function to get authentication headers with the current user's token
+   * @returns Headers object with auth token if available
+   */
+  async function getAuthHeaders(): Promise<HeadersInit> {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json"
+    };
+
+    try {
+      // Import dynamically to avoid SSR issues
+      const supabase = createClient();
+      
+      // Get the session from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Add authorization header if we have a session
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    
+    return headers;
+  }
+  
+  /**
    * Create a new chat session.
    * @param userId ID of the user creating the session
    * @param title Optional title for the chat session
@@ -70,9 +99,11 @@ export interface SessionResponse {
     userId: string,
     title?: string
   ): Promise<string> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(`${BASE_URL}/api/sessions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ userId, title }),
     });
     if (res.status === 201) {
@@ -86,18 +117,19 @@ export interface SessionResponse {
    export async function getSessions(
     userId: string,
   ): Promise<any> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(`${BASE_URL}/api/sessions`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
+      headers,
     });
-    if (res.status === 201) {
-      const data: SessionResponse = await res.json();
-      return data.sessionId;
-    } else {
+    
+    if (!res.ok) {
       const error = await res.json();
-      throw new Error(error.error || "Failed to create session");
+      throw new Error(error.error || "Failed to get sessions");
     }
+    
+    return await res.json();
   }
   
   /**
@@ -105,8 +137,11 @@ export interface SessionResponse {
    * @param sessionId ID of the session to delete
    */
   export async function deleteSession(sessionId: string): Promise<void> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(`${BASE_URL}/api/sessions/${sessionId}`, {
       method: "DELETE",
+      headers,
     });
     if (res.status !== 204) {
       const error = await res.json();
@@ -120,8 +155,11 @@ export interface SessionResponse {
    * @returns Array of messages
    */
   export async function getMessages(sessionId: string): Promise<Message[]> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(
-      `${BASE_URL}/api/sessions/${sessionId}/messages`
+      `${BASE_URL}/api/sessions/${sessionId}/messages`,
+      { headers }
     );
     if (!res.ok) {
       const error = await res.json();
@@ -145,11 +183,13 @@ export interface SessionResponse {
     content: string,
     parameters?: Record<string, any>
   ): Promise<ChatResponse> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(
       `${BASE_URL}/api/sessions/${sessionId}/messages`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ userId, content, parameters }),
       }
     );
@@ -175,11 +215,13 @@ export interface SessionResponse {
     content: string,
     parameters?: Record<string, any>
   ): AsyncGenerator<ChatResponse | { done: boolean } | { error: string }> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(
       `${BASE_URL}/api/sessions/${sessionId}/messages/stream`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ userId, content, parameters }),
       }
     );
@@ -231,9 +273,11 @@ export interface SessionResponse {
     message: string,
     parameters?: Record<string, any>
   ): Promise<ChatResponse> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(`${BASE_URL}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ message, parameters }),
     });
     if (!res.ok) {
@@ -250,9 +294,11 @@ export interface SessionResponse {
    * @returns Generated image URLs and metadata
    */
   export async function generateImages(request: GenerateImageRequest): Promise<GenerateImageResponse> {
+    const headers = await getAuthHeaders();
+    
     const res = await fetch(`${BASE_URL}/api/images/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(request),
     });
     
