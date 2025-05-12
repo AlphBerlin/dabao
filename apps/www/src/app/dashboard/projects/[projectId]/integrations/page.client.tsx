@@ -4,9 +4,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
+import { CheckCircle2, AlertCircle, MessageSquare, Mail } from "lucide-react";
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fetchTelegramSettings } from "@/lib/api/telegram";
+import { fetchSmtpSettings } from "@/lib/api/smtp";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -18,6 +19,12 @@ function IntegrationsPageContent({projectId}: { projectId: string }) {
     queryKey: ["telegramSettings", projectId],
     queryFn: () => fetchTelegramSettings(projectId),
   });
+  
+  // Fetch SMTP integration status
+  const { data: smtpSettings, isLoading: smtpLoading } = useQuery({
+    queryKey: ["smtpSettings", projectId],
+    queryFn: () => fetchSmtpSettings(projectId),
+  });
 
   const integrations = [
     {
@@ -27,6 +34,14 @@ function IntegrationsPageContent({projectId}: { projectId: string }) {
       icon: MessageSquare,
       status: telegramLoading ? "loading" : (telegramSettings ? "connected" : "not_connected"),
       href: `/dashboard/projects/${projectId}/integrations/telegram`,
+    },
+    {
+      id: "smtp",
+      name: "Email (SMTP)",
+      description: "Configure SMTP settings to send transactional and campaign emails to your customers",
+      icon: Mail,
+      status: smtpLoading ? "loading" : (smtpSettings ? "connected" : "not_connected"),
+      href: `/dashboard/projects/${projectId}/integrations/smtp`,
     },
     // Add other integrations here in the future
   ];

@@ -205,6 +205,7 @@ model Project {
   telegramMenus     TelegramMenu[]
   brandingSettings  BrandingSettings?  // Add relation to BrandingSettings
   aiImages          AIImage[]
+  smtpConfig        SmtpConfig?        // Add relation to SmtpConfig
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -844,6 +845,27 @@ model AIImage {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   
   @@map("ai_images")
+  @@schema("dabao_tenant")
+}
+
+// SmtpConfig model for project-level SMTP configuration
+model SmtpConfig {
+  id            String    @id @default(cuid())
+  projectId     String    @unique
+  host          String
+  port          Int
+  secure        Boolean   @default(true)
+  username      String
+  password      String
+  senderName    String @map("sender_name")
+  senderEmail   String  @map("sender_email")  
+  lastTestedAt  DateTime? @map("last_tested_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relation
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@map("smtp_configs")
   @@schema("dabao_tenant")
 }
 
