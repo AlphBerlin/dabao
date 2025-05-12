@@ -107,7 +107,7 @@ export async function checkRole(projectId: string, minRole: UserRole): Promise<b
  * Server-side function to require authentication and redirect if not authenticated
  * @param redirectTo Where to redirect unauthenticated users
  */
-export async function requireAuth(redirectTo: string = '/login') {
+export async function requireAuth(redirectTo: string = '/auth/login') {
     const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
 

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function Profile() {
   // Server-side authentication check - only requires the user to be logged in
-  const session = await requireAuth("/login");
+  const session = await requireAuth("/auth/login");
 
   return <ProfilePage />;
 }
