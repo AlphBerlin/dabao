@@ -103,6 +103,24 @@ enum TelegramCommandType {
   @@schema("dabao")
 }
 
+// Email Template models for managing email templates
+enum EmailTemplateType {
+  TRANSACTIONAL
+  MARKETING
+  NOTIFICATION
+  CUSTOM
+
+  @@schema("dabao_tenant")
+}
+
+enum EmailTemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("dabao_tenant")
+}
+
 // -----------------------------
 // Control-plane models (Organization & Admin)
 // -----------------------------
@@ -206,6 +224,10 @@ model Project {
   brandingSettings  BrandingSettings?  // Add relation to BrandingSettings
   aiImages          AIImage[]
   smtpConfig        SmtpConfig?        // Add relation to SmtpConfig
+  emailTemplateCategories EmailTemplateCategory[] // Add relation to EmailTemplateCategory
+  emailTemplates    EmailTemplate[]    // Add relation to EmailTemplate
+  emailCampaigns    EmailCampaign[]    // Add relation to EmailCampaign
+  emailLogs         EmailLog[]         // Add relation to EmailLog
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -306,6 +328,7 @@ model Customer {
   pointsTransactions  CustomerPointsTransaction[]
   voucherRedemptions  VoucherRedemption[]
   telegramUsers       TelegramUser[]
+  emailLogs           EmailLog[]                  // Add relation to EmailLog
 
   @@unique([projectId, email])
   @@unique([projectId, externalId])
@@ -866,6 +889,138 @@ model SmtpConfig {
   // Relation
   project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   @@map("smtp_configs")
+  @@schema("dabao_tenant")
+}
+
+// EmailTemplateCategory for organizing templates
+model EmailTemplateCategory {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  emailTemplates EmailTemplate[]
+
+  @@unique([projectId, name])
+  @@map("email_template_categories")
+  @@schema("dabao_tenant")
+}
+
+// EmailTemplate for storing template definitions
+model EmailTemplate {
+  id           String             @id @default(cuid())
+  projectId    String             @map("project_id")
+  categoryId   String?            @map("category_id")
+  name         String
+  description  String?
+  type         EmailTemplateType  @default(TRANSACTIONAL)
+  status       EmailTemplateStatus @default(DRAFT)
+  subject      String
+  previewText  String?            @map("preview_text")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category          EmailTemplateCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  versions          EmailTemplateVersion[]
+  emailCampaigns    EmailCampaign[]
+  emailLogs         EmailLog[]
+
+  @@unique([projectId, name])
+  @@map("email_templates")
+  @@schema("dabao_tenant")
+}
+
+// EmailTemplateVersion for versioning templates
+model EmailTemplateVersion {
+  id             String   @id @default(cuid())
+  templateId     String   @map("template_id")
+  version        Int
+  htmlContent    String   @map("html_content")
+  textContent    String?  @map("text_content")
+  jsonContent    Json?    @map("json_content")
+  variables      Json?    // Array of variables used in the template
+  isActive       Boolean  @default(false) @map("is_active")
+  publishedAt    DateTime? @map("published_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  template       EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  emailLogs      EmailLog[]
+
+  @@unique([templateId, version])
+  @@map("email_template_versions")
+  @@schema("dabao_tenant")
+}
+
+// EmailCampaign for sending bulk emails
+model EmailCampaign {
+  id              String                 @id @default(cuid())
+  projectId       String                 @map("project_id")
+  name            String
+  description     String?
+  templateId      String                 @map("template_id")
+  subject         String?                // Can override template subject
+  previewText     String?                @map("preview_text")
+  audienceFilter  Json?                  @map("audience_filter") // Filter criteria for targeting users
+  scheduledFor    DateTime?              @map("scheduled_for")
+  completedAt     DateTime?              @map("completed_at")
+  status          String                 @default("DRAFT")  // DRAFT, SCHEDULED, SENDING, COMPLETED, CANCELLED
+  sentCount       Int                    @default(0) @map("sent_count")
+  deliveredCount  Int                    @default(0) @map("delivered_count")
+  openCount       Int                    @default(0) @map("open_count")
+  clickCount      Int                    @default(0) @map("click_count")
+  templateVariables Json?                @map("template_variables")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template      EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  emailLogs     EmailLog[]
+
+  @@map("email_campaigns")
+  @@schema("dabao_tenant")
+}
+
+// EmailLog for tracking emails sent
+model EmailLog {
+  id                String    @id @default(cuid())
+  projectId         String    @map("project_id")
+  templateId        String    @map("template_id")
+  templateVersionId String?   @map("template_version_id")
+  campaignId        String?   @map("campaign_id")
+  customerId        String?   @map("customer_id")
+  recipientEmail    String    @map("recipient_email")
+  recipientName     String?   @map("recipient_name")
+  subject           String
+  variables         Json?     // Variables used in the template
+  messageId         String?   @map("message_id")  // Message ID from email provider
+  status            String    @default("SENT")    // SENT, DELIVERED, OPENED, CLICKED, BOUNCED, FAILED
+  sentAt            DateTime  @default(now()) @map("sent_at")
+  deliveredAt       DateTime? @map("delivered_at")
+  openedAt          DateTime? @map("opened_at")
+  clickedAt         DateTime? @map("clicked_at")
+  bouncedAt         DateTime? @map("bounced_at")
+  failedAt          DateTime? @map("failed_at")
+  failureReason     String?   @map("failure_reason")
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  
+  // Relations
+  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template          EmailTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateVersion   EmailTemplateVersion? @relation(fields: [templateVersionId], references: [id])
+  campaign          EmailCampaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  customer          Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@map("email_logs")
   @@schema("dabao_tenant")
 }
 

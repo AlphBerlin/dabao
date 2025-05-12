@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import SmtpSettingsPage from "./components/smtp-settings-page";
+import EmailTemplatesPage from "./components/email-templates-page";
 
 interface SmtpIntegrationPageProps {
   params: {
@@ -30,15 +31,7 @@ export default async function SmtpIntegrationPage({ params }: SmtpIntegrationPag
         </TabsContent>
         
         <TabsContent value="templates" className="mt-6">
-          <div className="flex flex-col items-center justify-center p-12 border rounded-lg bg-muted/20 text-center">
-            <h3 className="text-xl font-medium">Email Templates</h3>
-            <p className="text-muted-foreground mt-2">
-              Create and manage email templates for your campaigns and transactional emails.
-            </p>
-            <p className="text-sm mt-4">
-              Email templates feature will be available soon.
-            </p>
-          </div>
+          <EmailTemplatesPage projectId={projectId} />
         </TabsContent>
         
         <TabsContent value="campaigns" className="mt-6">
