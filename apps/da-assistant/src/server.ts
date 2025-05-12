@@ -8,6 +8,8 @@ import apiRoutes from './api/routes';
 import { AssistantService } from './services/AssistantService';
 import dotenv from 'dotenv';
 import { optionalAuth } from './middleware/auth';
+import { populateContext } from './middleware/context';
+import { PrismaService } from './services/prismaService';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +33,10 @@ app.use(morgan(configService.isDevelopment() ? 'dev' : 'combined')); // Request 
 // Apply optional authentication to all requests
 // This will attach the user to req if authenticated but not require auth
 app.use(optionalAuth);
+
+// Apply context middleware to populate user, organization, and project details
+// This will use the authenticated user from optionalAuth to build the context
+app.use(populateContext);
 
 // API routes
 app.use('/api', apiRoutes);
@@ -57,6 +63,11 @@ const PORT = configService.getServerPort();
  */
 async function startServer() {
   try {
+    // Initialize Prisma service
+    const prismaService = PrismaService.getInstance();
+    await prismaService.connect();
+    console.log('Connected to database');
+    
     // Initialize the assistant service (connections to MCP server)
     const assistantService = new AssistantService();
     await assistantService.connect();
@@ -71,12 +82,14 @@ async function startServer() {
     process.on('SIGTERM', async () => {
       console.log('SIGTERM received, shutting down gracefully');
       await assistantService.disconnect();
+      await prismaService.disconnect();
       process.exit(0);
     });
     
     process.on('SIGINT', async () => {
       console.log('SIGINT received, shutting down gracefully');
       await assistantService.disconnect();
+      await prismaService.disconnect();
       process.exit(0);
     });
   } catch (error) {

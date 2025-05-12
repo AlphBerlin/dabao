@@ -49,7 +49,7 @@ const MemorizedChatBubble = React.memo(function ChatBubble({
     const match = content.match(thinkingRegex);
     
     if (match) {
-      const thoughts = match[1].trim();
+      const thoughts = match[1]!.trim();
       const cleanText = content.replace(thinkingRegex, '').trim();
       return { text: cleanText, thoughts };
     }
@@ -78,7 +78,6 @@ const MemorizedChatBubble = React.memo(function ChatBubble({
         <>
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]} 
-            className={`prose ${isUser ? 'prose-invert' : ''} max-w-none break-words`}
           >
             {parsedContent.text || ''}
           </ReactMarkdown>
@@ -299,7 +298,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   // Row renderer for virtualized list
   const rowRenderer = ({ index, key, parent, style }: any) => {
     const message = messages[index];
-    const isUserMessage = message.userId === userId;
+    const isUserMessage = message!.userId === userId;
     
     return (
       <CellMeasurer
@@ -309,7 +308,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         parent={parent}
         rowIndex={index}
       >
-        {({ registerChild }) => (
+        {({ registerChild }:any) => (
           <motion.div 
             ref={registerChild as any} 
             style={style}
@@ -319,9 +318,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} mb-4 px-4`}
           >
             <MemorizedChatBubble 
-              content={message.content} 
+              content={message!.content} 
               isUser={isUserMessage}
-              isLoading={isLoading && index === messages.length - 1 && message.userId !== userId} 
+              isLoading={isLoading && index === messages.length - 1 && message!.userId !== userId} 
             />
           </motion.div>
         )}
@@ -551,7 +550,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
               ) : (
                 <div className="h-full py-4">
                   <AutoSizer>
-                    {({ height, width }) => (
+                    {({ height, width }:any) => (
                       <List
                         height={height}
                         width={width}

@@ -4,6 +4,7 @@ import { ConfigService } from '../config/ConfigService';
 import { ChatResponse } from '../types';
 import imageRoutes from '../routes/imageRoutes';
 import { requireAuth } from '../middleware/auth';
+import { populateContext, requireUserContext } from '../middleware/context';
 
 // Get configuration
 const configService = ConfigService.getInstance();
@@ -25,18 +26,18 @@ router.use(async (req, res, next) => {
   }
 });
 
-// Register image generation routes - protected with authentication
-router.use('/images', requireAuth, imageRoutes);
+// Register image generation routes - protected with authentication and context
+router.use('/images', requireAuth, populateContext, requireUserContext, imageRoutes);
 
 /**
  * POST /sessions
  * Create a new chat session
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.post('/sessions', requireAuth, async (req: Request, res: Response) => {
+router.post('/sessions', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
-    // Use authenticated user ID from the token instead of body
-    const userId = req.user!.id;
+    // Use user ID from the context instead of auth token
+    const userId = req.context.user!.id;
     const { title } = req.body;
     
     const sessionId = await assistantService.createSession(userId, title);
@@ -50,11 +51,11 @@ router.post('/sessions', requireAuth, async (req: Request, res: Response) => {
 /**
  * GET /sessions
  * Get all sessions for the authenticated user
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.get('/sessions', requireAuth, async (req: Request, res: Response) => {
+router.get('/sessions', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.context.user!.id;
     const sessions = await assistantService.getUserSessions(userId);
     res.json({ sessions });
   } catch (error) {
@@ -66,9 +67,9 @@ router.get('/sessions', requireAuth, async (req: Request, res: Response) => {
 /**
  * DELETE /sessions/:sessionId
  * Delete a chat session
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.delete('/sessions/:sessionId', requireAuth, async (req: Request, res: Response) => {
+router.delete('/sessions/:sessionId', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     
@@ -77,7 +78,7 @@ router.delete('/sessions/:sessionId', requireAuth, async (req: Request, res: Res
     }
     
     // Verify session belongs to authenticated user
-    const userId = req.user!.id;
+    const userId = req.context.user!.id;
     const sessions = await assistantService.getUserSessions(userId);
     const userOwnsSession = sessions.some(session => session.id === sessionId);
     
@@ -101,9 +102,9 @@ router.delete('/sessions/:sessionId', requireAuth, async (req: Request, res: Res
 /**
  * GET /sessions/:sessionId/messages
  * Get all messages in a session
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.get('/sessions/:sessionId/messages', requireAuth, async (req: Request, res: Response) => {
+router.get('/sessions/:sessionId/messages', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     
@@ -112,7 +113,7 @@ router.get('/sessions/:sessionId/messages', requireAuth, async (req: Request, re
     }
     
     // Verify session belongs to authenticated user
-    const userId = req.user!.id;
+    const userId = req.context.user!.id;
     const sessions = await assistantService.getUserSessions(userId);
     const userOwnsSession = sessions.some(session => session.id === sessionId);
     
@@ -131,9 +132,9 @@ router.get('/sessions/:sessionId/messages', requireAuth, async (req: Request, re
 /**
  * POST /sessions/:sessionId/messages
  * Send a message to the assistant
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.post('/sessions/:sessionId/messages', requireAuth, async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/messages', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const { content, parameters } = req.body;
@@ -147,7 +148,7 @@ router.post('/sessions/:sessionId/messages', requireAuth, async (req: Request, r
     }
     
     // Verify session belongs to authenticated user
-    const userId = req.user!.id;
+    const userId = req.context.user!.id;
     const sessions = await assistantService.getUserSessions(userId);
     const userOwnsSession = sessions.some(session => session.id === sessionId);
     
@@ -155,11 +156,28 @@ router.post('/sessions/:sessionId/messages', requireAuth, async (req: Request, r
       return res.status(403).json({ error: 'Not authorized to message in this session' });
     }
     
+    // Add context information to parameters if available
+    const contextParams = { ...parameters };
+    if (req.context.organization) {
+      contextParams.organization = {
+        id: req.context.organization.id,
+        name: req.context.organization.name,
+        slug: req.context.organization.slug
+      };
+    }
+    if (req.context.project) {
+      contextParams.project = {
+        id: req.context.project.id,
+        name: req.context.project.name,
+        slug: req.context.project.slug
+      };
+    }
+    
     const response = await assistantService.sendMessage(
       sessionId,
       userId,
       content,
-      parameters
+      contextParams
     );
     
     res.json({ response });
@@ -172,9 +190,9 @@ router.post('/sessions/:sessionId/messages', requireAuth, async (req: Request, r
 /**
  * POST /sessions/:sessionId/messages/stream
  * Send a message to the assistant and stream the response
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.post('/sessions/:sessionId/messages/stream', requireAuth, async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/messages/stream', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const { content, parameters } = req.body;
@@ -184,12 +202,29 @@ router.post('/sessions/:sessionId/messages/stream', requireAuth, async (req: Req
     }
     
     // Verify session belongs to authenticated user
-    const userId = req.user!.id;
+    const userId = req.context.user!.id;
     const sessions = await assistantService.getUserSessions(userId);
     const userOwnsSession = sessions.some(session => session.id === sessionId);
     
     if (!userOwnsSession) {
       return res.status(403).json({ error: 'Not authorized to message in this session' });
+    }
+    
+    // Add context information to parameters if available
+    const contextParams = { ...parameters };
+    if (req.context.organization) {
+      contextParams.organization = {
+        id: req.context.organization.id,
+        name: req.context.organization.name,
+        slug: req.context.organization.slug
+      };
+    }
+    if (req.context.project) {
+      contextParams.project = {
+        id: req.context.project.id,
+        name: req.context.project.name,
+        slug: req.context.project.slug
+      };
     }
     
     // Set headers for SSE
@@ -202,7 +237,7 @@ router.post('/sessions/:sessionId/messages/stream', requireAuth, async (req: Req
       sessionId!,
       userId,
       content,
-      parameters
+      contextParams
     );
     
     // Handle stream events
@@ -233,9 +268,9 @@ router.post('/sessions/:sessionId/messages/stream', requireAuth, async (req: Req
 /**
  * POST /chat
  * Simple chat endpoint for one-off messages (no session tracking)
- * Protected: Requires authentication
+ * Protected: Requires authentication and user context
  */
-router.post('/chat', requireAuth, async (req: Request, res: Response) => {
+router.post('/chat', requireAuth, populateContext, requireUserContext, async (req: Request, res: Response) => {
   try {
     const { message, parameters } = req.body;
     
@@ -243,16 +278,33 @@ router.post('/chat', requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'message is required' });
     }
     
-    // Use authenticated user ID
-    const userId = req.user!.id;
+    // Use user ID from the context
+    const userId = req.context.user!.id;
     const sessionId = await assistantService.createSession(userId, 'Temporary Chat');
+    
+    // Add context information to parameters if available
+    const contextParams = { ...parameters };
+    if (req.context.organization) {
+      contextParams.organization = {
+        id: req.context.organization.id,
+        name: req.context.organization.name,
+        slug: req.context.organization.slug
+      };
+    }
+    if (req.context.project) {
+      contextParams.project = {
+        id: req.context.project.id,
+        name: req.context.project.name,
+        slug: req.context.project.slug
+      };
+    }
     
     // Send the message
     const response : ChatResponse = await assistantService.sendMessage(
       sessionId,
       userId,
       message,
-      parameters
+      contextParams
     );
     
     res.json({ response });

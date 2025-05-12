@@ -37,7 +37,6 @@ export class ImageGenerationController {
         style,
         quality,
         numberOfImages = 1,
-        userId,
         sessionId,
         modelName,
         customApiEndpoint,
@@ -50,7 +49,14 @@ export class ImageGenerationController {
         return;
       }
 
-      // Build options object
+      // Get userId from context instead of body
+      const userId = req.context.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User context is required' });
+        return;
+      }
+
+      // Build options object with context data
       const options: ImageGenerationOptions = {
         prompt,
         negativePrompt,
@@ -63,7 +69,10 @@ export class ImageGenerationController {
         sessionId,
         modelName,
         customApiEndpoint,
-        customApiKey
+        customApiKey,
+        // Add organization and project context if available
+        organizationId: req.context.organization?.id,
+        projectId: req.context.project?.id
       };
 
       const result = await this.imageService.generateImage(options);
@@ -109,7 +118,6 @@ export class ImageGenerationController {
         style,
         quality,
         numberOfImages = 1,
-        userId,
         sessionId,
         modelName
       } = req.body;
@@ -121,10 +129,18 @@ export class ImageGenerationController {
         return;
       }
 
+      // Get userId from context instead of body
+      const userId = req.context.user?.id;
+      if (!userId) {
+        res.write(`data: ${JSON.stringify({ error: 'User context is required' })}\n\n`);
+        res.end();
+        return;
+      }
+
       // Send initial status
       res.write(`data: ${JSON.stringify({ status: 'starting', message: 'Starting image generation' })}\n\n`);
 
-      // Build options object
+      // Build options object with context data
       const options: ImageGenerationOptions = {
         prompt,
         negativePrompt,
@@ -135,7 +151,10 @@ export class ImageGenerationController {
         numberOfImages: Math.min(4, parseInt(numberOfImages) || 1), // Limit to 4 images max
         userId,
         sessionId,
-        modelName
+        modelName,
+        // Add organization and project context if available
+        organizationId: req.context.organization?.id,
+        projectId: req.context.project?.id
       };
 
       // Send preparing message
