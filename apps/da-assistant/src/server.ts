@@ -2,10 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { ConfigService } from './config/ConfigService';
 import apiRoutes from './api/routes';
 import { AssistantService } from './services/AssistantService';
 import dotenv from 'dotenv';
+import { optionalAuth } from './middleware/auth';
 
 // Load environment variables
 dotenv.config();
@@ -18,9 +20,17 @@ const app = express();
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(cors({
+  origin: configService.get('CORS_ALLOWED_ORIGINS', '*'),
+  credentials: true,
+})); // Enable CORS with credentials
 app.use(express.json()); // Parse JSON bodies
+app.use(cookieParser()); // Parse cookies
 app.use(morgan(configService.isDevelopment() ? 'dev' : 'combined')); // Request logging
+
+// Apply optional authentication to all requests
+// This will attach the user to req if authenticated but not require auth
+app.use(optionalAuth);
 
 // API routes
 app.use('/api', apiRoutes);

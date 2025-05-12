@@ -3,6 +3,7 @@ import { AssistantService } from '../services/AssistantService';
 import { ConfigService } from '../config/ConfigService';
 import { ChatResponse } from '../types';
 import imageRoutes from '../routes/imageRoutes';
+import { requireAuth } from '../middleware/auth';
 
 // Get configuration
 const configService = ConfigService.getInstance();
@@ -24,20 +25,19 @@ router.use(async (req, res, next) => {
   }
 });
 
-// Register image generation routes
-router.use('/images', imageRoutes);
+// Register image generation routes - protected with authentication
+router.use('/images', requireAuth, imageRoutes);
 
 /**
  * POST /sessions
  * Create a new chat session
+ * Protected: Requires authentication
  */
-router.post('/sessions', async (req: Request, res: Response) => {
+router.post('/sessions', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { userId, title } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    // Use authenticated user ID from the token instead of body
+    const userId = req.user!.id;
+    const { title } = req.body;
     
     const sessionId = await assistantService.createSession(userId, title);
     res.status(201).json({ sessionId });
@@ -48,15 +48,41 @@ router.post('/sessions', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /sessions
+ * Get all sessions for the authenticated user
+ * Protected: Requires authentication
+ */
+router.get('/sessions', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const sessions = await assistantService.getUserSessions(userId);
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Error getting sessions:', error);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
+/**
  * DELETE /sessions/:sessionId
  * Delete a chat session
+ * Protected: Requires authentication
  */
-router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
+router.delete('/sessions/:sessionId', requireAuth, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     
     if (!sessionId) {
       return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
+    // Verify session belongs to authenticated user
+    const userId = req.user!.id;
+    const sessions = await assistantService.getUserSessions(userId);
+    const userOwnsSession = sessions.some(session => session.id === sessionId);
+    
+    if (!userOwnsSession) {
+      return res.status(403).json({ error: 'Not authorized to delete this session' });
     }
     
     const success = await assistantService.deleteSession(sessionId);
@@ -75,13 +101,23 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
 /**
  * GET /sessions/:sessionId/messages
  * Get all messages in a session
+ * Protected: Requires authentication
  */
-router.get('/sessions/:sessionId/messages', async (req: Request, res: Response) => {
+router.get('/sessions/:sessionId/messages', requireAuth, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     
     if (!sessionId) {
       return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
+    // Verify session belongs to authenticated user
+    const userId = req.user!.id;
+    const sessions = await assistantService.getUserSessions(userId);
+    const userOwnsSession = sessions.some(session => session.id === sessionId);
+    
+    if (!userOwnsSession) {
+      return res.status(403).json({ error: 'Not authorized to access this session' });
     }
     
     const messages = await assistantService.getSessionMessages(sessionId);
@@ -95,18 +131,28 @@ router.get('/sessions/:sessionId/messages', async (req: Request, res: Response) 
 /**
  * POST /sessions/:sessionId/messages
  * Send a message to the assistant
+ * Protected: Requires authentication
  */
-router.post('/sessions/:sessionId/messages', async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/messages', requireAuth, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const { userId, content, parameters } = req.body;
+    const { content, parameters } = req.body;
     
     if (!sessionId) {
       return res.status(400).json({ error: 'sessionId is required' });
     }
     
-    if (!userId || !content) {
-      return res.status(400).json({ error: 'userId and content are required' });
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+    
+    // Verify session belongs to authenticated user
+    const userId = req.user!.id;
+    const sessions = await assistantService.getUserSessions(userId);
+    const userOwnsSession = sessions.some(session => session.id === sessionId);
+    
+    if (!userOwnsSession) {
+      return res.status(403).json({ error: 'Not authorized to message in this session' });
     }
     
     const response = await assistantService.sendMessage(
@@ -126,14 +172,24 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
 /**
  * POST /sessions/:sessionId/messages/stream
  * Send a message to the assistant and stream the response
+ * Protected: Requires authentication
  */
-router.post('/sessions/:sessionId/messages/stream', async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/messages/stream', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { sessionId } = await req.params;
-    const { userId, content, parameters } = req.body;
+    const { sessionId } = req.params;
+    const { content, parameters } = req.body;
     
-    if (!userId || !content) {
-      return res.status(400).json({ error: 'userId and content are required' });
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+    
+    // Verify session belongs to authenticated user
+    const userId = req.user!.id;
+    const sessions = await assistantService.getUserSessions(userId);
+    const userOwnsSession = sessions.some(session => session.id === sessionId);
+    
+    if (!userOwnsSession) {
+      return res.status(403).json({ error: 'Not authorized to message in this session' });
     }
     
     // Set headers for SSE
@@ -177,8 +233,9 @@ router.post('/sessions/:sessionId/messages/stream', async (req: Request, res: Re
 /**
  * POST /chat
  * Simple chat endpoint for one-off messages (no session tracking)
+ * Protected: Requires authentication
  */
-router.post('/chat', async (req: Request, res: Response) => {
+router.post('/chat', requireAuth, async (req: Request, res: Response) => {
   try {
     const { message, parameters } = req.body;
     
@@ -186,8 +243,8 @@ router.post('/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'message is required' });
     }
     
-    // TODO: need to change based on the user
-    const userId = `cma45hqxe0000rzlm8ehswbet`;
+    // Use authenticated user ID
+    const userId = req.user!.id;
     const sessionId = await assistantService.createSession(userId, 'Temporary Chat');
     
     // Send the message
