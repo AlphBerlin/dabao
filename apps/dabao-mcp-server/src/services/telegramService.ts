@@ -60,7 +60,7 @@ export const telegramService = {
    */
   async trackTelegramUser(data: {
     projectId: string;
-    telegramUserId: string;
+    telegramId: string;
     username?: string;
     firstName?: string;
     lastName?: string;
@@ -68,14 +68,14 @@ export const telegramService = {
     metadata?: any;
     customerId?: string;
   }) {
-    const { projectId, telegramUserId, ...userData } = data;
+    const { projectId, telegramId, ...userData } = data;
 
     // Check if user already exists
     const existingUser = await prisma.telegramUser.findUnique({
       where: {
-        projectId_telegramUserId: {
+        projectId_telegramId: {
           projectId,
-          telegramUserId,
+          telegramId,
         },
       },
     });
@@ -96,7 +96,7 @@ export const telegramService = {
       return prisma.telegramUser.create({
         data: {
           projectId,
-          telegramUserId,
+          telegramId,
           ...userData,
           firstSeen: new Date(),
           lastActive: new Date(),
@@ -108,13 +108,13 @@ export const telegramService = {
   /**
    * Connect Telegram user to a customer
    */
-  async connectTelegramUserToCustomer(telegramUserId: string, customerId: string, projectId: string) {
+  async connectTelegramUserToCustomer(telegramId: string, customerId: string, projectId: string) {
     // Find the Telegram user
     const telegramUser = await prisma.telegramUser.findUnique({
       where: {
-        projectId_telegramUserId: {
+        projectId_telegramId: {
           projectId,
-          telegramUserId,
+          telegramId,
         },
       },
     });
@@ -152,7 +152,7 @@ export const telegramService = {
     projectId: string;
     messageId: string;
     chatId: string;
-    telegramUserId?: string;
+    telegramId?: string;
     direction: 'INCOMING' | 'OUTGOING';
     type: string;
     text?: string;
@@ -175,7 +175,7 @@ export const telegramService = {
    */
   async trackTelegramInteraction(data: {
     projectId: string;
-    telegramUserId: string;
+    telegramId: string;
     messageId?: string;
     type: string;
     payload?: string;
@@ -409,7 +409,7 @@ export const telegramService = {
     const uniqueInteractingUsers = new Set(
       messages
         .flatMap(msg => msg.interactions)
-        .map(interaction => interaction.telegramUserId)
+        .map(interaction => interaction.telegramId)
     ).size;
 
     // Get engagements
@@ -461,7 +461,7 @@ export const telegramService = {
       by: ['telegramUserId'],
       where: {
         projectId,
-        telegramUserId: { not: null },
+        telegramId: { not: null },
         sentAt: {
           gte: startDate,
           lte: endDate,
@@ -472,7 +472,7 @@ export const telegramService = {
 
     // Count interactions per user
     const userInteractionCounts = await prisma.telegramInteraction.groupBy({
-      by: ['telegramUserId'],
+      by: ['telegramId'],
       where: {
         projectId,
         timestamp: {
@@ -487,8 +487,8 @@ export const telegramService = {
     const userActivityMap = new Map();
 
     userMessageCounts.forEach(item => {
-      userActivityMap.set(item.telegramUserId, {
-        telegramUserId: item.telegramUserId,
+      userActivityMap.set(item.telegramMsgId, {
+        telegramId: item.telegramId,
         messageCount: item._count,
         interactionCount: 0,
         totalActivity: item._count,
@@ -496,14 +496,14 @@ export const telegramService = {
     });
 
     userInteractionCounts.forEach(item => {
-      if (userActivityMap.has(item.telegramUserId)) {
-        const userData = userActivityMap.get(item.telegramUserId);
+      if (userActivityMap.has(item.telegramId)) {
+        const userData = userActivityMap.get(item.telegramId);
         userData.interactionCount = item._count;
         userData.totalActivity += item._count;
-        userActivityMap.set(item.telegramUserId, userData);
+        userActivityMap.set(item.telegramId, userData);
       } else {
-        userActivityMap.set(item.telegramUserId, {
-          telegramUserId: item.telegramUserId,
+        userActivityMap.set(item.telegramId, {
+          telegramId: item.telegramId,
           messageCount: 0,
           interactionCount: item._count,
           totalActivity: item._count,
@@ -517,12 +517,12 @@ export const telegramService = {
     );
 
     // Get user details for top users
-    const topUserIds = sortedUsers.slice(0, limit).map(u => u.telegramUserId);
+    const topUserIds = sortedUsers.slice(0, limit).map(u => u.telegramId);
     
     const userDetails = await prisma.telegramUser.findMany({
       where: {
         projectId,
-        telegramUserId: { in: topUserIds as string[] },
+        telegramId: { in: topUserIds as string[] },
       },
       include: {
         customer: true,
@@ -531,7 +531,7 @@ export const telegramService = {
 
     // Combine activity data with user details
     return sortedUsers.slice(0, limit).map(activity => {
-      const userDetail = userDetails.find(u => u.telegramUserId === activity.telegramUserId);
+      const userDetail = userDetails.find(u => u.telegramId === activity.telegramId);
       return {
         ...activity,
         user: userDetail || null,

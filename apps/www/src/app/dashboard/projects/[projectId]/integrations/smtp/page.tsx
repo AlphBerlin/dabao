@@ -7,8 +7,9 @@ interface SmtpIntegrationPageProps {
   };
 }
 
-export default function SmtpIntegrationPage({ params }: SmtpIntegrationPageProps) {
-  return (
+export default async function SmtpIntegrationPage({ params }: SmtpIntegrationPageProps) {
+  const { projectId } = await params;
+    return (
     <div className="container py-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Email (SMTP) Integration</h1>
@@ -25,7 +26,7 @@ export default function SmtpIntegrationPage({ params }: SmtpIntegrationPageProps
         </TabsList>
         
         <TabsContent value="settings" className="mt-6">
-          <SmtpSettingsPage projectId={params.projectId} />
+          <SmtpSettingsPage projectId={projectId} />
         </TabsContent>
         
         <TabsContent value="templates" className="mt-6">

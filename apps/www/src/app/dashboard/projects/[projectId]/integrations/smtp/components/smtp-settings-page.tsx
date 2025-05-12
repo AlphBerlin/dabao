@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -25,7 +25,11 @@ interface SmtpSettingsPageProps {
   projectId: string;
 }
 
-export default function SmtpSettingsPage({ projectId }: SmtpSettingsPageProps) {
+// Create a client
+const queryClient = new QueryClient();
+
+// Wrap the component with QueryClientProvider
+function SmtpSettingsPageContent({ projectId }: SmtpSettingsPageProps) {
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
@@ -57,8 +61,8 @@ export default function SmtpSettingsPage({ projectId }: SmtpSettingsPageProps) {
     },
   });
   
-  // Update form values when existingSettings changes
-  useState(() => {
+  // Update form values when existingSettings changes - using useEffect instead of useState
+  useEffect(() => {
     if (existingSettings) {
       form.reset({
         host: existingSettings.host,
@@ -70,7 +74,7 @@ export default function SmtpSettingsPage({ projectId }: SmtpSettingsPageProps) {
         senderEmail: existingSettings.senderEmail,
       });
     }
-  });
+  }, [existingSettings, form]);
 
   // Mutations for saving, testing, and deleting settings
   const { mutate: saveSettings, isPending: isSaving } = useMutation({
@@ -483,5 +487,14 @@ export default function SmtpSettingsPage({ projectId }: SmtpSettingsPageProps) {
         onSendTest={handleSendTestEmail}
       />
     </div>
+  );
+}
+
+// Export wrapped component with QueryClientProvider
+export default function SmtpSettingsPage(props: SmtpSettingsPageProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SmtpSettingsPageContent {...props} />
+    </QueryClientProvider>
   );
 }
