@@ -91,7 +91,22 @@ const defaultAchievements: Achievement[] = [
   }
 ];
 
-const GamifyContext = createContext<GamifyContextType | undefined>(undefined);
+// Create a default context with empty implementations
+const defaultGamifyContext: GamifyContextType = {
+  xp: 0,
+  level: 1,
+  badges: [],
+  achievements: [],
+  incrementXP: () => {},
+  progress: 0,
+  showConfetti: () => {},
+  addBadge: () => {},
+  updateAchievement: () => {},
+  nextLevelXP: 1000,
+};
+
+// Initialize context with default values
+const GamifyContext = createContext<GamifyContextType>(defaultGamifyContext);
 
 export function GamifyProvider({ children }: { children: React.ReactNode }) {
   const [xp, setXP] = useLocalStorage<number>("dabao_xp", 750);
@@ -212,10 +227,16 @@ export function GamifyProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useGamify() {
+export function useGamify(): GamifyContextType {
   const context = useContext(GamifyContext);
-  if (context === undefined) {
-    throw new Error("useGamify must be used within a GamifyProvider");
+  
+  // For client-side, we still want to warn developers if they're using the hook outside the provider
+  if (process.env.NODE_ENV !== 'production' && context === defaultGamifyContext) {
+    console.warn(
+      "useGamify hook was called outside of GamifyProvider. " +
+      "Make sure the component is wrapped in a <GamifyProvider>."
+    );
   }
+  
   return context;
 }

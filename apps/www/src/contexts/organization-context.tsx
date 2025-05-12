@@ -23,9 +23,24 @@ interface OrganizationContextProps {
   refreshOrganizations: () => Promise<void>;
 }
 
+// Create default context with safe fallbacks
+const defaultOrganizationContext: OrganizationContextProps = {
+  currentOrganization: null,
+  organizations: [],
+  isLoading: false,
+  error: null,
+  setCurrentOrganization: () => {
+    console.warn("OrganizationProvider not initialized");
+  },
+  refreshOrganizations: async () => {
+    console.warn("OrganizationProvider not initialized");
+    return Promise.resolve();
+  }
+};
+
 // Create the context
-const OrganizationContext = createContext<OrganizationContextProps | undefined>(
-  undefined
+const OrganizationContext = createContext<OrganizationContextProps>(
+  defaultOrganizationContext
 );
 
 // Provider props interface
@@ -178,10 +193,9 @@ export function OrganizationProvider({
 export function useOrganizationContext() {
   const context = useContext(OrganizationContext);
   
-  if (context === undefined) {
-    throw new Error(
-      "useOrganizationContext must be used within an OrganizationProvider"
-    );
+  // For development only: warn when used outside provider (but don't throw)
+  if (process.env.NODE_ENV !== 'production' && context === defaultOrganizationContext) {
+    console.warn("useOrganizationContext was used outside of OrganizationProvider. Make sure the component is wrapped within an OrganizationProvider.");
   }
   
   return context;
