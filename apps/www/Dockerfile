@@ -38,7 +38,7 @@ COPY tsconfig.json ./
 # Build the project with Turbo (this will build only the necessary dependencies)
 RUN corepack enable pnpm && \
     cd apps/www && pnpm prisma:generate && \
-    cd /app && pnpm turbo run build --filter=wwww...
+    cd /app && pnpm turbo run build --filter=www...
 
 # 3. Production image, copy all the files and run next
 FROM base AS runner
