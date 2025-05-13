@@ -74,7 +74,7 @@ export function OrganizationProvider({
     setError(null);
 
     try {
-      const response = await fetch("/api/user/organizations", {
+      const response = await fetch("/api/user/  ", {
         method: "GET",
         credentials: "include",
       });

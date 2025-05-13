@@ -21,6 +21,7 @@ const projectCreateSchema = z.object({
   name: z.string().min(1, "Project name is required").max(64),
   domain: z.string().max(255).optional(),
   description: z.string().optional(),
+  projectType: z.enum(['REWARDS', 'LOYALTY']).default('REWARDS'),
   theme: z.object({
     primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format").optional(),
     secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format").optional(),
@@ -32,6 +33,9 @@ const projectCreateSchema = z.object({
     pointsAbbreviation: z.string().min(1).max(10).optional(),
     welcomeMessage: z.string().max(500).optional(),
     defaultCurrency: z.enum(['USD', 'EUR', 'GBP', 'SGD', 'INR', 'AUD', 'CAD', 'JPY', 'CNY', 'MYR']).optional(),
+    rewardSystemType: z.enum(['POINTS', 'STAMPS']).default('POINTS'),
+    pointsCollectionMechanism: z.enum(['TEN_PERCENT', 'TWENTY_PERCENT', 'THIRTY_PERCENT', 'CUSTOM']).default('TEN_PERCENT'),
+    customPointsRatio: z.coerce.number().min(0.01).default(1.0).optional(),
     enableReferrals: z.boolean().optional(),
     enableTiers: z.boolean().optional(),
     enableGameification: z.boolean().optional(),
@@ -271,7 +275,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { name, domain, description, theme, preferences } = validationResult.data;
+    const { name, domain, description, projectType, theme, preferences } = validationResult.data;
 
     // Generate a slug for the project
     const slug = await generateSlug(name);
@@ -284,6 +288,7 @@ export async function POST(req: NextRequest) {
           name,
           slug,
           status: 'draft',
+          projectType: projectType || 'REWARDS',
           customDomain: domain || null,
           description: description || null,
           organizationId: orgId,
@@ -298,7 +303,8 @@ export async function POST(req: NextRequest) {
             totalCustomers: 0,
             totalPoints: 0,
             totalRewards: 0,
-            goalProgress: 0
+            goalProgress: 0,
+            projectType: projectType || 'REWARDS'
           },
         },
       });

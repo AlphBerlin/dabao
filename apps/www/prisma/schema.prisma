@@ -62,6 +62,24 @@ model CasbinRule {
   @@schema("dabao")
 }
 
+// Project type enum
+enum ProjectType {
+  REWARDS
+  LOYALTY
+
+  @@schema("dabao")
+}
+
+// Points Collection Mechanism enum
+enum PointsCollectionMechanism {
+  TEN_PERCENT
+  TWENTY_PERCENT
+  THIRTY_PERCENT
+  CUSTOM
+
+  @@schema("dabao")
+}
+
 // Reward type enum
 enum RewardType {
   POINTS
@@ -204,6 +222,7 @@ model Project {
   description    String?
   slug           String   @unique
   status         String?
+  projectType    String   @default("REWARDS") @map("project_type") // "REWARDS" or "LOYALTY"
   organizationId String   @map("organization_id")
   active         Boolean  @default(true)
   customDomain   String?  @unique @map("custom_domain")
@@ -255,6 +274,8 @@ model ProjectPreference {
   enableTiers         Boolean  @default(false) @map("enable_tiers")
   enableGameification Boolean  @default(false) @map("enable_gameification")
   rewardSystemType    String   @default("POINTS") @map("reward_system_type") // "POINTS" or "STAMPS"
+  pointsCollectionMechanism String @default("MEDIUM") @map("points_collection_mechanism") // "LOW", "MEDIUM", "HIGH", "CUSTOM"
+  customPointsRatio  Decimal  @default(1.0) @map("custom_points_ratio") // Custom points ratio for CUSTOM mechanism
   pointsToStampRatio  Int      @default(10) @map("points_to_stamp_ratio") // How many points equal one stamp
   pointsExpiryDays    Int?     @map("points_expiry_days") // If points expire after X days, null means no expiry
   stampsPerCard       Int      @default(10) @map("stamps_per_card") // Number of stamps needed for completion

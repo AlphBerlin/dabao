@@ -43,6 +43,8 @@ const rewardPreferencesSchema = z.object({
   pointsToStampRatio: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
   pointsExpiryDays: z.coerce.number().int().min(1, 'Must be at least 1').optional().nullable(),
   stampsPerCard: z.coerce.number().int().min(1, 'Must be at least 1').max(100, 'Maximum 100 stamps per card').optional(),
+  pointsCollectionMechanism: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CUSTOM']).default('MEDIUM'),
+  customPointsRatio: z.coerce.number().min(0.01, 'Must be greater than 0').optional(),
 });
 
 type FormValues = z.infer<typeof rewardPreferencesSchema>;
@@ -66,10 +68,13 @@ export default function RewardSystemSettings({
       pointsToStampRatio: preferences?.pointsToStampRatio || 10,
       pointsExpiryDays: preferences?.pointsExpiryDays || null,
       stampsPerCard: preferences?.stampsPerCard || 10,
+      pointsCollectionMechanism: preferences?.pointsCollectionMechanism || 'MEDIUM',
+      customPointsRatio: preferences?.customPointsRatio || 1,
     },
   });
 
   const rewardSystemType = form.watch('rewardSystemType');
+  const pointsCollectionMechanism = form.watch('pointsCollectionMechanism');
 
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
@@ -192,6 +197,61 @@ export default function RewardSystemSettings({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="pointsCollectionMechanism"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Points Collection Mechanism</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select collection mechanism" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="LOW">Low (10% of purchase)</SelectItem>
+                          <SelectItem value="MEDIUM">Medium (30% of purchase)</SelectItem>
+                          <SelectItem value="HIGH">High (50% of purchase)</SelectItem>
+                          <SelectItem value="CUSTOM">Custom percentage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Choose how many points customers earn relative to their purchase amount
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {pointsCollectionMechanism === 'CUSTOM' && (
+                  <FormField
+                    control={form.control}
+                    name="customPointsRatio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Points Ratio</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="1.0"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Define your custom points ratio
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </>
             )}
 

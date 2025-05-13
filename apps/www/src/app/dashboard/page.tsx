@@ -28,5 +28,17 @@ export default async function Dashboard() {
     redirect("/create-organization");
   }
   
+  // Check if the organization has any projects
+  const organizationId = user.organizations[0].organizationId;
+  const projects = await db.project.findMany({
+    where: { organizationId },
+    take: 1,
+  });
+  
+  // If no projects found, redirect to create project page
+  if (!projects || projects.length === 0) {
+    redirect("/dashboard/projects/new");
+  }
+  
   return <DashboardPage />;
 }

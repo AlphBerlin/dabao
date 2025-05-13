@@ -40,6 +40,7 @@ export default function NewProjectPage() {
     name: "",
     domain: "",
     description: "",
+    projectType: "REWARDS", // Default to REWARDS
     
     // Theme settings
     theme: {
@@ -58,6 +59,9 @@ export default function NewProjectPage() {
       enableReferrals: true,
       enableTiers: false,
       enableGameification: false,
+      rewardSystemType: "POINTS", // Default reward system type
+      pointsCollectionMechanism: "TEN_PERCENT", // Default to 20% of purchase
+      // customPointsRatio: 1.0,
     },
   })
 
@@ -196,6 +200,27 @@ export default function NewProjectPage() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="projectType">Project Type</Label>
+                      <RadioGroup
+                        value={formData.projectType || "REWARDS"}
+                        onValueChange={(value) => handleChange({ target: { name: "projectType", value } })}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="REWARDS" id="type-rewards" />
+                          <Label htmlFor="type-rewards">Rewards</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="LOYALTY" id="type-loyalty" disabled={true} />
+                          <Label htmlFor="type-loyalty">Loyalty (coming soon)</Label>
+                        </div>
+                      </RadioGroup>
+                      <p className="text-xs text-muted-foreground">
+                        Choose whether this is primarily a rewards program or a loyalty program.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="domain">Domain (Optional)</Label>
                       <Input
                         id="domain"
@@ -315,27 +340,91 @@ export default function NewProjectPage() {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="pointsName">Points Name</Label>
-                      <Input
-                        id="pointsName"
-                        value={formData.preferences.pointsName}
-                        onChange={(e) => handlePreferenceChange("pointsName", e.target.value)}
-                        placeholder="Points, Stars, Credits, etc."
-                      />
+                      <Label>Reward System Type</Label>
+                      <RadioGroup
+                        value={formData.preferences.rewardSystemType}
+                        onValueChange={(value) => handlePreferenceChange("rewardSystemType", value)}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="POINTS" id="system-points" />
+                          <Label htmlFor="system-points">Points Only</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="STAMPS" id="system-stamps" />
+                          <Label htmlFor="system-stamps">Stamps Only</Label>
+                        </div>
+                      </RadioGroup>
                       <p className="text-xs text-muted-foreground">
-                        What would you like to call your reward points?
+                        Choose whether to use points or stamps for your rewards program.
                       </p>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="pointsAbbreviation">Points Abbreviation</Label>
-                      <Input
-                        id="pointsAbbreviation"
-                        value={formData.preferences.pointsAbbreviation}
-                        onChange={(e) => handlePreferenceChange("pointsAbbreviation", e.target.value)}
-                        placeholder="pts, ⭐, etc."
-                      />
-                    </div>
+                    {formData.preferences.rewardSystemType === 'POINTS' && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="pointsName">Points Name</Label>
+                          <Input
+                            id="pointsName"
+                            value={formData.preferences.pointsName}
+                            onChange={(e) => handlePreferenceChange("pointsName", e.target.value)}
+                            placeholder="Points, Stars, Credits, etc."
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            What would you like to call your reward points?
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="pointsAbbreviation">Points Abbreviation</Label>
+                          <Input
+                            id="pointsAbbreviation"
+                            value={formData.preferences.pointsAbbreviation}
+                            onChange={(e) => handlePreferenceChange("pointsAbbreviation", e.target.value)}
+                            placeholder="pts, ⭐, etc."
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="pointsCollectionMechanism">Points Collection Mechanism</Label>
+                          <Select 
+                            value={formData.preferences.pointsCollectionMechanism}
+                            onValueChange={(value) => handlePreferenceChange("pointsCollectionMechanism", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select points collection mechanism" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TEN_PERCENT">10% of purchase</SelectItem>
+                              <SelectItem value="TWENTY_PERCENT">30% of purchase</SelectItem>
+                              <SelectItem value="THIRTY_PERCENT">50% of purchase</SelectItem>
+                              {/* <SelectItem value="CUSTOM">Custom percentage</SelectItem> */}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Choose how many points customers earn relative to their purchase amount
+                          </p>
+                        </div>
+
+                        {/* {formData.preferences.pointsCollectionMechanism === 'CUSTOM' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="customPointsRatio">Custom Points Ratio</Label>
+                            <Input
+                              id="customPointsRatio"
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={formData.preferences.customPointsRatio}
+                              onChange={(e) => handlePreferenceChange("customPointsRatio", parseFloat(e.target.value))}
+                              placeholder="1.0"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Define your custom points ratio (e.g., 1.0 = 100% of purchase amount)
+                            </p>
+                          </div>
+                        )} */}
+                      </div>
+                    )}
                     
                     <div className="space-y-2">
                       <Label htmlFor="defaultCurrency">Default Currency</Label>
@@ -372,7 +461,7 @@ export default function NewProjectPage() {
                       />
                     </div>
                     
-                    <div className="space-y-6 pt-4">
+                    {/* <div className="space-y-6 pt-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium flex items-center">
@@ -414,7 +503,7 @@ export default function NewProjectPage() {
                           onCheckedChange={(checked) => handlePreferenceChange("enableGameification", checked)}
                         />
                       </div>
-                    </div>
+                    </div> */}
                   </AccordionContent>
                 </AccordionItem>
 
@@ -436,8 +525,8 @@ export default function NewProjectPage() {
                           </div>
                           
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground">Domain</h4>
-                            <p className="text-lg">{formData.domain || "Not specified"}</p>
+                            <h4 className="text-sm font-medium text-muted-foreground">Project Type</h4>
+                            <p className="text-lg">{formData.projectType || "Rewards"}</p>
                           </div>
                         </div>
                         
@@ -446,11 +535,21 @@ export default function NewProjectPage() {
                           <p>{formData.description || "No description provided"}</p>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                           <div>
                             <h4 className="text-sm font-medium text-muted-foreground">Rewards Currency</h4>
                             <p>
                               {formData.preferences.pointsName} ({formData.preferences.pointsAbbreviation})
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-medium text-muted-foreground">Collection Mechanism</h4>
+                            <p>
+                              {formData.preferences.pointsCollectionMechanism === "LOW" ? "Low (10%)" :
+                               formData.preferences.pointsCollectionMechanism === "MEDIUM" ? "Medium (30%)" :
+                               formData.preferences.pointsCollectionMechanism === "HIGH" ? "High (50%)" :
+                               `Custom (${formData.preferences.customPointsRatio * 100}%)`}
                             </p>
                           </div>
                           
@@ -460,7 +559,7 @@ export default function NewProjectPage() {
                           </div>
                         </div>
                         
-                        <div>
+                        {/* <div>
                           <h4 className="text-sm font-medium text-muted-foreground">Features</h4>
                           <ul className="mt-1 space-y-1">
                             <li className="flex items-center">
@@ -476,7 +575,7 @@ export default function NewProjectPage() {
                               Gamification {formData.preferences.enableGameification ? '' : '(Disabled)'}
                             </li>
                           </ul>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </AccordionContent>
@@ -513,7 +612,7 @@ export default function NewProjectPage() {
           <h3 className="font-medium mb-2">Need help?</h3>
           <p className="text-sm text-muted-foreground mb-2">Not sure where to start? Here are some tips:</p>
           <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-            <li>Choose a clear, memorable name for your loyalty program</li>
+            <li>Choose a clear, memorable name for your Reward/loyalty program</li>
             <li>Consider using your brand name in the program name for recognition</li>
             <li>Your domain should be easy to remember and type</li>
             <li>Choose colors that match your brand identity</li>

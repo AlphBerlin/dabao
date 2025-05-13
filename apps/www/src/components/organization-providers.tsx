@@ -67,7 +67,7 @@ export async function OrganizationProviders({
           currentOrganization = organizations[0];
           
           // Set the cookie for subsequent requests
-          cookies().set("orgId", currentOrganization.id, {
+          (await cookies()).set("orgId", currentOrganization.id, {
             path: "/",
             httpOnly: true,
             sameSite: "lax",
