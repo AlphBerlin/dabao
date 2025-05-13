@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 const validModes = ["login", "signup", "forgot-password"];
 
 export default async function AuthPage({ params, searchParams }: { params: { mode: string }, searchParams: any }) {
-  const { mode } = params;
+  const { mode } = await params;
   
   // Validate the mode parameter
   if (!validModes.includes(mode)) {

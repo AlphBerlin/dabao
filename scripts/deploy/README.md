@@ -81,6 +81,10 @@ The GitHub Actions workflow:
 
 You can manually trigger the workflow in GitHub Actions and select the target environment.
 
+````
+cd /Users/ajithberlin/alphberlin/repos/dabao.in/dabao && 
+```
+
 ## Customization
 
 The Kong configuration is based on environment variables that can be customized for different environments. The script uses environment substitution to configure Kong's routing to other services.

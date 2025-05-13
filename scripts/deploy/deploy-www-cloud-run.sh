@@ -18,7 +18,7 @@ CPU=${CPU:-"1"}
 MEMORY=${MEMORY:-"512Mi"}
 TIMEOUT=${TIMEOUT:-"300s"}
 CONCURRENCY=${CONCURRENCY:-"80"}
-PORT=${PORT:-3000}
+PORT=${PORT:-3000}cd
 ENV_FILE=${ENV_FILE:-".env.production"}
 
 # Function to display help message
