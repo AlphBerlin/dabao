@@ -12,13 +12,13 @@ SERVICE_NAME=${SERVICE_NAME:-"dabao-www"}
 IMAGE_NAME=${IMAGE_NAME:-"dabao-www"}
 IMAGE_TAG=${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}
 REPOSITORY=${REPOSITORY:-"dabao-repo"}
-MIN_INSTANCES=${MIN_INSTANCES:-1}
+MIN_INSTANCES=${MIN_INSTANCES:-0}
 MAX_INSTANCES=${MAX_INSTANCES:-10}
 CPU=${CPU:-"1"}
 MEMORY=${MEMORY:-"512Mi"}
 TIMEOUT=${TIMEOUT:-"300s"}
 CONCURRENCY=${CONCURRENCY:-"80"}
-PORT=${PORT:-3000}cd
+PORT=${PORT:-3000}
 ENV_FILE=${ENV_FILE:-".env.production"}
 
 # Function to display help message
@@ -164,7 +164,7 @@ build_www_image() {
   cd "$(dirname "$0")/../../" || exit 1
   
   # Build the Docker image
-  docker build -t "$full_image_name" -f apps/www/Dockerfile .
+  docker buildx build --platform linux/amd64 -t "$full_image_name" -f apps/www/Dockerfile .
   
   echo "WWW Docker image built successfully."
   

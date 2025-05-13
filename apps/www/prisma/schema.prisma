@@ -10,6 +10,16 @@ datasource db {
   schemas   = ["dabao", "dabao_tenant"]
 }
 
+
+model SeedVersion {
+  id        Int      @id @default(autoincrement())
+  version   String   @unique
+  appliedAt DateTime @default(now())
+
+  @@map("seed_version")
+  @@schema("dabao")
+}
+
 // Shared enum for user roles across the control-plane and tenant apps
 enum UserRole {
   OWNER
