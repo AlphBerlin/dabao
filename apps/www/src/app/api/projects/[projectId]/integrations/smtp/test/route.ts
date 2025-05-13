@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { smtpSettingsSchema } from "@/lib/api/smtp";
 import { createTransport } from "nodemailer";
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
 import { hasProjectAccess } from "@/lib/auth/project-access";
 
 export async function POST(

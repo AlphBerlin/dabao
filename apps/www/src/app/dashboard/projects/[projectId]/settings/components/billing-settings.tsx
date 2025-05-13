@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
@@ -10,7 +10,7 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Progress } from "@workspace/ui/components/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
-import {  CreditCard, Download, Loader2,  Plus, RefreshCcw, User, X } from "lucide-react";
+import {  CreditCard, Download, Loader2,  Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { getCreditInfo, getPlanInfo, getLicenses, getTransactions, purchaseCredits, changePlan, createLicense, revokeLicense } from "@/lib/api/settings";

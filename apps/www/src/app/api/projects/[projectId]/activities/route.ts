@@ -23,7 +23,7 @@ export async function GET(
 
     // Calculate date range based on period
     const now = new Date();
-    let startDate = new Date();
+    const startDate = new Date();
 
     switch (period) {
       case "day":

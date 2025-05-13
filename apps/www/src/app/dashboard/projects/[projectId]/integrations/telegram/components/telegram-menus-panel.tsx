@@ -22,8 +22,7 @@ import {
   Plus, 
   Trash, 
   GripVertical, 
-  Edit, 
-  Copy, 
+  Edit,
   ArrowUp, 
   ArrowDown,
   AlertTriangle 
@@ -104,7 +103,7 @@ export default function TelegramMenusPanel({ projectId }: TelegramMenusPanelProp
   });
 
   // Mutation for deleting menus
-  const { mutate: deleteMenu, isPending: isDeleting } = useMutation({
+  const { mutate: deleteMenu } = useMutation({
     mutationFn: (menuId: string) => {
       return fetch(`/api/projects/${projectId}/integrations/telegram/menus/${menuId}`, {
         method: "DELETE",

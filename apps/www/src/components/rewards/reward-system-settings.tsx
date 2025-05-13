@@ -12,7 +12,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
@@ -26,8 +25,6 @@ import {
   FormMessage,
 } from '@workspace/ui/components/form';
 import { Input } from '@workspace/ui/components/input';
-import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
-import { Switch } from '@workspace/ui/components/switch';
 import { Badge } from '@workspace/ui/components/badge';
 import { Separator } from '@workspace/ui/components/separator';
 import {

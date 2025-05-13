@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { casbinEnforcer, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
+import { casbinEnforcer } from '@/lib/casbin/enforcer';
 import { AuthTokenService } from '@/lib/services/auth-token-service';
 
 export type HandlerWithProject = (

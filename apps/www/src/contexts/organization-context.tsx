@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
+import { setCookie, getCookie } from "@/lib/utils/cookies";
 import { useRouter } from "next/navigation";
 
 // Organization interface

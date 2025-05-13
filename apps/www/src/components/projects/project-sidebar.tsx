@@ -6,14 +6,10 @@ import {
   ChevronLeft,
   Home,
   Users,
-  Award,
   Gift,
   Megaphone,
-  BarChart3,
   Settings,
   Puzzle,
-  Smartphone,
-  Layers,
   Bell,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";

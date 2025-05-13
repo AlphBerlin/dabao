@@ -103,7 +103,7 @@ export async function POST(
         });
 
         const nextVersion = latestVersion ? latestVersion.version + 1 : 1;
-        const { html: htmlContent, plainText: textContent, variables, isActive: setActive, name } = validationResult.data;
+        const { html: htmlContent, plainText: textContent, variables, isActive: setActive } = validationResult.data;
 
         // Begin transaction
         const version = await db.$transaction(async (tx) => {

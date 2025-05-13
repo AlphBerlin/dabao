@@ -3,7 +3,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
@@ -14,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@workspace/ui/components/dialog';
 import {
   Select,
@@ -28,7 +26,6 @@ import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
 import { Textarea } from '@workspace/ui/components/textarea';
 import { Switch } from '@workspace/ui/components/switch';
-import { Checkbox } from '@workspace/ui/components/checkbox';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Plus, Trash2, GripVertical, Save, Pencil, Command } from 'lucide-react';
 import { toast } from 'sonner';

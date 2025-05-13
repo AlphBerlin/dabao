@@ -59,7 +59,7 @@ export async function GET(
 
         // Generate date range for the chart
         const dates: Date[] = [];
-        let currentDate = new Date(startDate);
+        const currentDate = new Date(startDate);
 
         while (currentDate <= now) {
             dates.push(new Date(currentDate));

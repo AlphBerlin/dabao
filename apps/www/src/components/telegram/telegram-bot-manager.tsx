@@ -415,3 +415,5 @@ const TelegramBotManager: React.FC<TelegramBotManagerProps> = ({ projectId }) =>
       )}
     </Card>
   );
+}
+  );

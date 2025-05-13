@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { slugify } from '@/lib/utils/index';
 import { UserRole } from '@prisma/client';
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get the authenticated user from Supabase
     const supabase = await createClient();

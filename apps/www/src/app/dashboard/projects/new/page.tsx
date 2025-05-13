@@ -16,7 +16,6 @@ import { Switch } from "@workspace/ui/components/switch"
 import { Spinner } from "@workspace/ui/components/Spinner"
 import { 
   CheckCircle2, 
-  ChevronDown, 
   DollarSign, 
   GiftIcon, 
   Palette, 

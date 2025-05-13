@@ -14,7 +14,7 @@ import { Switch } from "@workspace/ui/components/switch";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
-import { AlertCircle, MessageSquare, Plus, Trash, GripVertical, Save, Edit, CheckCircle, XCircle, ArrowUp, ArrowDown, Command, AlertTriangle } from "lucide-react";
+import { AlertCircle, Plus, Trash, GripVertical, Edit, Command } from "lucide-react";
 import { Badge } from "@workspace/ui/components/badge";
 import { Alert, AlertDescription, AlertTitle } from "@workspace/ui/components/alert";
 
@@ -79,7 +79,7 @@ export default function TelegramCommandsPanel({ projectId }: TelegramCommandsPan
   });
 
   // Mutation for deleting commands
-  const { mutate: deleteCommand, isPending: isDeleting } = useMutation({
+  const { mutate: deleteCommand} = useMutation({
     mutationFn: (commandId: string) => {
       return fetch(`/api/projects/${projectId}/integrations/telegram/commands?commandId=${commandId}`, {
         method: "DELETE",
@@ -100,7 +100,7 @@ export default function TelegramCommandsPanel({ projectId }: TelegramCommandsPan
   });
 
   // Mutation for reordering commands
-  const { mutate: reorderCommands, isPending: isReordering } = useMutation({
+  const { mutate: reorderCommands } = useMutation({
     mutationFn: (commandIds: string[]) => {
       return fetch(`/api/projects/${projectId}/integrations/telegram/commands`, {
         method: "PUT",

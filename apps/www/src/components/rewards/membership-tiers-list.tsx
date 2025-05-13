@@ -11,8 +11,7 @@ import * as z from 'zod';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
+  CardDescription,    
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
@@ -23,8 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from '@workspace/ui/components/dialog';
 import {
   Form,
@@ -37,8 +35,6 @@ import {
 } from '@workspace/ui/components/form';
 import { Input } from '@workspace/ui/components/input';
 import { Textarea } from '@workspace/ui/components/textarea';
-import { Switch } from '@workspace/ui/components/switch';
-import { Badge } from '@workspace/ui/components/badge';
 import {
   AlertDialog,
   AlertDialogAction,

@@ -22,7 +22,6 @@ export default function Dashboard() {
   const [totalProjects, setTotalProjects] = useState(0)
   const [totalCustomers, setTotalCustomers] = useState(0)
   const [totalPointsIssued, setTotalPointsIssued] = useState(0)
-  const [showAllAchievements, setShowAllAchievements] = useState(false)
 
   useEffect(() => {
     // Fetch projects when component mounts or search query changes
@@ -48,8 +47,15 @@ export default function Dashboard() {
         // In a real app, you might have these aggregated values from the backend
         // This is just a placeholder calculation
         response.data.forEach(project => {
+          // Define a proper type for project settings
+          interface ProjectSettings {
+            totalCustomers?: number;
+            totalPointsIssued?: number;
+            [key: string]: unknown;
+          }
+          
           // Assuming project.settings might contain these stats, adjust as needed
-          const settings = project.settings as any || {}
+          const settings = (project.settings as ProjectSettings) || {}
           customers += settings.totalCustomers || 0
           points += settings.totalPointsIssued || 0
         })

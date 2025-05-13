@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import {
   Form,
@@ -43,7 +42,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Trash, Edit, Menu, MoveUp, MoveDown } from "lucide-react";
+import { Loader2, Plus, Trash, Edit, Menu } from "lucide-react";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components/tooltip";
 import { 
@@ -95,7 +94,6 @@ export default function TelegramMenusPanel({ projectId }: TelegramMenusProps) {
   const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState<Menu | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isMenuItemDialogOpen, setIsMenuItemDialogOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   // Setup form for the menu

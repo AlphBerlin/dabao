@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -223,7 +223,6 @@ export default function TelegramUsersPanel({ projectId }: TelegramUsersPanelProp
   const [showChat, setShowChat] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
   const [photoFetchQueue, setPhotoFetchQueue] = useState<string[]>([]);
   const [usersWithLoadingPhotos, setUsersWithLoadingPhotos] = useState<Set<string>>(new Set());
   

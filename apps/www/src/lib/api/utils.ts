@@ -5,8 +5,8 @@ export async function handleApiError(response: Response): Promise<never> {
   let errorData;
   try {
     errorData = await response.json();
-  } catch (e) {
-    errorData = { message: `HTTP error ${response.status}` };
+  } catch (e:any) {
+    errorData = { message: `HTTP error ${response.status} ${e.message}` };
   }
 
   const error = new Error(

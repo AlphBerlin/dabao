@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PolicyManager } from '@/lib/casbin/policy-manager';
-
 // Flag to track if policies have been initialized
 let policiesInitialized = false;
 

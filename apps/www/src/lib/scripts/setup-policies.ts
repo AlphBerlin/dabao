@@ -1,7 +1,6 @@
 import { prisma } from '../prisma';
 import { ACTION_TYPES, casbinEnforcer, RESOURCE_TYPES } from '../casbin/enforcer';
 import { PolicyManager } from '../casbin/policy-manager';
-import { UserRole } from '@prisma/client';
 
 /**
  * Initialize Casbin policies for all organizations and projects

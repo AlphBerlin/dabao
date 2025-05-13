@@ -10,14 +10,10 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Separator } from "@workspace/ui/components/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@workspace/ui/components/form";
-import { Switch } from "@workspace/ui/components/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Loader2, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { getBrandingSettings, updateBrandingSettings, uploadLogo, generateImage } from "@/lib/api/settings";
-import { cn } from "@/lib/utils";
 
 const brandingFormSchema = z.object({
   name: z.string().min(1, { message: "Project name is required" }),

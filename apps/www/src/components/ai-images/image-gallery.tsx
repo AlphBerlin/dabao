@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Download, Loader2, MoreVertical, Copy, Trash2, Expand } from 'lucide-react';
@@ -85,7 +85,7 @@ export function ImageGallery({ projectId, images, loading = false, onImageDelete
     };
 
     loadSignedUrls();
-  }, [images, toast]);
+  }, [images]);
 
   // Handle image deletion
   const handleDeleteImage = async (imageId: string) => {

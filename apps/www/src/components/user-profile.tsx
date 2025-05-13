@@ -37,10 +37,7 @@ import {
   Shield,
   Settings,
   Activity,
-  BarChart,
-  Award,
   RefreshCw,
-  Edit,
   CheckCircle2,
 } from "lucide-react";
 

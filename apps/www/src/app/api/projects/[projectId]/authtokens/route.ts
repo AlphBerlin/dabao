@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { casbinEnforcer, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
+import { ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
 import { PolicyManager } from '@/lib/casbin/policy-manager';
 import { AuthTokenService } from '@/lib/services/auth-token-service';
 
@@ -19,13 +19,6 @@ const createApiTokenSchema = z.object({
     errorMap: () => ({ message: "Scope must be one of: read, write, admin" }),
   }),
   expiresInDays: z.number().int().nonnegative().optional(),
-});
-
-// Schema for creating a custom policy
-const createPolicyTypeSchema = z.object({
-  name: z.string().min(1, "Policy name is required"),
-  resources: z.array(z.string()).min(1, "At least one resource is required"),
-  actions: z.array(z.string()).min(1, "At least one action is required"),
 });
 
 /**
