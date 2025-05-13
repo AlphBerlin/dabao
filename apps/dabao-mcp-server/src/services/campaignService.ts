@@ -1,3 +1,4 @@
+import { Campaign, TelegramCampaign, CampaignType, CampaignStatus, TelegramCampaignStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 
 /**
@@ -52,7 +53,7 @@ export const campaignService = {
 
     // Create the campaign first
     const campaign = await prisma.campaign.create({
-      data: campaignData,
+      data: campaignData as Campaign,
     });
 
     // Add Telegram campaign if provided
@@ -61,7 +62,7 @@ export const campaignService = {
         data: {
           ...telegramCampaign,
           campaignId: campaign.id,
-        },
+        } as TelegramCampaign,
       });
     }
 
@@ -73,7 +74,6 @@ export const campaignService = {
             data: {
               campaignId: campaign.id,
               rewardId: reward.rewardId,
-              quantity: reward.quantity || 1,
             },
           }),
         ),
@@ -140,7 +140,7 @@ export const campaignService = {
           data: {
             ...telegramCampaign,
             campaignId,
-          },
+          } as TelegramCampaign,
         });
       }
     }

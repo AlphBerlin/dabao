@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type BadgeType = {
@@ -20,7 +20,7 @@ type Achievement = {
   completed: boolean;
 };
 
-type GamifyContextType = {
+export type GamifyContextType = {
   xp: number;
   level: number;
   badges: BadgeType[];
@@ -91,22 +91,8 @@ const defaultAchievements: Achievement[] = [
   }
 ];
 
-// Create a default context with empty implementations
-const defaultGamifyContext: GamifyContextType = {
-  xp: 0,
-  level: 1,
-  badges: [],
-  achievements: [],
-  incrementXP: () => {},
-  progress: 0,
-  showConfetti: () => {},
-  addBadge: () => {},
-  updateAchievement: () => {},
-  nextLevelXP: 1000,
-};
-
-// Initialize context with default values
-const GamifyContext = createContext<GamifyContextType>(defaultGamifyContext);
+// Create a context with proper null check capability
+export const GamifyContext = createContext<GamifyContextType | undefined>(undefined);
 
 export function GamifyProvider({ children }: { children: React.ReactNode }) {
   const [xp, setXP] = useLocalStorage<number>("dabao_xp", 750);
@@ -207,7 +193,7 @@ export function GamifyProvider({ children }: { children: React.ReactNode }) {
     setAchievements(updatedAchievements);
   };
 
-  const contextValue = { 
+  const contextValue: GamifyContextType = { 
     xp, 
     level, 
     badges, 
@@ -226,16 +212,11 @@ export function GamifyProvider({ children }: { children: React.ReactNode }) {
     </GamifyContext.Provider>
   );
 }
-
 export function useGamify(): GamifyContextType {
   const context = useContext(GamifyContext);
   
-  // For client-side, we still want to warn developers if they're using the hook outside the provider
-  if (process.env.NODE_ENV !== 'production' && context === defaultGamifyContext) {
-    console.warn(
-      "useGamify hook was called outside of GamifyProvider. " +
-      "Make sure the component is wrapped in a <GamifyProvider>."
-    );
+  if (context === undefined) {
+    throw new Error("useGamify must be used within a GamifyProvider");
   }
   
   return context;
