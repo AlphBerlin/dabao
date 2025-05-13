@@ -14,7 +14,6 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepare": "pnpm run build",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:mcp": "ts-node-dev --respawn --transpile-only src/mcp/server.ts",
     "start": "node dist/server.js",
