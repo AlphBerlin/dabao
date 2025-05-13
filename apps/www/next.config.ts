@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     //todo: remove this when the typescript issues are fixed
-    ignoreBuildErrors: true,
+    // ignoreBuildErrors: true,
   },
   images: {
     remotePatterns: [
