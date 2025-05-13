@@ -1,44 +1,41 @@
+# 1. Use the official Kong image
 FROM kong:latest
 
+# 2. Install any extra tools you need as root
 USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    curl \
+    jq \
+    gettext-base \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install necessary tools (using apt-get since Kong appears to be Debian/Ubuntu based)
-RUN apt-get update && \
-    apt-get install -y curl jq bash gettext-base && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# 3. Copy your declarative config into Kong’s expected directory
+#    (We’ll assume you have a single .yml or .yaml under config/)
+COPY config/kong.yml /usr/local/kong/declarative/kong.yml
 
-# Copy custom configuration
-COPY config/*.yml /usr/local/kong/
-COPY config/*.conf /etc/kong/
-
-# Copy and fix entrypoint script
-COPY entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh && \
-    sed -i 's/\r$//' /docker-entrypoint.sh && \
-    chown kong:kong /docker-entrypoint.sh
-
-# Set proper ownership
-RUN chown -R kong:kong /usr/local/kong /etc/kong
-
-# Create directory for processed config
-RUN mkdir -p /usr/local/kong/declarative && \
-    chown kong:kong /usr/local/kong/declarative
-
+# 4. Switch back to the Kong user
 USER kong
 
-# Set environment variables
-ENV KONG_DATABASE=off
-ENV KONG_DECLARATIVE_CONFIG=/usr/local/kong/kong-processed.yml
-ENV KONG_PROXY_ACCESS_LOG=/dev/stdout \
-    KONG_ADMIN_ACCESS_LOG=/dev/stdout \
-    KONG_PROXY_ERROR_LOG=/dev/stderr \
-    KONG_ADMIN_ERROR_LOG=/dev/stderr \
-    KONG_ADMIN_LISTEN=off \
-    KONG_PORT=8000
-# Listen on port 8000
-EXPOSE 8000 8443
+# 5. Enable DB-less mode and point at your declarative file;
+#    explicitly open both the Proxy and Admin ports
+ENV KONG_DATABASE=off \
+    KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
+    KONG_PROXY_LISTEN="0.0.0.0:8000,0.0.0.0:8443 ssl" \
+    KONG_ADMIN_LISTEN="0.0.0.0:8001,0.0.0.0:8444 ssl"
 
+ENV CLIENT_SERVICE_URL=http://dabao-client.internal:8080
+ENV DA_ASSISTANT_SERVICE_URL=http://dabao-da-assistant.internal:8080
+ENV DABAO_MCP_SERVER_SERVICE_URL=http://dabao-dabao-mcp-server.internal:8080
+ENV WEB_SERVICE_URL=http://dabao-web.internal:8080
+ENV WWW_SERVICE_URL=http://dabao-www.internal:8080
+
+# 6. Expose all the ports Kong will actually bind
+EXPOSE 8000
+EXPOSE 8443
+EXPOSE 8001
+EXPOSE 8444
+
+# 7. Use Kong’s built-in entrypoint and default to `kong start`
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
 CMD ["kong", "docker-start"]
