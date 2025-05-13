@@ -5,7 +5,7 @@ import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { Providers } from '@/components/providers'
 import { OrganizationProviders } from '@/components/organization-providers'
 import { PolicyInitializer } from '@/components/policy-initializer'
-import '@/app/globals.css'
+import '@workspace/ui/globals.css'
 
 export const metadata: Metadata = {
   title: 'Dabao Studio',

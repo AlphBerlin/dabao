@@ -87,7 +87,6 @@ export default function ForgotPasswordPage() {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 <Sparkles className="h-3 w-3" />
-                <span>+5 XP</span>
               </motion.div>
             )}
 

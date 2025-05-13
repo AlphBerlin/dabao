@@ -141,21 +141,6 @@ export default function LoginPage() {
           </motion.div>
           <h2 className="text-2xl font-bold mb-2">Welcome back!</h2>
           <p className="text-muted-foreground">Redirecting to your dashboard...</p>
-          
-          {showBadge && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="flex items-center justify-center mt-6 mb-3"
-            >
-              <div className="text-center bg-muted/30 px-4 py-3 rounded-lg">
-                <Trophy className="w-8 h-8 mx-auto text-amber-400 mb-2" />
-                <p className="text-sm font-medium">Quick Return</p>
-                <p className="text-xs text-muted-foreground">+20 XP</p>
-              </div>
-            </motion.div>
-          )}
         </motion.div>
       ) : (
         <AuthForm 

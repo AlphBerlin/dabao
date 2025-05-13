@@ -165,14 +165,6 @@ export default function SignupPage() {
           >
             <div className="relative">
               <CheckCircle className="w-20 h-20 mx-auto text-primary mb-4" />
-              <motion.div 
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-                className="absolute -top-2 -right-2 bg-amber-400 text-black font-bold rounded-full w-8 h-8 flex items-center justify-center"
-              >
-                +50
-              </motion.div>
             </div>
           </motion.div>
           <h2 className="text-2xl font-bold mb-2">Account created!</h2>
@@ -215,7 +207,6 @@ export default function SignupPage() {
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium">Profile completion</span>
-                <span className="text-xs font-medium">{xpPoints} XP</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                 <motion.div 
@@ -267,15 +258,6 @@ export default function SignupPage() {
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </span>
-                  {formState.name && formState.email && (
-                    <motion.span 
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="absolute -right-2 -top-2 bg-amber-400 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
-                    >
-                      +15
-                    </motion.span>
-                  )}
                 </Button>
                 
                 <div className="relative my-6">
@@ -376,15 +358,7 @@ export default function SignupPage() {
                           Complete
                           <CheckCircle className="ml-2 h-4 w-4" />
                         </span>
-                        {formState.password && formState.confirmPassword && formState.password === formState.confirmPassword && (
-                          <motion.span 
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="absolute -right-2 -top-2 bg-amber-400 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
-                          >
-                            +20
-                          </motion.span>
-                        )}
+                        
                       </>
                     )}
                   </Button>
