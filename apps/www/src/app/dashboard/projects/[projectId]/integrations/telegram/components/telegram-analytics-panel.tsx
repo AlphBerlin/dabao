@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   AreaChart, 
   DonutChart,
-  Title
 } from "@tremor/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { Skeleton } from "@workspace/ui/components/skeleton";
