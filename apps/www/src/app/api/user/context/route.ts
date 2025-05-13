@@ -67,17 +67,6 @@ export async function POST(req: NextRequest) {
       organization: dbUser.organizations[0]!.organization
     });
 
-    // Set the organization ID cookie
-    response.cookies.set('orgId', organizationId, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-
-    // Set the x-org-id header in the response
-    response.headers.set('x-org-id', organizationId);
-
     return response;
   } catch (error) {
     console.error('Error updating user organization context:', error);
@@ -116,12 +105,15 @@ export async function GET(req: NextRequest) {
 
     // Extract organizations from the user's memberships
     const organizations = dbUser.organizations.map(membership => membership.organization);
-
-    // Return the user and their organizations
-    return NextResponse.json({ 
+    
+    // Create response
+    const response = NextResponse.json({ 
       user: dbUser,
       organizations
     });
+    
+
+    return response;
   } catch (error) {
     console.error('Error fetching user context:', error);
     return NextResponse.json({ error: 'Failed to fetch user context' }, { status: 500 });

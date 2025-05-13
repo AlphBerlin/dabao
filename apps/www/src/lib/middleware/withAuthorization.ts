@@ -120,13 +120,6 @@ export function withOrgAuthorization(
       // Initialize Casbin enforcer if needed
       await casbinEnforcer.init();
 
-      // Get organization ID from header or cookie
-      const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
-      
-      if (!orgId) {
-        return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
-      }
-
       // Get authenticated user from Supabase
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();

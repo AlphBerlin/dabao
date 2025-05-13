@@ -43,7 +43,7 @@ const projectCreateSchema = z.object({
 });
 
 // Get all projects for the authenticated user with pagination
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest,{ params }: { params: { orgId: string }}) {
   try {
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     const { page, pageSize, search, status, sortBy, sortOrder } = validatedParams.data;
     
     // Get organization ID from header or cookie
-    const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
+    const {orgId} = await params;
     
     if (!orgId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
@@ -223,7 +223,7 @@ export async function GET(req: NextRequest) {
 }
 
 // Create a new project
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest,{ params }: { params: { orgId: string }}) {
   try {
     // Get authenticated user from Supabase
     const supabase = await createClient();
@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get organization ID from header or cookie
-    const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
+    const {orgId} = await params;
     
     if (!orgId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
@@ -341,12 +341,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      success: true,
-      project: {
         ...project,
-        role: 'OWNER',
-      },
-    }, { status: 201 });
+        role: 'OWNER'
+    }, { status: 200 });
   } catch (error) {
     console.error('Error creating project:', error);
     return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });

@@ -18,12 +18,6 @@ const PUBLIC_PATHS = [
   '/images',
   '/'
 ];
-
-// List of API paths that should check for API tokens
-const API_PATHS = [
-  '/api/projects'
-];
-
 /**
  * Initialize policies if not already done
  * Note: This is now a stub function as Prisma can't run in Edge Runtime
@@ -50,24 +44,14 @@ export async function middleware(request: NextRequest) {
   await initializePoliciesIfNeeded();
   
   const { pathname } = request.nextUrl;
+  const response = NextResponse.next();
   
   // Skip middleware for public paths
   if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-  
-  // Handle API routes that should check for API tokens
-  if (API_PATHS.some(path => pathname.startsWith(path))) {
-    // If the request includes an Authorization header with a Bearer token,
-    // allow it to proceed (actual token validation happens in the API route)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return NextResponse.next();
-    }
+    return response;
   }
   
   // Create Supabase client for session management
-  const response = NextResponse.next();
   const supabase = await createClient();
   
   // Check if user is authenticated
@@ -76,7 +60,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getSession();
   
   // If not authenticated and trying to access a protected route, redirect to login
-  if (!session && !PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+  if (!session) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', encodeURIComponent(request.url));
     return NextResponse.redirect(redirectUrl);

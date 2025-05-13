@@ -4,15 +4,14 @@
  */
 
 import { Project } from "@prisma/client";
-import { getCookie } from "@/lib/utils/cookies";
 
 // The base API URL can change between environments (local vs production)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 // Project-specific endpoints
 const PROJECT_API = {
-  LIST: `${API_BASE_URL}/projects`,
-  CREATE: `${API_BASE_URL}/projects`,
+  LIST: (orgId: string) => `${API_BASE_URL}/organizations/${orgId}/projects`,
+  CREATE: (orgId: string) => `${API_BASE_URL}/organizations/${orgId}/projects`,
   GET: (id: string) => `${API_BASE_URL}/projects/${id}`,
   UPDATE: (id: string) => `${API_BASE_URL}/projects/${id}`,
   DELETE: (id: string) => `${API_BASE_URL}/projects/${id}`,
@@ -53,16 +52,8 @@ export interface PaginatedResponse<T> {
  */
 async function getRequestHeaders(): Promise<HeadersInit> {
 
-  // Get organization ID from cookie
-  const orgId = await getCookie('orgId');
-  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-  };
-  
-  // Add organization ID header if available
-  if (orgId) {
-    headers['x-org-id'] = orgId;
   }
   
   return headers;
@@ -71,7 +62,7 @@ async function getRequestHeaders(): Promise<HeadersInit> {
 /**
  * Get all projects for the current user with pagination and search
  */
-export async function getProjects(params: PaginationParams = {}): Promise<PaginatedResponse<Project>> {
+export async function getProjects(orgId:string,params: PaginationParams = {}): Promise<PaginatedResponse<Project>> {
   const { 
     page = 1, 
     pageSize = 10, 
@@ -83,7 +74,7 @@ export async function getProjects(params: PaginationParams = {}): Promise<Pagina
 
   try {
     // Build URL with query parameters
-    const url = new URL(PROJECT_API.LIST, window.location.origin);
+    const url = new URL(PROJECT_API.LIST(orgId), window.location.origin);
     url.searchParams.append('page', page.toString());
     url.searchParams.append('pageSize', pageSize.toString());
     
@@ -172,7 +163,7 @@ export async function updateProjectSettings(id: string, settings: ProjectSetting
 /**
  * Create a new project
  */
-export async function createProject(data: { 
+export async function createProject(orgId:string,data: { 
   name: string; 
   description?: string;
   slug?: string;
@@ -181,7 +172,7 @@ export async function createProject(data: {
   try {
     const headers = await getRequestHeaders();
     
-    const response = await fetch(PROJECT_API.CREATE, {
+    const response = await fetch(PROJECT_API.CREATE(orgId), {
       method: 'POST',
       headers,
       credentials: 'include',

@@ -13,6 +13,7 @@ import { MainLayout } from "@/components/layout/MainLayout"
 import Link from "next/link"
 import { Project } from "@prisma/client"
 import { getProjects, PaginationParams } from "@/lib/api/project"
+import { useOrganizationContext } from "@/contexts"
 
 
 export default function Dashboard() {
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [totalCustomers, setTotalCustomers] = useState(0)
   const [totalPointsIssued, setTotalPointsIssued] = useState(0)
 
+  const {currentOrganization} = useOrganizationContext()
   useEffect(() => {
     // Fetch projects when component mounts or search query changes
     const fetchProjects = async () => {
@@ -36,7 +38,7 @@ export default function Dashboard() {
           sortOrder: 'desc'
         }
         
-        const response = await getProjects(params)
+        const response = await getProjects(currentOrganization!.id,params)
         setProjects(response.data)
         setTotalProjects(response.meta.total)
         

@@ -34,6 +34,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@workspace/ui/components/pagination";
 import Link from "next/link";
+import { useOrganizationContext } from "@/contexts";
 
 export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -47,6 +48,7 @@ export default function ProjectsPage() {
   const [sortBy, setSortBy] = useState<string>("updatedAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
+  const {currentOrganization} = useOrganizationContext();
 
   // Load projects whenever filters or pagination changes
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function ProjectsPage() {
           sortOrder,
         };
 
-        const response: PaginatedResponse<Project> = await getProjects(params);
+        const response: PaginatedResponse<Project> = await getProjects(currentOrganization!.id,params);
         setProjects(response.data);
         setTotalPages(response.meta.totalPages);
         setTotalProjects(response.meta.total);

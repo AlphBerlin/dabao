@@ -12,16 +12,12 @@ import { toast } from "sonner"
 import { ColorPicker } from "@workspace/ui/components/ColorPicker"
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
-import { Switch } from "@workspace/ui/components/switch"
 import { Spinner } from "@workspace/ui/components/Spinner"
 import { 
-  CheckCircle2, 
-  DollarSign, 
+  CheckCircle2,
   GiftIcon, 
   Palette, 
-  Settings, 
-  Share2, 
-  Trophy 
+  Settings
 } from "lucide-react"
 import {
   Accordion,
@@ -29,11 +25,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@workspace/ui/components/accordion"
+import { useOrganizationContext } from "@/contexts"
+import { createProject } from "@/lib/api/project"
 
 export default function NewProjectPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeAccordion, setActiveAccordion] = useState("basics")
+  const {currentOrganization} = useOrganizationContext()
   
   const [formData, setFormData] = useState({
     // Basic info
@@ -117,25 +116,13 @@ export default function NewProjectPage() {
     
     try {
       setIsSubmitting(true)
-      
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create project")
-      }
+
+      const data = await createProject(currentOrganization!.id,formData)
       
       toast.success("Project created successfully")
       
       // Redirect to the new project dashboard
-      router.push(`/dashboard/projects/${data.project.id}`)
+      router.push(`/dashboard/projects/${data.id}`)
     } catch (error) {
       console.error("Error creating project:", error)
       toast.error(error instanceof Error ? error.message : "Failed to create your project. Please try again.")

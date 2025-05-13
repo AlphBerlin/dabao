@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
 import { useRouter } from "next/navigation";
 import { Organization, User } from "@prisma/client";
 
