@@ -31,7 +31,7 @@ export function DashboardHeader() {
           <span className="font-bold text-xl hidden sm:inline-block text-tn-blue">Daboa</span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-4">
+        {/* <div className="ml-auto flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
@@ -76,7 +76,7 @@ export function DashboardHeader() {
               <DropdownMenuItem>Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </div> */}
       </div>
     </motion.header>
   )

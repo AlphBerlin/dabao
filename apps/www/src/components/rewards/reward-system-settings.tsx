@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
 import { Button } from '@workspace/ui/components/button';
@@ -35,6 +35,10 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select';
 
+// Define reward system types
+type RewardSystemType = 'POINTS' | 'STAMPS' | 'BOTH';
+type PointsCollectionMechanism = 'LOW' | 'MEDIUM' | 'HIGH' | 'CUSTOM';
+
 // Schema for reward system form
 const rewardPreferencesSchema = z.object({
   rewardSystemType: z.enum(['POINTS', 'STAMPS', 'BOTH']),
@@ -43,18 +47,30 @@ const rewardPreferencesSchema = z.object({
   pointsToStampRatio: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
   pointsExpiryDays: z.coerce.number().int().min(1, 'Must be at least 1').optional().nullable(),
   stampsPerCard: z.coerce.number().int().min(1, 'Must be at least 1').max(100, 'Maximum 100 stamps per card').optional(),
-  pointsCollectionMechanism: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CUSTOM']).default('MEDIUM'),
+  pointsCollectionMechanism: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CUSTOM']),
   customPointsRatio: z.coerce.number().min(0.01, 'Must be greater than 0').optional(),
 });
 
 type FormValues = z.infer<typeof rewardPreferencesSchema>;
+
+// Define interface for preferences
+interface RewardPreferences {
+  rewardSystemType?: RewardSystemType;
+  pointsName?: string;
+  pointsAbbreviation?: string;
+  pointsToStampRatio?: number;
+  pointsExpiryDays?: number | null;
+  stampsPerCard?: number;
+  pointsCollectionMechanism?: PointsCollectionMechanism;
+  customPointsRatio?: number;
+}
 
 export default function RewardSystemSettings({
   projectId,
   preferences,
 }: {
   projectId: string;
-  preferences: any | null;
+  preferences: RewardPreferences | null;
 }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -82,8 +98,9 @@ export default function RewardSystemSettings({
     try {
       await axios.patch(`/api/projects/${projectId}/preferences/rewards`, data);
       toast.success('Reward system settings saved successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to save settings');
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      toast.error(axiosError.response?.data?.error || 'Failed to save settings');
     } finally {
       setIsLoading(false);
     }
@@ -184,8 +201,8 @@ export default function RewardSystemSettings({
                         <Input
                           type="number"
                           placeholder="365"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))}
+                          value={field.value === null ? '' : field.value}
+                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
                           disabled={isLoading}
                         />
                       </FormControl>

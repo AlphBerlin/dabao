@@ -85,9 +85,9 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
         
         <div className="flex items-center space-x-4">
         
-          <Button variant="ghost" size="icon" aria-label="Notifications">
+          {/* <Button variant="ghost" size="icon" aria-label="Notifications">
             <Bell className="h-5 w-5" />
-          </Button>
+          </Button> */}
           
           <Button variant="ghost" size="icon" aria-label="Help">
             <HelpCircle className="h-5 w-5" />

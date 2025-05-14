@@ -49,7 +49,7 @@ export default function ProjectLayout({
   }, [projectId]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex max-h-screen">
       <ProjectSidebar project={project} pathname={pathname} loading={loading} />
       <div className="flex-1 flex flex-col">
         <ProjectHeader project={project} loading={loading} />

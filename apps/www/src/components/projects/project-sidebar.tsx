@@ -131,13 +131,13 @@ export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarPro
             >
               Integrations
             </NavLink>
-            <NavLink
+            {/* <NavLink
               href={`/dashboard/projects/${project?.id}/notifications`}
               icon={<Bell className="h-4 w-4 mr-3" />}
               isActive={pathname.includes(`/dashboard/projects/${project?.id}/notifications`)}
             >
               Notifications
-            </NavLink>
+            </NavLink> */}
           </div>
         </div>
       </nav>

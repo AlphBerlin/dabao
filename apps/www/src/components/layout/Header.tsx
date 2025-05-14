@@ -29,33 +29,6 @@ interface Notification {
   createdAt: string
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "New Customer Joined",
-    message: "A new customer has joined your loyalty program",
-    type: "success",
-    read: false,
-    createdAt: "2023-07-25T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "Trial Ending Soon",
-    message: "Your trial period will end in 3 days",
-    type: "warning",
-    read: false,
-    createdAt: "2023-07-24T15:45:00Z",
-  },
-  {
-    id: "3",
-    title: "Payment Failed",
-    message: "Your last payment attempt failed",
-    type: "error",
-    read: true,
-    createdAt: "2023-07-23T09:15:00Z",
-  },
-]
-
 export function Header() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -63,7 +36,6 @@ export function Header() {
   const { user, loading, signOut } = useAuth()
   const { isLoading: isLoadingOrgs } = useOrganizationContext()
 
-  const unreadNotifications = mockNotifications.filter((notification) => !notification.read)
 
   const handleSignOut = async () => {
     try {
@@ -180,7 +152,7 @@ export function Header() {
                 </Button>
 
                 {/* Notifications */}
-                <div className="relative">
+                {/* <div className="relative">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -260,7 +232,7 @@ export function Header() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
+                </div> */}
 
                 {/* User Profile */}
                 <div className="relative flex items-center justify-center">

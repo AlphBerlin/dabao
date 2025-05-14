@@ -276,7 +276,7 @@ export function BrandingSettings({ projectId }: BrandingSettingsProps) {
                       <p>Max size: 5MB</p>
                     </div>
                   </div>
-                  <div className="border rounded-md p-4">
+                  {/* <div className="border rounded-md p-4">
                     <h4 className="text-sm font-medium mb-2">Generate with AI</h4>
                     <div className="space-y-2">
                       <Input
@@ -304,7 +304,7 @@ export function BrandingSettings({ projectId }: BrandingSettingsProps) {
                         )}
                       </Button>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
