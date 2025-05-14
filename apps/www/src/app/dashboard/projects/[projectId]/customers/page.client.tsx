@@ -161,12 +161,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
             )}
             Export
           </Button>
-          <Button asChild>
+          {/* <Button asChild>
             <a href={`/dashboard/projects/${projectId}/customers/new`}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Customer
             </a>
-          </Button>
+          </Button> */}
         </div>
       </div>
       
@@ -300,12 +300,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                   ? `No customers match the search term "${searchQuery}"`
                   : "Start by adding your first customer to the loyalty program"}
               </p>
-              <Button asChild>
+              {/* <Button asChild>
                 <a href={`/dashboard/projects/${projectId}/customers/new`}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Customer
                 </a>
-              </Button>
+              </Button> */}
             </div>
           )}
           

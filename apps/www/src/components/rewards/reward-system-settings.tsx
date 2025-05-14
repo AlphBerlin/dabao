@@ -56,7 +56,7 @@ export default function RewardSystemSettings({
   projectId: string;
   preferences: any | null;
 }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Initialize form with existing preferences
   const form = useForm<FormValues>({
@@ -124,8 +124,7 @@ export default function RewardSystemSettings({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="POINTS">Points Only</SelectItem>
-                      <SelectItem value="STAMPS">Stamps Only</SelectItem>
-                      <SelectItem value="BOTH">Both Points & Stamps</SelectItem>
+                      {/* <SelectItem value="STAMPS">Stamps Only</SelectItem> */}
                     </SelectContent>
                   </Select>
                   <FormDescription>
