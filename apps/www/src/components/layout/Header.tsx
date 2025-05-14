@@ -116,13 +116,13 @@ export function Header() {
                   Projects
                 </Link>
                 <Link
-                  href="/billing"
+                  href="/dashbord/billing"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
                 >
                   Billing
                 </Link>
                 <Link
-                  href="/settings"
+                  href="/dashboard/settings"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
                 >
                   Settings
@@ -286,7 +286,7 @@ export function Header() {
                         <Link href="/dashboard/profile">Profile</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/settings">Settings</Link>
+                        <Link href="/dashboard/settings">Settings</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-red-500 dark:text-red-400">
@@ -360,13 +360,13 @@ export function Header() {
                       Projects
                     </Link>
                     <Link
-                      href="/billing"
+                      href="/dashboard/billing"
                       className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       Billing
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/dashboard/settings"
                       className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       Settings

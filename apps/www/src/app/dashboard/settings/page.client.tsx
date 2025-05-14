@@ -20,7 +20,7 @@ export default function SettingsPage({projectId}: { projectId: string }) {
       name: "Billing & Plans",
       description: "View and manage your subscription and billing details",
       icon: CreditCard,
-      path: "/billing",
+      path: "/dashboard/billing",
     },
     {
       id: "notifications",
