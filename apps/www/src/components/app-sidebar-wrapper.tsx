@@ -1,6 +1,5 @@
 "use client";
 
-import { AppSidebar as OriginalAppSidebar } from "@/components/app-sidebar";
 import {
   SidebarContent,
   SidebarFooter,
@@ -11,19 +10,9 @@ import {
   Sidebar,
 } from "@workspace/ui/components/sidebar";
 import { Command } from "lucide-react";
-import { MultiSidebar } from "./sidebar/multi-sidebar";
-
-export function AppSidebarWrapper(props) {
+export function AppSidebarWrapper() {
   return (
-    <MultiSidebar
-      id="app-sidebar"
-      side='right'
-      variant="sidebar" 
-      collapsible="offcanvas"
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
-      {...props}
-    >
-        <Sidebar side="right">
+    <Sidebar side="right">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -44,11 +33,7 @@ export function AppSidebarWrapper(props) {
       <SidebarContent>
         {/* Main navigation items could be added here */}
       </SidebarContent>
-      <SidebarFooter>
-        {/* Footer content */}
-      </SidebarFooter>
+      <SidebarFooter>{/* Footer content */}</SidebarFooter>
     </Sidebar>
-    </MultiSidebar>
-    
   );
 }

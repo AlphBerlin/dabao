@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { MultiSidebar } from "../sidebar/multi-sidebar";
 import {
   SidebarHeader,
   SidebarFooter,
@@ -12,6 +11,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   Sidebar,
+  SidebarRail,
 } from "@workspace/ui/components/sidebar";
 import {
   Home,
@@ -31,28 +31,6 @@ interface Project {
   logoUrl: string | null;
 }
 
-interface ProjectSidebarWrapperProps {
-  project: Project | null;
-  pathname: string;
-  loading: boolean;
-}
-
-export function ProjectSidebarWrapper({ project, pathname, loading }: ProjectSidebarWrapperProps) {
-  return (
-    <MultiSidebar
-      id="project-sidebar"
-      side="left"
-      variant="sidebar"
-      collapsible="icon"
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
-    >
-      <SidebarContent className="p-0">
-        <ProjectSidebar project={project} pathname={pathname} loading={loading} />
-      </SidebarContent>
-    </MultiSidebar>
-  );
-}
-
 interface ProjectSidebarProps {
   project: Project | null;
   pathname: string;
@@ -60,10 +38,11 @@ interface ProjectSidebarProps {
   sidebarId?: string;
 }
 
-export function ProjectSidebar({ project, pathname, loading, sidebarId = "project-sidebar" }: ProjectSidebarProps) {
+export default function ProjectSidebar({ project, pathname, loading }: ProjectSidebarProps) {
   if (loading) {
     return (
-      <Sidebar>
+      <Sidebar collapsible="none" className="sticky hidden lg:flex top-0 h-svh border-l"
+>
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -220,6 +199,8 @@ export function ProjectSidebar({ project, pathname, loading, sidebarId = "projec
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+            <SidebarRail />
+      
     </Sidebar>
   );
 }
