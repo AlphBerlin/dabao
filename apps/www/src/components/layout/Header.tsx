@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { useUser } from "@/contexts/user-context"
 
 interface Notification {
   id: string
@@ -29,10 +30,12 @@ interface Notification {
   createdAt: string
 }
 
+
 export function Header() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
+  const { theme } = useTheme()
+  const { updatePreferences } = useUser()
   const { user, loading, signOut } = useAuth()
   const { isLoading: isLoadingOrgs } = useOrganizationContext()
 
@@ -130,7 +133,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => updatePreferences({theme: theme === "dark" ? "light" : "dark"})}
               className="text-neutral-500 dark:text-neutral-400"
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
