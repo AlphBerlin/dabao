@@ -9,11 +9,14 @@ import {
   User,
   LogOut,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  PanelLeft,
+  PanelRight
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { SidebarTriggerForSide } from "@/components/sidebar/dual-sidebar-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,24 +73,20 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   return (
     <>
       <header className="h-16 border-b px-6 flex items-center justify-between">
-        <form onSubmit={handleSearch} className="w-full max-w-md">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={`Search in ${project?.name || 'project'}...`}
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </form>
+        <div className="flex items-center space-x-4">
+          <SidebarTriggerForSide sidebarId="project-sidebar">
+            <PanelLeft className="h-5 w-5" />
+          </SidebarTriggerForSide>
+          
+          {project?.name && (
+            <span className="font-medium text-lg hidden md:block">{project.name}</span>
+          )}
+        </div>
         
         <div className="flex items-center space-x-4">
-        
-          {/* <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-          </Button> */}
+          <SidebarTriggerForSide sidebarId="app-sidebar">
+            <MessageSquare className="h-5 w-5" />
+          </SidebarTriggerForSide>
           
           <Button variant="ghost" size="icon" aria-label="Help">
             <HelpCircle className="h-5 w-5" />

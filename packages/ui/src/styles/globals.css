@@ -15,39 +15,39 @@
   --card-foreground: oklch(0.2 0.05 140);
   --popover: oklch(0.96 0.02 140);
   --popover-foreground: oklch(0.2 0.05 140);
-  
+
   /* Primary Green Tones */
   --primary: oklch(0.55 0.15 140);
   --primary-foreground: oklch(0.98 0 0);
-  
+
   /* Secondary Earthy Neutrals */
   --secondary: oklch(0.75 0.05 60);
   --secondary-foreground: oklch(0.3 0.1 140);
-  
+
   /* Tertiary Complementary Color (Soft Lavender) */
   --tertiary: oklch(0.65 0.1 290);
   --tertiary-foreground: oklch(0.98 0 0);
-  
+
   --muted: oklch(0.92 0.03 140);
   --muted-foreground: oklch(0.5 0.08 140);
   --accent: oklch(0.85 0.08 140);
   --accent-foreground: oklch(0.2 0.05 140);
-  
+
   /* Destructive in Warm Tone */
   --destructive: oklch(0.6 0.2 30);
   --destructive-foreground: oklch(0.98 0 0);
-  
+
   --border: oklch(0.85 0.03 140);
   --input: oklch(0.9 0.02 140);
   --ring: oklch(0.6 0.1 140);
-  
+
   /* Chart Colors with Organic Green Variations */
   --chart-1: oklch(0.55 0.15 140);
   --chart-2: oklch(0.5 0.12 160);
   --chart-3: oklch(0.45 0.1 120);
   --chart-4: oklch(0.6 0.18 100);
   --chart-5: oklch(0.5 0.13 180);
-  
+
   /* Sidebar Variations */
   --sidebar: oklch(0.96 0.03 140);
   --sidebar-foreground: oklch(0.2 0.05 140);
@@ -57,7 +57,7 @@
   --sidebar-accent-foreground: oklch(0.2 0.05 140);
   --sidebar-border: oklch(0.85 0.03 140);
   --sidebar-ring: oklch(0.6 0.1 140);
-  
+
   --radius: 0.625rem;
 }
 
@@ -69,39 +69,39 @@
   --card-foreground: oklch(0.95 0.03 140);
   --popover: oklch(0.18 0.08 140);
   --popover-foreground: oklch(0.95 0.03 140);
-  
+
   /* Primary Green Tones */
   --primary: oklch(0.7 0.2 140);
   --primary-foreground: oklch(0.15 0.08 140);
-  
+
   /* Secondary Earthy Neutrals */
   --secondary: oklch(0.35 0.08 60);
   --secondary-foreground: oklch(0.95 0.03 140);
-  
+
   /* Tertiary Complementary Color (Deep Lavender) */
   --tertiary: oklch(0.5 0.15 290);
   --tertiary-foreground: oklch(0.15 0.08 140);
-  
+
   --muted: oklch(0.25 0.08 140);
   --muted-foreground: oklch(0.7 0.1 140);
   --accent: oklch(0.35 0.12 140);
   --accent-foreground: oklch(0.95 0.03 140);
-  
+
   /* Destructive in Warm Tone */
   --destructive: oklch(0.5 0.25 30);
   --destructive-foreground: oklch(0.95 0 0);
-  
+
   --border: oklch(0.3 0.08 140);
   --input: oklch(0.25 0.1 140);
   --ring: oklch(0.55 0.15 140);
-  
+
   /* Dark Mode Chart Colors */
   --chart-1: oklch(0.65 0.2 140);
   --chart-2: oklch(0.6 0.18 160);
   --chart-3: oklch(0.55 0.15 120);
   --chart-4: oklch(0.7 0.22 100);
   --chart-5: oklch(0.6 0.18 180);
-  
+
   /* Dark Mode Sidebar Variations */
   --sidebar: oklch(0.22 0.1 140);
   --sidebar-foreground: oklch(0.95 0.03 140);
