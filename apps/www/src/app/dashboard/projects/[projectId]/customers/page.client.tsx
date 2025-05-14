@@ -48,17 +48,14 @@ import { format } from "date-fns";
 // Types
 interface Customer {
   id: string;
+  projectId: string;
   name: string | null;
   email: string;
   phone: string | null;
   externalId: string | null;
-  totalPoints: number;
-  lastActive: string | null;
-  _count: {
-    rewards: number;
-    activities: number;
-    referrals: number;
-  };
+  metadata: any | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function CustomersPage({projectId}: { projectId: string }) {
@@ -68,7 +65,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
   // Parse search params
   const currentPage = Number(searchParams.get("page") || "1");
   const searchQuery = searchParams.get("search") || "";
-  const pageSize = 10;
+  const pageSize = 20; // Updated to match API page size
 
   // State
   const [loading, setLoading] = useState(true);
@@ -82,7 +79,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
     const fetchCustomers = async () => {
       try {
         setLoading(true);
-        const url = `/api/projects/${projectId}/customers?page=${currentPage}&limit=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}`;
+        const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}`;
         
         const response = await fetch(url);
         if (!response.ok) {
@@ -90,8 +87,8 @@ export default function CustomersPage({projectId}: { projectId: string }) {
         }
         
         const data = await response.json();
-        setCustomers(data.customers);
-        setTotalCount(data.totalCount);
+        setCustomers(data.data);
+        setTotalCount(data.meta.total);
       } catch (error) {
         console.error("Error loading customers:", error);
       } finally {
@@ -192,12 +189,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
               </Button>
             </form>
             
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
               </Button>
-            </div>
+            </div> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -219,9 +216,9 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Last Active</TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Updated At</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -251,27 +248,15 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{customer.totalPoints?.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground font-mono">{customer.id.substring(0, 8)}...</div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">{customer._count.activities}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Award className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">{customer._count.rewards}</span>
-                          </div>
-                        </div>
+                        {format(new Date(customer.createdAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
-                        {customer.lastActive 
-                          ? format(new Date(customer.lastActive), "MMM d, yyyy")
-                          : "Never"
-                        }
+                        {format(new Date(customer.updatedAt), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell>
+                      {/* TODO: enable it sooner<TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -300,7 +285,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>
