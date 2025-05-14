@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
+import { Decimal } from '@prisma/client/runtime/library';
 
 import { Button } from '@workspace/ui/components/button';
 import {
@@ -34,10 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
+import { ProjectPreference } from '@prisma/client';
 
-// Define reward system types
+// Define our form value types to match the schema
 type RewardSystemType = 'POINTS' | 'STAMPS' | 'BOTH';
-type PointsCollectionMechanism = 'LOW' | 'MEDIUM' | 'HIGH' | 'CUSTOM';
+type PointsCollectionMechanismType = 'TEN_PERCENT' | 'TWENTY_PERCENT' | 'THIRTY_PERCENT' | 'CUSTOM';
 
 // Schema for reward system form
 const rewardPreferencesSchema = z.object({
@@ -47,45 +49,56 @@ const rewardPreferencesSchema = z.object({
   pointsToStampRatio: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
   pointsExpiryDays: z.coerce.number().int().min(1, 'Must be at least 1').optional().nullable(),
   stampsPerCard: z.coerce.number().int().min(1, 'Must be at least 1').max(100, 'Maximum 100 stamps per card').optional(),
-  pointsCollectionMechanism: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CUSTOM']),
+  pointsCollectionMechanism: z.enum(['TEN_PERCENT', 'TWENTY_PERCENT', 'THIRTY_PERCENT', 'CUSTOM']).default('TEN_PERCENT'),
   customPointsRatio: z.coerce.number().min(0.01, 'Must be greater than 0').optional(),
 });
 
 type FormValues = z.infer<typeof rewardPreferencesSchema>;
 
-// Define interface for preferences
-interface RewardPreferences {
-  rewardSystemType?: RewardSystemType;
-  pointsName?: string;
-  pointsAbbreviation?: string;
-  pointsToStampRatio?: number;
-  pointsExpiryDays?: number | null;
-  stampsPerCard?: number;
-  pointsCollectionMechanism?: PointsCollectionMechanism;
-  customPointsRatio?: number;
-}
+// Helper function to safely convert Prisma Decimal to number
+const decimalToNumber = (value: Decimal | number | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  return parseFloat(value.toString());
+};
 
 export default function RewardSystemSettings({
   projectId,
   preferences,
 }: {
   projectId: string;
-  preferences: RewardPreferences | null;
+  preferences: ProjectPreference | null;
 }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Helper function to safely cast string to enum
+  const safeRewardSystemType = (value: string | null | undefined): RewardSystemType => {
+    if (value === 'POINTS' || value === 'STAMPS' || value === 'BOTH') {
+      return value;
+    }
+    return 'POINTS'; // Default value
+  };
+
+  // Helper function to safely cast string to enum
+  const safePointsCollectionMechanism = (value: string | null | undefined): PointsCollectionMechanismType => {
+    if (value === 'TEN_PERCENT' || value === 'TWENTY_PERCENT' || value === 'THIRTY_PERCENT' || value === 'CUSTOM') {
+      return value as PointsCollectionMechanismType;
+    }
+    return 'MEDIUM'; // Default value
+  };
 
   // Initialize form with existing preferences
   const form = useForm<FormValues>({
     resolver: zodResolver(rewardPreferencesSchema),
     defaultValues: {
-      rewardSystemType: preferences?.rewardSystemType || 'POINTS',
+      rewardSystemType: safeRewardSystemType(preferences?.rewardSystemType),
       pointsName: preferences?.pointsName || 'Points',
       pointsAbbreviation: preferences?.pointsAbbreviation || 'pts',
       pointsToStampRatio: preferences?.pointsToStampRatio || 10,
       pointsExpiryDays: preferences?.pointsExpiryDays || null,
       stampsPerCard: preferences?.stampsPerCard || 10,
-      pointsCollectionMechanism: preferences?.pointsCollectionMechanism || 'MEDIUM',
-      customPointsRatio: preferences?.customPointsRatio || 1,
+      pointsCollectionMechanism: safePointsCollectionMechanism(preferences?.pointsCollectionMechanism),
+      customPointsRatio: preferences?.customPointsRatio ? decimalToNumber(preferences.customPointsRatio) : 1,
     },
   });
 

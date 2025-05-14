@@ -10,7 +10,6 @@ datasource db {
   schemas   = ["dabao", "dabao_tenant"]
 }
 
-
 model SeedVersion {
   id        Int      @id @default(autoincrement())
   version   String   @unique
@@ -49,15 +48,15 @@ enum Currency {
 // Casbin Rule model for policy-based access control
 model CasbinRule {
   id        String   @id @default(cuid())
-  ptype     String   // Policy type - p for policy, g for group
-  v0        String?  // Usually the role or user
-  v1        String?  // Usually the resource
-  v2        String?  // Usually the action
-  v3        String?  // Usually domain or tenant ID
-  v4        String?  // Additional parameter
-  v5        String?  // Additional parameter
+  ptype     String // Policy type - p for policy, g for group
+  v0        String? // Usually the role or user
+  v1        String? // Usually the resource
+  v2        String? // Usually the action
+  v3        String? // Usually domain or tenant ID
+  v4        String? // Additional parameter
+  v5        String? // Additional parameter
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@map("casbin_rule")
   @@schema("dabao")
 }
@@ -232,31 +231,31 @@ model Project {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  apiKeys           ApiKey[]
-  invites           ProjectInvite[]
-  preferences       ProjectPreference?
-  rewards           Reward[]
-  customers         Customer[]
-  campaigns         Campaign[]
-  membershipTiers   MembershipTier[]
-  vouchers          Voucher[]
-  stampCards        StampCard[]
-  redemptionRules   RedemptionRule[]
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys                 ApiKey[]
+  invites                 ProjectInvite[]
+  preferences             ProjectPreference?
+  rewards                 Reward[]
+  customers               Customer[]
+  campaigns               Campaign[]
+  membershipTiers         MembershipTier[]
+  vouchers                Voucher[]
+  stampCards              StampCard[]
+  redemptionRules         RedemptionRule[]
   // New Telegram relations
-  telegramSettings  TelegramSettings?
-  telegramCampaigns TelegramCampaign[]
-  telegramMessages  TelegramMessage[]
-  TelegramUser      TelegramUser[]
-  telegramCommands  TelegramCommand[]
-  telegramMenus     TelegramMenu[]
-  brandingSettings  BrandingSettings?  // Add relation to BrandingSettings
-  aiImages          AIImage[]
-  smtpConfig        SmtpConfig?        // Add relation to SmtpConfig
+  telegramSettings        TelegramSettings?
+  telegramCampaigns       TelegramCampaign[]
+  telegramMessages        TelegramMessage[]
+  TelegramUser            TelegramUser[]
+  telegramCommands        TelegramCommand[]
+  telegramMenus           TelegramMenu[]
+  brandingSettings        BrandingSettings? // Add relation to BrandingSettings
+  aiImages                AIImage[]
+  smtpConfig              SmtpConfig? // Add relation to SmtpConfig
   emailTemplateCategories EmailTemplateCategory[] // Add relation to EmailTemplateCategory
-  emailTemplates    EmailTemplate[]    // Add relation to EmailTemplate
-  emailCampaigns    EmailCampaign[]    // Add relation to EmailCampaign
-  emailLogs         EmailLog[]         // Add relation to EmailLog
+  emailTemplates          EmailTemplate[] // Add relation to EmailTemplate
+  emailCampaigns          EmailCampaign[] // Add relation to EmailCampaign
+  emailLogs               EmailLog[] // Add relation to EmailLog
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -264,23 +263,23 @@ model Project {
 
 // Project preferences for more structured settings
 model ProjectPreference {
-  id                  String   @id @default(cuid())
-  projectId           String   @unique @map("project_id")
-  pointsName          String   @default("Points") @map("points_name")
-  pointsAbbreviation  String   @default("pts") @map("points_abbreviation")
-  welcomeMessage      String?  @map("welcome_message")
-  defaultCurrency     Currency @default(USD) @map("default_currency")
-  enableReferrals     Boolean  @default(true) @map("enable_referrals")
-  enableTiers         Boolean  @default(false) @map("enable_tiers")
-  enableGameification Boolean  @default(false) @map("enable_gameification")
-  rewardSystemType    String   @default("POINTS") @map("reward_system_type") // "POINTS" or "STAMPS"
-  pointsCollectionMechanism String @default("MEDIUM") @map("points_collection_mechanism") // "LOW", "MEDIUM", "HIGH", "CUSTOM"
-  customPointsRatio  Decimal  @default(1.0) @map("custom_points_ratio") // Custom points ratio for CUSTOM mechanism
-  pointsToStampRatio  Int      @default(10) @map("points_to_stamp_ratio") // How many points equal one stamp
-  pointsExpiryDays    Int?     @map("points_expiry_days") // If points expire after X days, null means no expiry
-  stampsPerCard       Int      @default(10) @map("stamps_per_card") // Number of stamps needed for completion
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                        String                    @id @default(cuid())
+  projectId                 String                    @unique @map("project_id")
+  pointsName                String                    @default("Points") @map("points_name")
+  pointsAbbreviation        String                    @default("pts") @map("points_abbreviation")
+  welcomeMessage            String?                   @map("welcome_message")
+  defaultCurrency           Currency                  @default(USD) @map("default_currency")
+  enableReferrals           Boolean                   @default(true) @map("enable_referrals")
+  enableTiers               Boolean                   @default(false) @map("enable_tiers")
+  enableGameification       Boolean                   @default(false) @map("enable_gameification")
+  rewardSystemType          String                    @default("POINTS") @map("reward_system_type") // "POINTS" or "STAMPS"
+  pointsCollectionMechanism PointsCollectionMechanism @default(TEN_PERCENT) @map("points_collection_mechanism") // "LOW", "MEDIUM", "HIGH", "CUSTOM"
+  customPointsRatio         Decimal                   @default(1.0) @map("custom_points_ratio") // Custom points ratio for CUSTOM mechanism
+  pointsToStampRatio        Int                       @default(10) @map("points_to_stamp_ratio") // How many points equal one stamp
+  pointsExpiryDays          Int?                      @map("points_expiry_days") // If points expire after X days, null means no expiry
+  stampsPerCard             Int                       @default(10) @map("stamps_per_card") // Number of stamps needed for completion
+  createdAt                 DateTime                  @default(now()) @map("created_at")
+  updatedAt                 DateTime                  @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -324,15 +323,15 @@ model ApiKey {
 
 // AuthToken model for bearer tokens with policy-based permissions
 model AuthToken {
-  id         String    @id @default(cuid())
-  token      String    @unique
+  id          String    @id @default(cuid())
+  token       String    @unique
   policyPtype String    @map("policy_ptype") // Reference to ptype or generic
-  projectId  String?   @map("project_id")
-  userId     String?   @map("user_id")
-  expiresAt  DateTime? @map("expires_at")
-  createdAt  DateTime  @default(now())
-  lastUsedAt DateTime? @map("last_used_at")
-  
+  projectId   String?   @map("project_id")
+  userId      String?   @map("user_id")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime? @map("last_used_at")
+
   @@map("auth_tokens")
   @@schema("dabao_tenant")
 }
@@ -359,7 +358,7 @@ model Customer {
   pointsTransactions  CustomerPointsTransaction[]
   voucherRedemptions  VoucherRedemption[]
   telegramUsers       TelegramUser[]
-  emailLogs           EmailLog[]                  // Add relation to EmailLog
+  emailLogs           EmailLog[] // Add relation to EmailLog
 
   @@unique([projectId, email])
   @@unique([projectId, externalId])
@@ -460,7 +459,7 @@ model Campaign {
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   rewards          CampaignReward[]
   telegramCampaign TelegramCampaign? // Add relation to TelegramCampaign
 
@@ -819,17 +818,17 @@ model TelegramMessage {
 
 // TelegramCommand model for custom bot commands
 model TelegramCommand {
-  id          String             @id @default(cuid())
-  projectId   String             @map("project_id") 
-  command     String             // The command text (without the /)
-  description String             // Description shown in command list
-  response    String?            // Text response for simple commands
+  id          String              @id @default(cuid())
+  projectId   String              @map("project_id")
+  command     String // The command text (without the /)
+  description String // Description shown in command list
+  response    String? // Text response for simple commands
   type        TelegramCommandType
-  isEnabled   Boolean            @default(true) @map("is_enabled")
-  sortOrder   Int                @default(0) @map("sort_order")
-  metadata    Json?              // For storing button configurations, custom actions, etc.
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
+  isEnabled   Boolean             @default(true) @map("is_enabled")
+  sortOrder   Int                 @default(0) @map("sort_order")
+  metadata    Json? // For storing button configurations, custom actions, etc.
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -841,16 +840,16 @@ model TelegramCommand {
 
 // TelegramMenu model for storing menu structures
 model TelegramMenu {
-  id          String    @id @default(cuid())
-  projectId   String    @map("project_id")
-  menuId      String    @map("menu_id")  // Identifier used in callback_data
-  name        String    // Display name for the menu
-  description String?   // Description for admin UI
-  items       Json      // Array of menu items with text and actions
-  isDefault   Boolean   @default(false) @map("is_default")
-  sortOrder   Int       @default(0) @map("sort_order")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  menuId      String   @map("menu_id") // Identifier used in callback_data
+  name        String // Display name for the menu
+  description String? // Description for admin UI
+  items       Json // Array of menu items with text and actions
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -862,17 +861,17 @@ model TelegramMenu {
 
 // BrandingSettings model for project branding configuration
 model BrandingSettings {
-  id            String  @id @default(cuid())
-  projectId     String  @unique @map("project_id")
-  name          String
-  logo          String?
-  favicon       String?
-  mascot        String?
-  customDomain  String? @map("custom_domain")
-  primaryColor  String  @default("#6366F1") @map("primary_color")
-  secondaryColor String @default("#4F46E5") @map("secondary_color")
-  accentColor   String  @default("#F43F5E") @map("accent_color")
-  
+  id             String  @id @default(cuid())
+  projectId      String  @unique @map("project_id")
+  name           String
+  logo           String?
+  favicon        String?
+  mascot         String?
+  customDomain   String? @map("custom_domain")
+  primaryColor   String  @default("#6366F1") @map("primary_color")
+  secondaryColor String  @default("#4F46E5") @map("secondary_color")
+  accentColor    String  @default("#F43F5E") @map("accent_color")
+
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -882,43 +881,44 @@ model BrandingSettings {
 
 // AIImage model for storing AI-generated images
 model AIImage {
-  id           String   @id @default(cuid())
-  projectId    String   @map("project_id")
-  userId       String   @map("user_id")
-  prompt       String   @db.Text
-  provider     String   // e.g., "openai", "google", "stability"
-  size         String?  // e.g., "1024x1024"
-  style        String?  // e.g., "vivid", "photographic"
-  quality      String?  // e.g., "hd"
-  imageUrl     String   @map("image_url")
-  storageKey   String   @map("storage_key") // Path in the Supabase bucket
-  metadata     Json?    // Additional parameters and response data
-  createdAt    DateTime @default(now()) @map("created_at")
-  
+  id         String   @id @default(cuid())
+  projectId  String   @map("project_id")
+  userId     String   @map("user_id")
+  prompt     String   @db.Text
+  provider   String // e.g., "openai", "google", "stability"
+  size       String? // e.g., "1024x1024"
+  style      String? // e.g., "vivid", "photographic"
+  quality    String? // e.g., "hd"
+  imageUrl   String   @map("image_url")
+  storageKey String   @map("storage_key") // Path in the Supabase bucket
+  metadata   Json? // Additional parameters and response data
+  createdAt  DateTime @default(now()) @map("created_at")
+
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+
   @@map("ai_images")
   @@schema("dabao_tenant")
 }
 
 // SmtpConfig model for project-level SMTP configuration
 model SmtpConfig {
-  id            String    @id @default(cuid())
-  projectId     String    @unique
-  host          String
-  port          Int
-  secure        Boolean   @default(true)
-  username      String
-  password      String
-  senderName    String @map("sender_name")
-  senderEmail   String  @map("sender_email")  
-  lastTestedAt  DateTime? @map("last_tested_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  
+  id           String    @id @default(cuid())
+  projectId    String    @unique
+  host         String
+  port         Int
+  secure       Boolean   @default(true)
+  username     String
+  password     String
+  senderName   String    @map("sender_name")
+  senderEmail  String    @map("sender_email")
+  lastTestedAt DateTime? @map("last_tested_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
   // Relation
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   @@map("smtp_configs")
   @@schema("dabao_tenant")
 }
@@ -933,7 +933,7 @@ model EmailTemplateCategory {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   emailTemplates EmailTemplate[]
 
   @@unique([projectId, name])
@@ -943,24 +943,24 @@ model EmailTemplateCategory {
 
 // EmailTemplate for storing template definitions
 model EmailTemplate {
-  id           String             @id @default(cuid())
-  projectId    String             @map("project_id")
-  categoryId   String?            @map("category_id")
-  name         String
-  description  String?
-  type         EmailTemplateType  @default(TRANSACTIONAL)
-  status       EmailTemplateStatus @default(DRAFT)
-  subject      String
-  previewText  String?            @map("preview_text")
-  createdAt    DateTime           @default(now()) @map("created_at")
-  updatedAt    DateTime           @updatedAt @map("updated_at")
+  id          String              @id @default(cuid())
+  projectId   String              @map("project_id")
+  categoryId  String?             @map("category_id")
+  name        String
+  description String?
+  type        EmailTemplateType   @default(TRANSACTIONAL)
+  status      EmailTemplateStatus @default(DRAFT)
+  subject     String
+  previewText String?             @map("preview_text")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
   // Relations
-  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  category          EmailTemplateCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  versions          EmailTemplateVersion[]
-  emailCampaigns    EmailCampaign[]
-  emailLogs         EmailLog[]
+  project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category       EmailTemplateCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  versions       EmailTemplateVersion[]
+  emailCampaigns EmailCampaign[]
+  emailLogs      EmailLog[]
 
   @@unique([projectId, name])
   @@map("email_templates")
@@ -969,21 +969,21 @@ model EmailTemplate {
 
 // EmailTemplateVersion for versioning templates
 model EmailTemplateVersion {
-  id             String   @id @default(cuid())
-  templateId     String   @map("template_id")
-  version        Int
-  htmlContent    String   @map("html_content")
-  textContent    String?  @map("text_content")
-  jsonContent    Json?    @map("json_content")
-  variables      Json?    // Array of variables used in the template
-  isActive       Boolean  @default(false) @map("is_active")
-  publishedAt    DateTime? @map("published_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(cuid())
+  templateId  String    @map("template_id")
+  version     Int
+  htmlContent String    @map("html_content")
+  textContent String?   @map("text_content")
+  jsonContent Json?     @map("json_content")
+  variables   Json? // Array of variables used in the template
+  isActive    Boolean   @default(false) @map("is_active")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  template       EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  emailLogs      EmailLog[]
+  template  EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  emailLogs EmailLog[]
 
   @@unique([templateId, version])
   @@map("email_template_versions")
@@ -992,29 +992,29 @@ model EmailTemplateVersion {
 
 // EmailCampaign for sending bulk emails
 model EmailCampaign {
-  id              String                 @id @default(cuid())
-  projectId       String                 @map("project_id")
-  name            String
-  description     String?
-  templateId      String                 @map("template_id")
-  subject         String?                // Can override template subject
-  previewText     String?                @map("preview_text")
-  audienceFilter  Json?                  @map("audience_filter") // Filter criteria for targeting users
-  scheduledFor    DateTime?              @map("scheduled_for")
-  completedAt     DateTime?              @map("completed_at")
-  status          String                 @default("DRAFT")  // DRAFT, SCHEDULED, SENDING, COMPLETED, CANCELLED
-  sentCount       Int                    @default(0) @map("sent_count")
-  deliveredCount  Int                    @default(0) @map("delivered_count")
-  openCount       Int                    @default(0) @map("open_count")
-  clickCount      Int                    @default(0) @map("click_count")
-  templateVariables Json?                @map("template_variables")
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
+  id                String    @id @default(cuid())
+  projectId         String    @map("project_id")
+  name              String
+  description       String?
+  templateId        String    @map("template_id")
+  subject           String? // Can override template subject
+  previewText       String?   @map("preview_text")
+  audienceFilter    Json?     @map("audience_filter") // Filter criteria for targeting users
+  scheduledFor      DateTime? @map("scheduled_for")
+  completedAt       DateTime? @map("completed_at")
+  status            String    @default("DRAFT") // DRAFT, SCHEDULED, SENDING, COMPLETED, CANCELLED
+  sentCount         Int       @default(0) @map("sent_count")
+  deliveredCount    Int       @default(0) @map("delivered_count")
+  openCount         Int       @default(0) @map("open_count")
+  clickCount        Int       @default(0) @map("click_count")
+  templateVariables Json?     @map("template_variables")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  template      EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  emailLogs     EmailLog[]
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template  EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  emailLogs EmailLog[]
 
   @@map("email_campaigns")
   @@schema("dabao_tenant")
@@ -1031,9 +1031,9 @@ model EmailLog {
   recipientEmail    String    @map("recipient_email")
   recipientName     String?   @map("recipient_name")
   subject           String
-  variables         Json?     // Variables used in the template
-  messageId         String?   @map("message_id")  // Message ID from email provider
-  status            String    @default("SENT")    // SENT, DELIVERED, OPENED, CLICKED, BOUNCED, FAILED
+  variables         Json? // Variables used in the template
+  messageId         String?   @map("message_id") // Message ID from email provider
+  status            String    @default("SENT") // SENT, DELIVERED, OPENED, CLICKED, BOUNCED, FAILED
   sentAt            DateTime  @default(now()) @map("sent_at")
   deliveredAt       DateTime? @map("delivered_at")
   openedAt          DateTime? @map("opened_at")
@@ -1043,13 +1043,13 @@ model EmailLog {
   failureReason     String?   @map("failure_reason")
   ipAddress         String?   @map("ip_address")
   userAgent         String?   @map("user_agent")
-  
+
   // Relations
-  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  template          EmailTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  templateVersion   EmailTemplateVersion? @relation(fields: [templateVersionId], references: [id])
-  campaign          EmailCampaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  customer          Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template        EmailTemplate         @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateVersion EmailTemplateVersion? @relation(fields: [templateVersionId], references: [id])
+  campaign        EmailCampaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  customer        Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@map("email_logs")
   @@schema("dabao_tenant")
