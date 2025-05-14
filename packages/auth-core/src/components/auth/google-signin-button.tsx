@@ -1,15 +1,22 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@workspace/ui/components/button'
-import {supabase} from "@workspace/auth/lib/supabase/client";
-// import {useTranslations} from "@/hooks/use-translations";
+import { signInWithGoogle } from "@workspace/auth/lib/actions/auth";
 
-const GoogleSignInButton = () => {
+interface GoogleSignInButtonProps {
+    isLoading?: boolean;
+    onClick?: () => Promise<void>;
+}
+
+const GoogleSignInButton = ({ isLoading: externalIsLoading, onClick }: GoogleSignInButtonProps = {}) => {
     const [isLoading, setIsLoading] = useState(false)
 
-    // const {currentLanguage} = useTranslations();
-    // console.log(currentLanguage)
     const handleSignIn = async () => {
+        // If an external click handler is provided, use that
+        if (onClick) {
+            return onClick();
+        }
+        
         try {
             const params = new URLSearchParams(window.location.search);
             const nextParam = params.get('next');
@@ -18,12 +25,9 @@ const GoogleSignInButton = () => {
             const redirect = (redirectParam && redirectParam !== 'null') ? redirectParam : '/';
 
             setIsLoading(true)
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback?next=${next}&redirect=${redirect}`,
-                }
-            })
+            const { error } = await signInWithGoogle(
+                `${window.location.origin}/auth/callback?next=${next}&redirect=${redirect}`
+            );
 
             if (error) {
                 throw error
@@ -35,14 +39,17 @@ const GoogleSignInButton = () => {
         }
     }
 
+    // Use either external loading state or internal loading state
+    const buttonLoading = externalIsLoading !== undefined ? externalIsLoading : isLoading;
+    
     return (
         <Button
             variant="outline"
             className="h-12 w-full"
             onClick={handleSignIn}
-            disabled={isLoading}
+            disabled={buttonLoading}
         >
-            {isLoading ? (
+            {buttonLoading ? (
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             ) : (
                 <svg

@@ -11,6 +11,7 @@ import { InputField } from "@workspace/auth/components/auth/input-field"
 import { Button } from "@workspace/auth/components/ui/button"
 import { ArrowRight, ArrowLeft, CheckCircle} from "lucide-react"
 import GoogleSignInButton from "@workspace/auth/components/auth/google-signin-button"
+import { signUp } from "@workspace/auth/lib/actions/auth"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -108,14 +109,21 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const { data, error } = await signUp({
+        email: formState.email,
+        password: formState.password,
+        redirectTo: `${window.location.origin}/dashboard`,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
 
       // Show success animation with confetti
       setShowConfetti(true)
-    } catch (error) {
+    } catch (error: any) {
       setErrors({
-        form: "Something went wrong. Please try again.",
+        form: error.message || "Something went wrong. Please try again.",
       })
     } finally {
       setIsLoading(false)

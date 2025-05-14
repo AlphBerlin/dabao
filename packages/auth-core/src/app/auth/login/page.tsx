@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -10,8 +10,9 @@ import { AuthForm } from "@workspace/auth/components/auth/auth-form"
 import { InputField } from "@workspace/auth/components/auth/input-field"
 import { Button } from "@workspace/auth/components/ui/button"
 
-import { ArrowRight, CheckCircle, Github, Trophy } from "lucide-react"
+import { ArrowRight, CheckCircle } from "lucide-react"
 import GoogleSignInButton from "@workspace/auth/components/auth/google-signin-button"
+import { signIn, signInWithGoogle } from "@workspace/auth/lib/actions/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -62,8 +63,14 @@ export default function LoginPage() {
     setLoginAttempts(prev => prev + 1)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const { data, error } = await signIn({
+        email: formState.email,
+        password: formState.password,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
 
       // Show success state
       setShowSuccess(true)
@@ -73,9 +80,9 @@ export default function LoginPage() {
       setTimeout(() => {
         router.push("/dashboard")
       }, 2000)
-    } catch (error) {
+    } catch (error: any) {
       setErrors({
-        form: "Invalid email or password. Please try again.",
+        form: error.message || "Invalid email or password. Please try again.",
       })
     } finally {
       setIsLoading(false)
@@ -86,23 +93,18 @@ export default function LoginPage() {
     setGoogleLoading(true)
     
     try {
-      // Simulate Google sign-in API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const { error } = await signInWithGoogle(`${window.location.origin}/dashboard`)
       
-      // Show success state
-      setShowSuccess(true)
-      setShowBadge(loginAttempts === 0)
+      if (error) {
+        throw new Error(error.message)
+      }
       
-      // Redirect after success animation
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 2000)
-    } catch (error) {
-      setErrors({
-        form: "Google sign-in failed. Please try again.",
-      })
-    } finally {
+      // The OAuth flow will redirect the user, so we don't need to show success state here
+    } catch (error: any) {
       setGoogleLoading(false)
+      setErrors({
+        form: error.message || "Google sign-in failed. Please try again.",
+      })
     }
   }
 
