@@ -240,28 +240,6 @@ export function UserProfile() {
                 </div>
                 <div className="text-xs text-muted-foreground">Projects</div>
               </motion.div>
-
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-muted rounded-lg p-3 text-center"
-              >
-                <div className="text-2xl font-bold text-rimary">
-                  {mockStats.activityScore}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Activity Score
-                </div>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-muted rounded-lg p-3 text-center"
-              >
-                <div className="text-2xl font-bold text-primary">100% </div>
-                <div className="text-xs text-muted-foreground">
-                  Profile Complete
-                </div>
-              </motion.div>
             </div>
           </CardContent>
         </Card>
