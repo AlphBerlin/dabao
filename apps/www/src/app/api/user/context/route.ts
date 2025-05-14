@@ -87,32 +87,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database with all their organizations
+    // Get user from database
     const dbUser = await db.user.findUnique({
-      where: { supabaseUserId: supabaseUser.id },
-      include: {
-        organizations: {
-          include: {
-            organization: true
-          }
-        }
-      }
+      where: { supabaseUserId: supabaseUser.id }
     });
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    // Get user organizations
+    const userOrgs = await db.userOrganization.findMany({
+      where: { userId: dbUser.id },
+      include: { organization: true }
+    });
+    
+    // Get user preferences
+    const userPreferences = await db.userPreference.findUnique({
+      where: { userId: dbUser.id }
+    });
+    
     // Extract organizations from the user's memberships
-    const organizations = dbUser.organizations.map(membership => membership.organization);
+    const organizations = userOrgs.map(org => org.organization);
     
     // Create response
     const response = NextResponse.json({ 
       user: dbUser,
-      organizations
+      organizations,
+      preferences: userPreferences
     });
     
-
     return response;
   } catch (error) {
     console.error('Error fetching user context:', error);

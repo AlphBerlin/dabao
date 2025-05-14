@@ -90,7 +90,7 @@ export async function OrganizationProviders({
 
   return (
     <UserProvider 
-      initialUser={userData} 
+      initialUser={null} 
       initialOrganizations={organizations.map(org => org.organization)}
     >
       <OrganizationProvider

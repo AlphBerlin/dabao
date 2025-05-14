@@ -20,6 +20,38 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## User Preferences
+
+This application includes support for user preferences, including theme settings (light/dark/system), 
+language preferences, and notification settings. These settings are stored in the database and 
+applied across the entire application.
+
+### Features
+
+- Theme preferences (light, dark, system)
+- Language preferences
+- Email notification settings
+- User data export
+- Account deletion
+
+### Implementation
+
+The user preferences system utilizes:
+
+1. A `UserPreference` model in the Prisma schema
+2. API endpoints for managing preferences
+3. Context-based access to preferences via `useUser()` hook
+4. Automatic theme application via the `useThemePreference()` hook
+
+### Running the Migration
+
+To add user preferences support to your database:
+
+```bash
+# Run the migration script
+./scripts/add-user-preferences.sh
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
