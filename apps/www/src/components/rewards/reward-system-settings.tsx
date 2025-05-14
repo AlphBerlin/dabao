@@ -84,7 +84,7 @@ export default function RewardSystemSettings({
     if (value === 'TEN_PERCENT' || value === 'TWENTY_PERCENT' || value === 'THIRTY_PERCENT' || value === 'CUSTOM') {
       return value as PointsCollectionMechanismType;
     }
-    return 'MEDIUM'; // Default value
+    return 'TEN_PERCENT'; // Default value
   };
 
   // Initialize form with existing preferences
@@ -244,9 +244,9 @@ export default function RewardSystemSettings({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="LOW">Low (10% of purchase)</SelectItem>
-                          <SelectItem value="MEDIUM">Medium (30% of purchase)</SelectItem>
-                          <SelectItem value="HIGH">High (50% of purchase)</SelectItem>
+                          <SelectItem value="TEN_PERCENT">10% of purchase (1pt of every dollar)</SelectItem>
+                          <SelectItem value="TWENTY_PERCENT">20% of purchase (2pt of every dollar)</SelectItem>
+                          <SelectItem value="THIRTY_PERCENT">30% of purchase (3pt of every dollar)</SelectItem>
                           <SelectItem value="CUSTOM">Custom percentage</SelectItem>
                         </SelectContent>
                       </Select>
