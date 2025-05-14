@@ -8,6 +8,7 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BrandingSettings } from "./components/branding-settings";
 import { ApiTokenSettings } from "./components/api-token-settings";
 import { UserSettings } from "./components/user-settings";
+import { DangerZoneSettings } from "./components/danger-zone-settings";
 import { requirePermission } from "@/lib/auth/server-auth";
 import { ACTION_TYPES, RESOURCE_TYPES } from "@/lib/casbin/enforcer";
 import RewardSystemSettings from "@/components/rewards/reward-system-settings";
@@ -50,11 +51,14 @@ export default async function ProjectSettingsPage({
           <Separator className="my-6" />
 
           <Tabs defaultValue="branding" className="w-full">
-            <TabsList className="w-full md:w-auto grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <TabsList className="w-full md:w-auto grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <TabsTrigger value="branding">Branding</TabsTrigger>
               <TabsTrigger value="reward-settings">Reward System</TabsTrigger>
               <TabsTrigger value="api-tokens">API Tokens</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="danger-zone" className="text-destructive">
+                Danger Zone
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="branding">
               <BrandingSettings projectId={projectId} />
@@ -67,6 +71,9 @@ export default async function ProjectSettingsPage({
             </TabsContent>
             <TabsContent value="users">
               <UserSettings projectId={projectId} />
+            </TabsContent>
+            <TabsContent value="danger-zone">
+              <DangerZoneSettings projectId={projectId} projectName={project.name} />
             </TabsContent>
           </Tabs>
         </div>
