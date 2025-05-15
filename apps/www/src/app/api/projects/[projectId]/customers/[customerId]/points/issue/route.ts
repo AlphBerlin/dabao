@@ -9,7 +9,10 @@ const issuePointsSchema = z.object({
   reason: z.string().min(1),
   description: z.string().optional(),
   orderId: z.string().optional(),
-  expiresAt: z.string().datetime().optional(),
+  expiresAt: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: "Invalid date format" }
+  ),
 });
 
 // Issue points to a customer
@@ -68,7 +71,7 @@ export async function POST(
         reason,
         description,
         orderId,
-        ...(expiresAt && { expiresAt: new Date(expiresAt) }),
+        ...(expiresAt && !isNaN(Date.parse(expiresAt)) && { expiresAt: new Date(expiresAt) }),
       },
     });
     

@@ -8,6 +8,7 @@ import {
   DialogDescription,
   DialogFooter 
 } from '@workspace/ui/components/dialog';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
 import { 
@@ -61,7 +62,7 @@ export const ClaimPointsDialog: React.FC<ClaimPointsDialogProps> = ({
   projectId,
   customerId,
   customerName,
-  currentBalance,
+  currentBalance: initialBalance,
   onSuccess,
   onError,
   trigger
@@ -70,6 +71,8 @@ export const ClaimPointsDialog: React.FC<ClaimPointsDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [currentBalance, setCurrentBalance] = useState(initialBalance);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const form = useForm<ClaimPointsFormValues>({
     resolver: zodResolver(claimPointsFormSchema),
@@ -90,12 +93,31 @@ export const ClaimPointsDialog: React.FC<ClaimPointsDialogProps> = ({
     }
   };
 
-  // Load available vouchers when dialog opens
+  // Load available vouchers and fetch current balance when dialog opens
   useEffect(() => {
     if (isOpen) {
       fetchAvailableVouchers();
+      fetchCurrentBalance();
     }
-  }, [isOpen, projectId]);
+  }, [isOpen, projectId, customerId]);
+
+  const fetchCurrentBalance = async () => {
+    try {
+      setIsLoadingBalance(true);
+      const response = await fetch(`/api/projects/${projectId}/customers/${customerId}/points`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch points balance');
+      }
+      const data = await response.json();
+      setCurrentBalance(data.balance);
+    } catch (error) {
+      console.error('Error fetching points balance:', error);
+      // Fallback to initial balance if fetch fails
+      setCurrentBalance(initialBalance);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
 
   const fetchAvailableVouchers = async () => {
     try {
@@ -168,7 +190,14 @@ export const ClaimPointsDialog: React.FC<ClaimPointsDialogProps> = ({
           <DialogTitle>Redeem Points</DialogTitle>
           <DialogDescription>
             Redeem your loyalty points for rewards. 
-            You currently have {currentBalance} points available.
+            You currently have {isLoadingBalance ? (
+              <span>
+                <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                Loading balance...
+              </span>
+            ) : (
+              <span className="font-semibold">{currentBalance}</span>
+            )} points available.
           </DialogDescription>
         </DialogHeader>
         
@@ -225,7 +254,10 @@ export const ClaimPointsDialog: React.FC<ClaimPointsDialogProps> = ({
                     />
                   </FormControl>
                   <FormDescription>
-                    Enter the number of points to redeem (max: {currentBalance})
+                    Enter the number of points to redeem {isLoadingBalance ? 
+                      "(loading balance...)" : 
+                      `(max: ${currentBalance})`
+                    }
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

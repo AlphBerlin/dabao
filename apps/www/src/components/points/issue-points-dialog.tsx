@@ -82,12 +82,18 @@ export const IssuePointsDialog: React.FC<IssuePointsDialogProps> = ({
   const onSubmit = async (values: IssuePointsFormValues) => {
     setIsSubmitting(true);
     try {
+      // Format the expiresAt date in ISO format if provided
+      const formattedValues = {
+        ...values,
+        expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : undefined
+      };
+      
       const response = await fetch(`/api/projects/${projectId}/customers/${customerId}/points/issue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(formattedValues),
       });
 
       const data = await response.json();
