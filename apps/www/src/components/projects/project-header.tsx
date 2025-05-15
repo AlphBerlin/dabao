@@ -71,7 +71,7 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
 
   return (
     <>
-      <header className="h-16 border-b px-6 flex items-center justify-between">
+      <header className="h-16 border-b px-6 flex items-center justify-between w-full">
         <div className="flex items-center space-x-4">
           {project?.name && (
             <span className="font-medium text-lg hidden md:block">

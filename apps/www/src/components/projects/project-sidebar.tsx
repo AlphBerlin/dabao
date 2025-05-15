@@ -41,8 +41,7 @@ interface ProjectSidebarProps {
 export default function ProjectSidebar({ project, pathname, loading }: ProjectSidebarProps) {
   if (loading) {
     return (
-      <Sidebar collapsible="none" className="sticky hidden lg:flex top-0 h-svh border-l"
->
+      <Sidebar collapsible="icon" variant='inset' className="sticky hidden lg:flex top-0 h-svh border-l">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -72,7 +71,7 @@ export default function ProjectSidebar({ project, pathname, loading }: ProjectSi
   }
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="none" variant='inset' className="sticky hidden lg:flex top-0 h-svh border-l">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

@@ -68,14 +68,12 @@ export default function ProjectLayout({
           />
 
           <SidebarInset className="flex-1 flex flex-col">
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col ">
-              <ProjectHeader project={project} loading={loading} />
-              <main className="flex-1 overflow-y-auto mx-6">
-                <ScrollArea className="h-screen">{children}</ScrollArea>
-              </main>
-              <Toaster />
-            </div>  
+            <ProjectHeader project={project} loading={loading}/>
+
+            <main className="flex-1 overflow-y-auto mx-6">
+              <ScrollArea className="h-screen">{children}</ScrollArea>
+            </main>
+            <Toaster />
           </SidebarInset>
 
           {/* Right App Sidebar with content */}
