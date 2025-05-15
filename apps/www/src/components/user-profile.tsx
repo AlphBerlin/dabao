@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user-context";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Switch } from "@workspace/ui/components/switch";
@@ -41,6 +41,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Separator } from "@workspace/ui/components/separator";
 import { Progress } from "@workspace/ui/components/progress";
+import { useToast } from "@workspace/ui/src/hooks/use-toast";
 import {
   User,
   Building,
@@ -51,6 +52,9 @@ import {
   Activity,
   RefreshCw,
   CheckCircle2,
+  ChevronDown,
+  Save,
+  Pencil,
 } from "lucide-react";
 
 export function UserProfile() {
@@ -59,7 +63,9 @@ export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "">("");
+  
   // Mock data for the profile page
   const mockStats = {
     memberSince: "Jan 15, 2023",
@@ -89,6 +95,40 @@ export function UserProfile() {
         stiffness: 100,
       },
     },
+  };
+
+  // Feedback notification component
+  const FeedbackNotification = () => {
+    if (!feedbackMessage) return null;
+    
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
+            feedbackType === "success" ? "bg-green-100 text-green-800 border border-green-300" : 
+            feedbackType === "error" ? "bg-red-100 text-red-800 border border-red-300" : ""
+          }`}
+        >
+          {feedbackMessage}
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+
+  // Custom handler for preference updates
+  const handlePreferenceUpdate = (newPrefs: any) => {
+    updatePreferences(newPrefs);
+    setFeedbackMessage("Preferences updated");
+    setFeedbackType("success");
+    
+    // Clear feedback message after 3 seconds
+    setTimeout(() => {
+      setFeedbackMessage("");
+      setFeedbackType("");
+    }, 3000);
   };
 
   if (isLoading) {
@@ -148,8 +188,25 @@ export function UserProfile() {
 
   const handleEditProfile = () => {
     if (isEditing) {
-      // Save changes logic would go here
-      // For now, we'll just toggle the state
+      // Mock saving the user's name
+      if (editedName.trim() !== '') {
+        // In a real app, this would make an API call to update the user profile
+        // For now, we'll just pretend it worked and show feedback
+        setFeedbackMessage("Profile updated successfully");
+        setFeedbackType("success");
+        
+        // Clear feedback message after 3 seconds
+        setTimeout(() => {
+          setFeedbackMessage("");
+          setFeedbackType("");
+        }, 3000);
+      } else {
+        setFeedbackMessage("Name cannot be empty");
+        setFeedbackType("error");
+        
+        // Don't exit edit mode if there's an error
+        return;
+      }
       setIsEditing(false);
     } else {
       setEditedName(user.name || "");
@@ -164,6 +221,7 @@ export function UserProfile() {
       initial="hidden"
       animate="visible"
     >
+      <FeedbackNotification />
       {/* Profile Header */}
       <motion.div variants={itemVariants}>
         <Card className="border-none shadow-lg">
