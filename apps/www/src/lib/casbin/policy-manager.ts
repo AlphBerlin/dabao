@@ -214,7 +214,6 @@ export class PolicyManager {
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.USER, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.REWARD, ACTION_TYPES.ALL, projectId);
-    await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('OWNER', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.ALL, projectId);
@@ -231,7 +230,6 @@ export class PolicyManager {
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.USER, ACTION_TYPES.MANAGE, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.REWARD, ACTION_TYPES.ALL, projectId);
-    await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.ALL, projectId);
     await casbinEnforcer.addPolicy('ADMIN', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.MANAGE, projectId);
@@ -250,10 +248,7 @@ export class PolicyManager {
     await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.REWARD, ACTION_TYPES.CREATE, projectId);
     await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.REWARD, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.REWARD, ACTION_TYPES.UPDATE, projectId);
-    await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.CREATE, projectId);
-    await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.READ, projectId);
-    await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.UPDATE, projectId);
-    await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.READ, projectId);
+   await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.API_TOKEN, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('MEMBER', RESOURCE_TYPES.AUTH_TOKEN, ACTION_TYPES.READ, projectId);
   }
@@ -267,7 +262,6 @@ export class PolicyManager {
     await casbinEnforcer.addPolicy('VIEWER', RESOURCE_TYPES.PROJECT, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('VIEWER', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('VIEWER', RESOURCE_TYPES.REWARD, ACTION_TYPES.READ, projectId);
-    await casbinEnforcer.addPolicy('VIEWER', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.READ, projectId);
     await casbinEnforcer.addPolicy('VIEWER', RESOURCE_TYPES.MEMBERSHIP, ACTION_TYPES.READ, projectId);
   }
 }
