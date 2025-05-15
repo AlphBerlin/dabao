@@ -162,18 +162,6 @@ export default function ProjectSidebar({ project, pathname, loading }: ProjectSi
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                isActive={pathname.includes(`/dashboard/projects/${project?.id}/notifications`)}
-                asChild
-              >
-                <Link href={`/dashboard/projects/${project?.id}/notifications`}>
-                  <Bell className="size-4" />
-                  <span>Notifications</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton 
                 isActive={pathname.includes(`/dashboard/projects/${project?.id}/integrations`)}
                 asChild
               >

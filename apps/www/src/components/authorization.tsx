@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthorization, useHasRole } from '@/hooks/useAuthorization';
-import { Spinner } from '@workspace/ui/components/spinner';
+import { Spinner } from '@workspace/ui/components/Spinner';
 
 interface AuthorizeProps {
   projectId: string;
