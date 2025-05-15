@@ -11,6 +11,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
+import { IssuePointsDialog, ClaimPointsDialog } from "@/components/points";
 import {
   Table,
   TableBody,
@@ -56,6 +57,10 @@ interface Customer {
   metadata: any | null;
   createdAt: string;
   updatedAt: string;
+  pointsBalance?: number; // Optional because we might not fetch it initially
+  customerMemberships?: Array<{
+    pointsBalance: number;
+  }>;
 }
 
 export default function CustomersPage({projectId}: { projectId: string }) {
@@ -79,7 +84,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
     const fetchCustomers = async () => {
       try {
         setLoading(true);
-        const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}`;
+        const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}&include=customerMemberships`;
         
         const response = await fetch(url);
         if (!response.ok) {
@@ -87,7 +92,15 @@ export default function CustomersPage({projectId}: { projectId: string }) {
         }
         
         const data = await response.json();
-        setCustomers(data.data);
+        
+        // Process customers to include points balance
+        const processedCustomers = data.data.map((customer: Customer) => {
+          // Calculate points balance from memberships if available
+          const pointsBalance = customer.customerMemberships?.[0]?.pointsBalance || 0;
+          return { ...customer, pointsBalance };
+        });
+        
+        setCustomers(processedCustomers);
         setTotalCount(data.meta.total);
       } catch (error) {
         console.error("Error loading customers:", error);
@@ -143,6 +156,26 @@ export default function CustomersPage({projectId}: { projectId: string }) {
     }
   };
   
+  // Function to refresh customer data after points are issued/claimed
+  const refreshCustomerData = async () => {
+    try {
+      const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}&include=customerMemberships`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        const processedCustomers = data.data.map((c: Customer) => {
+          return {
+            ...c,
+            pointsBalance: c.customerMemberships?.[0]?.pointsBalance || 0
+          };
+        });
+        setCustomers(processedCustomers);
+      }
+    } catch (error) {
+      console.error("Error refreshing customers:", error);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -256,7 +289,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                       <TableCell>
                         {format(new Date(customer.updatedAt), "MMM d, yyyy")}
                       </TableCell>
-                      {/* TODO: enable it sooner<TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -265,27 +298,50 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
+                            {/* <DropdownMenuItem asChild>
                               <a href={`/dashboard/projects/${projectId}/customers/${customer.id}`}>
                                 <User className="mr-2 h-4 w-4" />
                                 View Profile
                               </a>
+                            </DropdownMenuItem> */}
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <IssuePointsDialog
+                                projectId={projectId}
+                                customerId={customer.id}
+                                customerName={customer.name || customer.email.split("@")[0]!}
+                                trigger={
+                                  <div className="flex items-center w-full">
+                                    <Award className="mr-2 h-4 w-4" />
+                                    Issue Points
+                                  </div>
+                                }
+                                onSuccess={refreshCustomerData}
+                              />
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <a href={`/dashboard/projects/${projectId}/points?customer=${customer.id}`}>
-                                <Award className="mr-2 h-4 w-4" />
-                                Issue Points
-                              </a>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <ClaimPointsDialog
+                                projectId={projectId}
+                                customerId={customer.id}
+                                customerName={customer.name || customer.email.split("@")[0]!}
+                                currentBalance={customer.pointsBalance || 0}
+                                trigger={
+                                  <div className="flex items-center w-full">
+                                    <Award className="mr-2 h-4 w-4" />
+                                    Redeem Points
+                                  </div>
+                                }
+                                onSuccess={refreshCustomerData}
+                              />
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
+                            {/* <DropdownMenuItem asChild>
                               <a href={`/dashboard/projects/${projectId}/customers/${customer.id}/edit`}>
                                 Edit Customer
                               </a>
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
