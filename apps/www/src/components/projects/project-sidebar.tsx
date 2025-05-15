@@ -22,6 +22,7 @@ import {
   Puzzle,
   Bell,
 } from "lucide-react";
+import { isFeatureEnabled } from "@/config/features";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 
 interface Project {
@@ -139,17 +140,20 @@ export default function ProjectSidebar({ project, pathname, loading }: ProjectSi
               </SidebarMenuButton>
             </SidebarMenuItem>
             
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                isActive={pathname.includes(`/dashboard/projects/${project?.id}/campaigns`)}
-                asChild
-              >
-                <Link href={`/dashboard/projects/${project?.id}/campaigns`}>
-                  <Megaphone className="size-4" />
-                  <span>Campaigns</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {/* Campaigns menu item - conditionally rendered based on feature flag */}
+            {isFeatureEnabled('enableCampaigns') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  isActive={pathname.includes(`/dashboard/projects/${project?.id}/campaigns`)}
+                  asChild
+                >
+                  <Link href={`/dashboard/projects/${project?.id}/campaigns`}>
+                    <Megaphone className="size-4" />
+                    <span>Campaigns</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
         

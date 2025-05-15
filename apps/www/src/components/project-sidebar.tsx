@@ -17,6 +17,7 @@ import {
   FileText,
   Star,
 } from "lucide-react";
+import { isFeatureEnabled } from "@/config/features";
 
 interface ProjectSidebarProps {
   project: {
@@ -55,11 +56,12 @@ export function ProjectSidebar({ project }: ProjectSidebarProps) {
       href: `/dashboard/projects/${projectId}/points`,
       icon: Star,
     },
-    {
+    // Only add campaigns if the feature is enabled
+    ...(isFeatureEnabled('enableCampaigns') ? [{
       title: "Campaigns",
       href: `/dashboard/projects/${projectId}/campaigns`,
       icon: Megaphone,
-    },
+    }] : []),
     {
       title: "Analytics",
       href: `/dashboard/projects/${projectId}/analytics`,

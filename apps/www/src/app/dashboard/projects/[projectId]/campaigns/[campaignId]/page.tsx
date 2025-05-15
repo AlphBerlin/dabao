@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { RouteGuard } from "@/components/route-guard";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -67,7 +68,7 @@ enum CampaignStatus {
   CANCELED = "CANCELED"
 }
 
-export default function CampaignDetailPage() {
+function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
@@ -658,3 +659,20 @@ export default function CampaignDetailPage() {
     </div>
   );
 }
+
+// Wrap the component with a route guard to check if campaigns feature is enabled
+function ProtectedCampaignDetailPage() {
+  const params = useParams();
+  const projectId = params.projectId as string;
+  
+  return (
+    <RouteGuard 
+      featureFlag="enableCampaigns"
+      fallbackPath={`/dashboard/projects/${projectId}`}
+    >
+      <CampaignDetailPage />
+    </RouteGuard>
+  );
+}
+
+export default ProtectedCampaignDetailPage;

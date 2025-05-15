@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/auth";
 import { hasProjectAccess } from "@/lib/auth/project-access";
+import { campaignsMiddleware } from "./middleware";
+import { featureFlags } from "@/config/features";
 
 // Schema for creating/updating campaigns
 const campaignSchema = z.object({
@@ -21,6 +23,12 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    // Check if campaigns feature is enabled
+    const featureCheck = campaignsMiddleware(req);
+    if (featureCheck) {
+      return featureCheck;
+    }
+    
     const projectId = (await params).projectId;
 
     const user = await getServerUser();
@@ -121,6 +129,12 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    // Check if campaigns feature is enabled
+    const featureCheck = campaignsMiddleware(req);
+    if (featureCheck) {
+      return featureCheck;
+    }
+    
     const projectId = (await params).projectId;
     const user = await getServerUser();
     if (!user) {
