@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "../supabase/server";
+import { withRetry } from "../utils/retry";
 
 export type AuthError = {
     message: string;
@@ -17,15 +18,28 @@ export async function signUp(data: {
 }): Promise<{ data: any; error: AuthError | null }> {
     try {
         const supabase = await createClient();
-        const { data: signUpData, error } = await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-            options: {
-                emailRedirectTo: data.redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-            },
+        
+        // Use retry logic to handle rate limits
+        const { data: signUpData, error } = await withRetry(async () => {
+            return await supabase.auth.signUp({
+                email: data.email,
+                password: data.password,
+                options: {
+                    emailRedirectTo: data.redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+                },
+            });
         });
 
         if (error) {
+            if (error.status === 429) {
+                return {
+                    data: null,
+                    error: {
+                        message: "Too many requests. Please wait a moment before trying again.",
+                    },
+                };
+            }
+            
             return {
                 data: null,
                 error: {
@@ -39,6 +53,16 @@ export async function signUp(data: {
             error: null,
         };
     } catch (error: any) {
+        // Handle rate limiting errors specifically
+        if (error.status === 429 || (error.error && error.error.status === 429)) {
+            return {
+                data: null,
+                error: {
+                    message: "Too many requests. Please wait a moment before trying again.",
+                },
+            };
+        }
+        
         return {
             data: null,
             error: {
@@ -57,13 +81,25 @@ export async function signIn(data: {
 }): Promise<{ data: any; error: AuthError | null }> {
     try {
         const supabase = await createClient();
-
-        const { data: signInData, error } = await supabase.auth.signInWithPassword({
-            email: data.email,
-            password: data.password,
+        
+        // Use retry logic to handle rate limits
+        const { data: signInData, error } = await withRetry(async () => {
+            return await supabase.auth.signInWithPassword({
+                email: data.email,
+                password: data.password,
+            });
         });
 
         if (error) {
+            if (error.status === 429) {
+                return {
+                    data: null,
+                    error: {
+                        message: "Too many requests. Please wait a moment before trying again.",
+                    },
+                };
+            }
+            
             return {
                 data: null,
                 error: {
@@ -77,6 +113,16 @@ export async function signIn(data: {
             error: null,
         };
     } catch (error: any) {
+        // Handle rate limiting errors specifically
+        if (error.status === 429 || (error.error && error.error.status === 429)) {
+            return {
+                data: null,
+                error: {
+                    message: "Too many requests. Please wait a moment before trying again.",
+                },
+            };
+        }
+        
         return {
             data: null,
             error: {
@@ -92,11 +138,14 @@ export async function signIn(data: {
 export async function signInWithGoogle(redirectTo?: string): Promise<{ error: AuthError | null }> {
     try {
         const supabase = await createClient();
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: {
-                redirectTo: redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-            },
+        
+        const { error } = await withRetry(async () => {
+            return await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+                },
+            });
         });
 
         if (error) {
@@ -127,8 +176,10 @@ export async function forgotPassword(data: {
     try {
         const supabase = await createClient();
 
-        const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-            redirectTo: data.redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+        const { error } = await withRetry(async () => {
+            return await supabase.auth.resetPasswordForEmail(data.email, {
+                redirectTo: data.redirectTo || `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+            });
         });
 
         if (error) {
@@ -141,6 +192,15 @@ export async function forgotPassword(data: {
 
         return { error: null };
     } catch (error: any) {
+        // Handle rate limiting errors specifically
+        if (error.status === 429 || (error.error && error.error.status === 429)) {
+            return {
+                error: {
+                    message: "Too many requests. Please wait a moment before trying again.",
+                },
+            };
+        }
+        
         return {
             error: {
                 message: error.message || "Failed to send reset email.",
@@ -158,8 +218,10 @@ export async function resetPassword(data: {
     try {
         const supabase = await createClient();
 
-        const { error } = await supabase.auth.updateUser({
-            password: data.password,
+        const { error } = await withRetry(async () => {
+            return await supabase.auth.updateUser({
+                password: data.password,
+            });
         });
 
         if (error) {
@@ -172,6 +234,15 @@ export async function resetPassword(data: {
 
         return { error: null };
     } catch (error: any) {
+        // Handle rate limiting errors specifically
+        if (error.status === 429 || (error.error && error.error.status === 429)) {
+            return {
+                error: {
+                    message: "Too many requests. Please wait a moment before trying again.",
+                },
+            };
+        }
+        
         return {
             error: {
                 message: error.message || "Failed to reset password.",

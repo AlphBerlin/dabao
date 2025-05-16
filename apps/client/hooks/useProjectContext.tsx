@@ -3,11 +3,22 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 
+// Define project data type
+interface ProjectData {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  settings: any;
+  theme: any;
+}
+
 // Define the project context type
 interface ProjectContextType {
   projectId: string;
   projectSlug: string;
   domain: string;
+  project: ProjectData | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -17,6 +28,7 @@ const ProjectContext = createContext<ProjectContextType>({
   projectId: '',
   projectSlug: '',
   domain: '',
+  project: null,
   isLoading: true,
   error: null,
 });
@@ -29,6 +41,7 @@ export function ProjectContextProvider({ children }: { children: React.ReactNode
     projectId: '',
     projectSlug: '',
     domain: '',
+    project: null,
     isLoading: true,
     error: null,
   });
@@ -49,6 +62,7 @@ export function ProjectContextProvider({ children }: { children: React.ReactNode
           projectId: data.projectId,
           projectSlug: data.projectSlug,
           domain: data.domain,
+          project: data.project,
           isLoading: false,
           error: null,
         });

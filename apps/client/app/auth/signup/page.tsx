@@ -21,7 +21,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const project  = useProjectContext();
+  const { projectId, project } = useProjectContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +43,10 @@ export default function SignupPage() {
       }
 
       // 2. Create the customer record if we have a project and user
-      if (project?.projectId && data?.user?.id) {
+      if (projectId && data?.user?.id) {
         try {
           await createCustomer({
-            projectId: project.projectId,
+            projectId,
             email,
             name,
             phone,

@@ -22,13 +22,36 @@ export async function GET() {
     );
   }
 
-  const project = await db.project.findFirst({
-    where: {
+  try {
+    const project = await db.project.findUnique({
+      where: {
         id: projectId,
-    },include: {
-        : true,
-    }
-});  
-  // Return the project context for client-side components
-  return NextResponse.json(project);
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+        settings: true,
+        theme: true,
+      }
+    });
+
+    // Return the project context for client-side components
+    return NextResponse.json({
+      projectId,
+      projectSlug,
+      domain,
+      project
+    });
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    return NextResponse.json(
+      { 
+        projectId, 
+        projectSlug, 
+        domain,
+        error: 'Failed to fetch project details' 
+      }
+    );
 }

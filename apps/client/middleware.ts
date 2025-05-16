@@ -64,31 +64,20 @@ export async function middleware(request: NextRequest) {
     res.headers.set('x-project-slug', domainInfo.projectSlug || '');
     res.headers.set('x-domain', domain);
     
-    // Update session with Supabase
-    const response = await updateSession(request);
+    // Handle protected routes directly in the middleware
+    const protectedRoutes = ['/account', '/orders', '/profile', '/rewards'];
+    const isProtectedRoute = !isAuthRoute && !isApiRoute && protectedRoutes.some(route => 
+      request.nextUrl.pathname.startsWith(route)
+    );
     
-    // Copy over the project context headers to the new response
-    Object.entries(res.headers).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-    
-    // Check authentication status for protected routes
-    const { data: { session } } = await response.json();
-    
-    // If unauthenticated and trying to access a protected route, redirect to login
-    if (!session && !isAuthRoute && !isApiRoute) {
-      // Optional: Define protected routes that require auth
-      const protectedRoutes = ['/account', '/orders', '/profile', '/rewards'];
-      const isProtectedRoute = protectedRoutes.some(route => 
-        request.nextUrl.pathname.startsWith(route)
-      );
-      
-      if (isProtectedRoute) {
-        return NextResponse.redirect(new URL('/auth/login', request.url));
-      }
+    if (isProtectedRoute) {
+      // Update the session using Supabase middleware
+      // This will handle redirects if no user is found
+      return updateSession(request);
     }
     
-    return response;
+    // For unprotected routes, just pass along the project context
+    return res;
   } catch (error) {
     console.error('Error in middleware:', error);
     

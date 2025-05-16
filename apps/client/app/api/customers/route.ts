@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from '@/lib/prisma';
+// Schema for customer creation/update
+const customerSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().optional(),
+  // Add other customer fields as needed
+});
+
+/**
+ * GET /api/projects/[projectId]/customers
+ * Get all customers for a specific project
+ */
+export const GET = async (
+  req: NextRequest,
+) => {
+  try {
+    const projectId =(await req.headers).get('x-project-id')!;
+
+    // Get query parameters
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+    const search = url.searchParams.get('search') || '';
+
+    // Build query conditions
+    const where = {
+      projectId,
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { phone: { contains: search, mode: 'insensitive' as const } }
+        ]
+      } : {})
+    };
+
+    // Get customers with pagination
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.customer.count({ where })
+    ]);
+
+    return NextResponse.json({
+      data: customers,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/projects/[projectId]/customers
+ * Create a new customer for a specific project
+ */
+export const POST = async (
+  req: NextRequest
+) => {
+  try {
+    const projectId =(await req.headers).get('x-project-id')!;
+
+
+    // Parse and validate request body
+    const body = await req.json();
+    // Update schema to include supabaseUserId
+    const extendedCustomerSchema = customerSchema.extend({
+      supabaseUserId: z.string().optional(),
+    });
+
+    const validationResult = extendedCustomerSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json({
+        error: "Validation error",
+        details: validationResult.error.format()
+      }, { status: 400 });
+    }
+
+    const { email, name, phone, supabaseUserId, ...otherData } = validationResult.data;
+
+    // Check if customer with this email already exists
+    const existingCustomer = await prisma.customer.findFirst({
+      where: {
+        projectId,
+        email: {
+          equals: email,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (existingCustomer) {
+      // If customer exists and we have a supabaseUserId to link, update the customer
+      if (supabaseUserId && !existingCustomer.supabaseUserId) {
+        const updatedCustomer = await prisma.customer.update({
+          where: {
+            id: existingCustomer.id
+          },
+          data: {
+            supabaseUserId
+          }
+        });
+        return NextResponse.json(updatedCustomer);
+      }
+
+      return NextResponse.json({
+        error: "Customer with this email already exists"
+      }, { status: 409 });
+    }
+
+    // Create the customer
+    const customer = await prisma.customer.create({
+      data: {
+        projectId,
+        email,
+        name,
+        phone,
+        ...(supabaseUserId ? { supabaseUserId } : {}),
+        ...otherData
+      }
+    });
+
+    return NextResponse.json(customer, { status: 201 });
+  } catch (error) {
+    console.error("Error creating customer:", error);
+    return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
+  }
+}
