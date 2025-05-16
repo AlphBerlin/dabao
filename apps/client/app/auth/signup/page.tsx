@@ -33,7 +33,7 @@ export default function SignupPage() {
       const { data, error } = await signUp({ 
         email, 
         password,
-        redirectTo: `${window.location.origin}/auth/callback?redirect=/`
+        redirectTo: `${window.location.origin}/auth/callback?redirect=%2F`
       });
 
       if (error) {

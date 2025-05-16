@@ -9,6 +9,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@workspace/ui/components/card";
+import GoogleSignInButton from "../components/google-signin-button";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -90,10 +91,12 @@ export default function LoginPage() {
             </div>
           </CardContent>
           
-          <CardFooter className="flex flex-col">
+          <CardFooter className="flex flex-col mt-8">
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
             </Button>
+
+            <GoogleSignInButton className="mt-4" />
             
             <div className="mt-4 text-center text-sm">
               Don't have an account?{" "}
