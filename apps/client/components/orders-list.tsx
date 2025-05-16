@@ -5,7 +5,7 @@ import { Card, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { ShoppingBag, ChevronRight, Download } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
+// import { formatCurrency } from "@/lib/utils"
 
 export function OrdersList() {
   const orders = [
@@ -102,7 +102,7 @@ export function OrdersList() {
                     <div>
                       <span className="font-medium">{item.quantity}x</span> {item.name}
                     </div>
-                    <div className="font-medium">{formatCurrency(item.price)}</div>
+                    {/* <div className="font-medium">{formatCurrency(item.price)}</div> */}
                   </div>
                 ))}
               </div>
@@ -110,7 +110,7 @@ export function OrdersList() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-4 border-t">
                 <div className="mb-3 sm:mb-0">
                   <p className="text-sm text-mid-gray">Total</p>
-                  <p className="font-bold text-lg text-tn-blue">{formatCurrency(order.total)}</p>
+                  {/* <p className="font-bold text-lg text-tn-blue">{formatCurrency(order.total)}</p> */}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">

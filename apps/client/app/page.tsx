@@ -16,10 +16,6 @@ export default async function Home() {
           <p className="text-xs">Domain: {projectContext.domain}</p>
         </div>
       )}
-      
-      {/* Main dashboard */}
-      <DashboardPage />
-      
       {/* Client-side project context component */}
       <div className="mt-8">
         <ProjectContextDisplay />
