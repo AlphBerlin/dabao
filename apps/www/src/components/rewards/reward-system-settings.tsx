@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
+import { Decimal } from '@prisma/client/runtime/library';
 
 import { Button } from '@workspace/ui/components/button';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
@@ -26,8 +26,6 @@ import {
   FormMessage,
 } from '@workspace/ui/components/form';
 import { Input } from '@workspace/ui/components/input';
-import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
-import { Switch } from '@workspace/ui/components/switch';
 import { Badge } from '@workspace/ui/components/badge';
 import { Separator } from '@workspace/ui/components/separator';
 import {
@@ -37,6 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
+import { ProjectPreference } from '@prisma/client';
+
+// Define our form value types to match the schema
+type RewardSystemType = 'POINTS' | 'STAMPS' | 'BOTH';
+type PointsCollectionMechanismType = 'TEN_PERCENT' | 'TWENTY_PERCENT' | 'THIRTY_PERCENT' | 'CUSTOM';
 
 // Schema for reward system form
 const rewardPreferencesSchema = z.object({
@@ -46,33 +49,61 @@ const rewardPreferencesSchema = z.object({
   pointsToStampRatio: z.coerce.number().int().min(1, 'Must be at least 1').optional(),
   pointsExpiryDays: z.coerce.number().int().min(1, 'Must be at least 1').optional().nullable(),
   stampsPerCard: z.coerce.number().int().min(1, 'Must be at least 1').max(100, 'Maximum 100 stamps per card').optional(),
+  pointsCollectionMechanism: z.enum(['TEN_PERCENT', 'TWENTY_PERCENT', 'THIRTY_PERCENT', 'CUSTOM']).default('TEN_PERCENT'),
+  customPointsRatio: z.coerce.number().min(0.01, 'Must be greater than 0').optional(),
 });
 
 type FormValues = z.infer<typeof rewardPreferencesSchema>;
+
+// Helper function to safely convert Prisma Decimal to number
+const decimalToNumber = (value: Decimal | number | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  return parseFloat(value.toString());
+};
 
 export default function RewardSystemSettings({
   projectId,
   preferences,
 }: {
   projectId: string;
-  preferences: any | null;
+  preferences: ProjectPreference | null;
 }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Helper function to safely cast string to enum
+  const safeRewardSystemType = (value: string | null | undefined): RewardSystemType => {
+    if (value === 'POINTS' || value === 'STAMPS' || value === 'BOTH') {
+      return value;
+    }
+    return 'POINTS'; // Default value
+  };
+
+  // Helper function to safely cast string to enum
+  const safePointsCollectionMechanism = (value: string | null | undefined): PointsCollectionMechanismType => {
+    if (value === 'TEN_PERCENT' || value === 'TWENTY_PERCENT' || value === 'THIRTY_PERCENT' || value === 'CUSTOM') {
+      return value as PointsCollectionMechanismType;
+    }
+    return 'TEN_PERCENT'; // Default value
+  };
 
   // Initialize form with existing preferences
   const form = useForm<FormValues>({
     resolver: zodResolver(rewardPreferencesSchema),
     defaultValues: {
-      rewardSystemType: preferences?.rewardSystemType || 'POINTS',
+      rewardSystemType: safeRewardSystemType(preferences?.rewardSystemType),
       pointsName: preferences?.pointsName || 'Points',
       pointsAbbreviation: preferences?.pointsAbbreviation || 'pts',
       pointsToStampRatio: preferences?.pointsToStampRatio || 10,
       pointsExpiryDays: preferences?.pointsExpiryDays || null,
       stampsPerCard: preferences?.stampsPerCard || 10,
+      pointsCollectionMechanism: safePointsCollectionMechanism(preferences?.pointsCollectionMechanism),
+      customPointsRatio: preferences?.customPointsRatio ? decimalToNumber(preferences.customPointsRatio) : 1,
     },
   });
 
   const rewardSystemType = form.watch('rewardSystemType');
+  const pointsCollectionMechanism = form.watch('pointsCollectionMechanism');
 
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
@@ -80,8 +111,9 @@ export default function RewardSystemSettings({
     try {
       await axios.patch(`/api/projects/${projectId}/preferences/rewards`, data);
       toast.success('Reward system settings saved successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to save settings');
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      toast.error(axiosError.response?.data?.error || 'Failed to save settings');
     } finally {
       setIsLoading(false);
     }
@@ -122,8 +154,7 @@ export default function RewardSystemSettings({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="POINTS">Points Only</SelectItem>
-                      <SelectItem value="STAMPS">Stamps Only</SelectItem>
-                      <SelectItem value="BOTH">Both Points & Stamps</SelectItem>
+                      {/* <SelectItem value="STAMPS">Stamps Only</SelectItem> */}
                     </SelectContent>
                   </Select>
                   <FormDescription>
@@ -183,8 +214,8 @@ export default function RewardSystemSettings({
                         <Input
                           type="number"
                           placeholder="365"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))}
+                          value={field.value === null ? '' : field.value}
+                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
                           disabled={isLoading}
                         />
                       </FormControl>
@@ -195,6 +226,61 @@ export default function RewardSystemSettings({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="pointsCollectionMechanism"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Points Collection Mechanism</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select collection mechanism" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="TEN_PERCENT">10% of purchase (1pt of every dollar)</SelectItem>
+                          <SelectItem value="TWENTY_PERCENT">20% of purchase (2pt of every dollar)</SelectItem>
+                          <SelectItem value="THIRTY_PERCENT">30% of purchase (3pt of every dollar)</SelectItem>
+                          <SelectItem value="CUSTOM">Custom percentage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Choose how many points customers earn relative to their purchase amount
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {pointsCollectionMechanism === 'CUSTOM' && (
+                  <FormField
+                    control={form.control}
+                    name="customPointsRatio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Points Ratio</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="1.0"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Define your custom points ratio
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </>
             )}
 

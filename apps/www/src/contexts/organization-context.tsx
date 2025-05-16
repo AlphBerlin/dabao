@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
 import { useRouter } from "next/navigation";
 
 // Organization interface
@@ -74,7 +73,7 @@ export function OrganizationProvider({
     setError(null);
 
     try {
-      const response = await fetch("/api/user/organizations", {
+      const response = await fetch("/api/user/  ", {
         method: "GET",
         credentials: "include",
       });
@@ -103,8 +102,6 @@ export function OrganizationProvider({
 
   // Update org ID cookie and headers
   const updateOrgIdCookie = async (orgId: string) => {
-    // Set the cookie
-    setCookie("orgId", orgId, { path: "/" });
     
     // Refresh the router to ensure server components get updated context
     router.refresh();
@@ -139,19 +136,15 @@ export function OrganizationProvider({
     const initializeContext = async () => {
       // If we have initial organizations but no current org, try to get from cookie
       if (organizations.length > 0 && !currentOrganization) {
-        const orgIdFromCookie = await getCookie("orgId");
-        
-        if (orgIdFromCookie) {
-          const matchingOrg = organizations.find(org => org.id === orgIdFromCookie);
-          if (matchingOrg) {
-            setCurrentOrgState(matchingOrg);
-            return;
-          }
-        }
         
         // If no match or no cookie, set the first org as default
-        setCurrentOrgState(organizations[0]!);
-        await updateOrgIdCookie(organizations[0]!.id);
+        if (organizations.length > 0) {
+          setCurrentOrgState(organizations[0]!);
+          await updateOrgIdCookie(organizations[0]!.id);
+        } else {
+          // No organizations available, ensure user is prompted to create one
+          router.push('/create-organization');
+        }
         return;
       }
       

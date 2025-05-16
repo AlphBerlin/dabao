@@ -34,8 +34,9 @@ import {
 } from "@workspace/ui/components/card";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@workspace/ui/components/pagination";
 import Link from "next/link";
+import { useOrganizationContext } from "@/contexts";
 
-export default function ProjectsPage({projectId}: { projectId: string }) {
+export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -47,6 +48,7 @@ export default function ProjectsPage({projectId}: { projectId: string }) {
   const [sortBy, setSortBy] = useState<string>("updatedAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
+  const {currentOrganization} = useOrganizationContext();
 
   // Load projects whenever filters or pagination changes
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function ProjectsPage({projectId}: { projectId: string }) {
           sortOrder,
         };
 
-        const response: PaginatedResponse<Project> = await getProjects(params);
+        const response: PaginatedResponse<Project> = await getProjects(currentOrganization!.id,params);
         setProjects(response.data);
         setTotalPages(response.meta.totalPages);
         setTotalProjects(response.meta.total);
@@ -92,6 +94,15 @@ export default function ProjectsPage({projectId}: { projectId: string }) {
   const renderPaginationItems = () => {
     const items = [];
     const maxVisiblePages = 5; // Maximum number of page buttons to show
+    
+    // Calculate the range of page numbers to show
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust if we're near the end of the range
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
     
     // Always show first page
     items.push(

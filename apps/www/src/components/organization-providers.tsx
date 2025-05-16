@@ -66,8 +66,16 @@ export async function OrganizationProviders({
         if (!currentOrganization && organizations.length > 0) {
           currentOrganization = organizations[0];
           
-          // Set the cookie for subsequent requests
-          cookies().set("orgId", currentOrganization.id, {
+          // Set both cookies for consistency across both server and client contexts
+          const cookieStore = await cookies();
+          cookieStore.set("orgId", currentOrganization.id, {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+          });
+          
+          cookieStore.set("x-org-id", currentOrganization.id, {
             path: "/",
             httpOnly: true,
             sameSite: "lax",
@@ -82,7 +90,7 @@ export async function OrganizationProviders({
 
   return (
     <UserProvider 
-      initialUser={userData} 
+      initialUser={null} 
       initialOrganizations={organizations.map(org => org.organization)}
     >
       <OrganizationProvider

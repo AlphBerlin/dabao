@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { MobileNavigation } from "@/components/mobile-navigation"
-import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { RewardsGrid } from "@/components/rewards-grid"
 import { RewardsCategories } from "@/components/rewards-categories"
 import { Button } from "@workspace/ui/components/button"

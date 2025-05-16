@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth/server-auth";
-import { CustomerDetailPage } from "@/components/customer-detail-page";
+// import { CustomerDetailPage } from "@/components/customer-detail-page";
 import { RESOURCE_TYPES, ACTION_TYPES } from "@/lib/casbin/enforcer";
 
 interface CustomerDetailProps {
@@ -29,7 +29,8 @@ export default async function CustomerDetail({ params }: CustomerDetailProps) {
 
   try {
     // Once we've confirmed authorization, render the page
-    return <CustomerDetailPage projectId={projectId} customerId={customerId} />;
+    // return <CustomerDetailPage projectId={projectId} customerId={customerId} />;
+    return <div>Customer Detail Page for Project {projectId} and Customer {customerId}</div>; // Placeholder for actual component
   } catch (error) {
     console.error("Error loading customer detail page:", error);
     return notFound();

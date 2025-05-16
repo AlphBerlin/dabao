@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user-context";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Switch } from "@workspace/ui/components/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@workspace/ui/components/alert-dialog";
 import {
   Avatar,
   AvatarFallback,
@@ -29,6 +41,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Separator } from "@workspace/ui/components/separator";
 import { Progress } from "@workspace/ui/components/progress";
+import { useToast } from "@workspace/ui/src/hooks/use-toast";
 import {
   User,
   Building,
@@ -37,19 +50,22 @@ import {
   Shield,
   Settings,
   Activity,
-  BarChart,
-  Award,
   RefreshCw,
-  Edit,
   CheckCircle2,
+  ChevronDown,
+  Save,
+  Pencil,
 } from "lucide-react";
 
 export function UserProfile() {
-  const { user, organizations, isLoading, error, refreshUser } = useUser();
+  const { user, organizations, preferences, isLoading, error, refreshUser, updatePreferences } = useUser();
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
-
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "">("");
+  
   // Mock data for the profile page
   const mockStats = {
     memberSince: "Jan 15, 2023",
@@ -79,6 +95,40 @@ export function UserProfile() {
         stiffness: 100,
       },
     },
+  };
+
+  // Feedback notification component
+  const FeedbackNotification = () => {
+    if (!feedbackMessage) return null;
+    
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
+            feedbackType === "success" ? "bg-green-100 text-green-800 border border-green-300" : 
+            feedbackType === "error" ? "bg-red-100 text-red-800 border border-red-300" : ""
+          }`}
+        >
+          {feedbackMessage}
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+
+  // Custom handler for preference updates
+  const handlePreferenceUpdate = (newPrefs: any) => {
+    updatePreferences(newPrefs);
+    setFeedbackMessage("Preferences updated");
+    setFeedbackType("success");
+    
+    // Clear feedback message after 3 seconds
+    setTimeout(() => {
+      setFeedbackMessage("");
+      setFeedbackType("");
+    }, 3000);
   };
 
   if (isLoading) {
@@ -138,8 +188,25 @@ export function UserProfile() {
 
   const handleEditProfile = () => {
     if (isEditing) {
-      // Save changes logic would go here
-      // For now, we'll just toggle the state
+      // Mock saving the user's name
+      if (editedName.trim() !== '') {
+        // In a real app, this would make an API call to update the user profile
+        // For now, we'll just pretend it worked and show feedback
+        setFeedbackMessage("Profile updated successfully");
+        setFeedbackType("success");
+        
+        // Clear feedback message after 3 seconds
+        setTimeout(() => {
+          setFeedbackMessage("");
+          setFeedbackType("");
+        }, 3000);
+      } else {
+        setFeedbackMessage("Name cannot be empty");
+        setFeedbackType("error");
+        
+        // Don't exit edit mode if there's an error
+        return;
+      }
       setIsEditing(false);
     } else {
       setEditedName(user.name || "");
@@ -154,6 +221,7 @@ export function UserProfile() {
       initial="hidden"
       animate="visible"
     >
+      <FeedbackNotification />
       {/* Profile Header */}
       <motion.div variants={itemVariants}>
         <Card className="border-none shadow-lg">
@@ -229,28 +297,6 @@ export function UserProfile() {
                   {mockStats.projectsCount}
                 </div>
                 <div className="text-xs text-muted-foreground">Projects</div>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-muted rounded-lg p-3 text-center"
-              >
-                <div className="text-2xl font-bold text-rimary">
-                  {mockStats.activityScore}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Activity Score
-                </div>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-muted rounded-lg p-3 text-center"
-              >
-                <div className="text-2xl font-bold text-primary">100% </div>
-                <div className="text-xs text-muted-foreground">
-                  Profile Complete
-                </div>
               </motion.div>
             </div>
           </CardContent>
@@ -433,9 +479,9 @@ export function UserProfile() {
                               </p>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm">
+                          {/* <Button variant="outline" size="sm">
                             View
-                          </Button>
+                          </Button> */}
                         </div>
                       </motion.div>
                     ))}
@@ -444,7 +490,7 @@ export function UserProfile() {
               </CardContent>
             </Card>
 
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Organization Metrics</CardTitle>
                 <CardDescription>
@@ -482,7 +528,7 @@ export function UserProfile() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
@@ -497,13 +543,22 @@ export function UserProfile() {
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme Preference</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="border rounded-md p-3 hover:bg-muted cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-3 hover:bg-muted cursor-pointer ${preferences?.theme === 'light' ? 'bg-muted' : ''}`}
+                      onClick={() => updatePreferences({ theme: 'light' })}
+                    >
                       <p className="font-medium text-sm">Light</p>
                     </div>
-                    <div className="border rounded-md p-3 hover:bg-muted cursor-pointer bg-muted">
+                    <div 
+                      className={`border rounded-md p-3 hover:bg-muted cursor-pointer ${preferences?.theme === 'dark' ? 'bg-muted' : ''}`}
+                      onClick={() => updatePreferences({ theme: 'dark' })}
+                    >
                       <p className="font-medium text-sm">Dark</p>
                     </div>
-                    <div className="border rounded-md p-3 hover:bg-muted cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-3 hover:bg-muted cursor-pointer ${preferences?.theme === 'system' ? 'bg-muted' : ''}`}
+                      onClick={() => updatePreferences({ theme: 'system' })}
+                    >
                       <p className="font-medium text-sm">System</p>
                     </div>
                   </div>
@@ -512,12 +567,46 @@ export function UserProfile() {
                 <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
                   <div className="relative">
-                    <select className="w-full h-10 px-3 py-2 bg-background border rounded-md appearance-none focus:ring-1 focus:ring-primary">
-                      <option value="en">English (US)</option>
-                      <option value="fr">Français</option>
-                      <option value="de">Deutsch</option>
-                      <option value="es">Español</option>
+                    <select 
+                      className="w-full h-10 px-3 py-2 bg-background border rounded-md appearance-none focus:ring-1 focus:ring-primary"
+                      value={preferences?.language || 'en-US'}
+                      onChange={(e) => updatePreferences({ language: e.target.value })}
+                    >
+                      <option value="en-US">English (US)</option>
+                      <option value="en-GB">English (UK)</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
                     </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="notifications" className="block mb-2">Email Preferences</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label htmlFor="emailNotifications" className="font-medium text-sm">Email Notifications</label>
+                        <p className="text-xs text-muted-foreground">Receive notifications about your account</p>
+                      </div>
+                      <Switch 
+                        id="emailNotifications"
+                        checked={preferences?.emailNotifications}
+                        onCheckedChange={(checked) => updatePreferences({ emailNotifications: checked })}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label htmlFor="marketingEmails" className="font-medium text-sm">Marketing Emails</label>
+                        <p className="text-xs text-muted-foreground">Receive emails about new features and offers</p>
+                      </div>
+                      <Switch 
+                        id="marketingEmails"
+                        checked={preferences?.marketingEmails}
+                        onCheckedChange={(checked) => updatePreferences({ marketingEmails: checked })}
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -536,7 +625,12 @@ export function UserProfile() {
                       Get a copy of your personal data
                     </p>
                   </div>
-                  <Button variant="outline">Export Data</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.location.href = "/api/user/account/export"}
+                  >
+                    Export Data
+                  </Button>
                 </div>
 
                 <Separator />
@@ -548,7 +642,47 @@ export function UserProfile() {
                       Permanently delete your account and all data
                     </p>
                   </div>
-                  <Button variant="destructive">Delete Account</Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">Delete Account</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete your
+                          account and remove your data from our servers.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          className="bg-destructive hover:bg-destructive/90"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch("/api/user/account/delete", {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ confirmation: "DELETE_MY_ACCOUNT" })
+                              });
+                              
+                              if (response.ok) {
+                                // Redirect to home page after successful deletion
+                                window.location.href = "/";
+                              } else {
+                                alert("Failed to delete account. Please try again later.");
+                              }
+                            } catch (error) {
+                              console.error("Error deleting account:", error);
+                              alert("An error occurred while deleting your account.");
+                            }
+                          }}
+                        >
+                          Delete Account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

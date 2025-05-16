@@ -6,13 +6,6 @@ import { createClient } from '@/lib/supabase/server';
  * Get the current organization ID from cookies in server components
  */
 export async function getCurrentOrganizationId(): Promise<string | null> {
-  // Try to get organization ID from cookies
-  const cookieStore = await cookies();
-  const orgId = cookieStore.get('orgId')?.value;
-  
-  if (orgId) {
-    return orgId;
-  }
   
   // If no cookie, try to get the first organization for the user
   try {

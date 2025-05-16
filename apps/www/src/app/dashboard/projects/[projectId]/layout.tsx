@@ -2,10 +2,15 @@
 
 import { useParams, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ProjectSidebar } from "@/components/projects/project-sidebar";
+import ProjectSidebar from "@/components/projects/project-sidebar";
 import { ProjectHeader } from "@/components/projects/project-header";
-import { Toaster } from "@workspace/ui/components/sonner"
+import { Toaster } from "@workspace/ui/components/sonner";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { AppSidebarWrapper } from "@/components/app-sidebar-wrapper";
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@workspace/ui/components/sidebar";
 
 interface Project {
   id: string;
@@ -22,7 +27,7 @@ export default function ProjectLayout({
   const params = useParams();
   const pathname = usePathname();
   const projectId = params.projectId as string;
-  
+
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +36,11 @@ export default function ProjectLayout({
       try {
         setLoading(true);
         const response = await fetch(`/api/projects/${projectId}`);
-        
+
         if (!response.ok) {
           throw new Error("Failed to load project");
         }
-        
+
         const data = await response.json();
         setProject(data.project);
       } catch (error) {
@@ -44,22 +49,37 @@ export default function ProjectLayout({
         setLoading(false);
       }
     };
-    
+
     fetchProject();
   }, [projectId]);
 
   return (
-    <div className="flex min-h-screen">
-      <ProjectSidebar project={project} pathname={pathname} loading={loading} />
-      <div className="flex-1 flex flex-col">
-        <ProjectHeader project={project} loading={loading} />
-        <main className="flex-1 overflow-y-auto mx-6">
-          <ScrollArea className="h-screen">
-          {children}
-          </ScrollArea>
-        </main>
-      </div>
-      <Toaster />
+    <div className="max-h-screen">
+      {/* Use SidebarProvider from the library to satisfy useSidebar() calls */}
+      <SidebarProvider>
+        {/* Our custom dual sidebar context for independent sidebar toggling */}
+        {/* Main Content containing Project Header and children */}
+        <div className="flex h-screen relative">
+          {/* Left Project Sidebar - New wrapped component using MultiSidebar */}
+          <ProjectSidebar
+            project={project}
+            pathname={pathname}
+            loading={loading}
+          />
+
+          <SidebarInset className="flex-1 flex flex-col">
+            <ProjectHeader project={project} loading={loading}/>
+
+            <main className="flex-1 overflow-y-auto mx-6">
+              <ScrollArea className="h-screen">{children}</ScrollArea>
+            </main>
+            <Toaster />
+          </SidebarInset>
+
+          {/* Right App Sidebar with content */}
+          <AppSidebarWrapper />
+        </div>
+      </SidebarProvider>
     </div>
   );
 }

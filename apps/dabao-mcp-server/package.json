@@ -9,7 +9,6 @@
   "scripts": {
     "build": "tsc --project tsconfig.json --skipLibCheck",
     "build:force": "tsc --project tsconfig.json --skipLibCheck --noEmitOnError",
-    "dev": "tsc --watch & node --watch dist/index.js",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",

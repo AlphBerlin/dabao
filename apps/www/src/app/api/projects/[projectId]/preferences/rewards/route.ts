@@ -11,6 +11,7 @@ const rewardPreferencesSchema = z.object({
   pointsToStampRatio: z.number().int().min(1).optional(),
   pointsExpiryDays: z.number().int().min(1).optional().nullable(),
   stampsPerCard: z.number().int().min(1).max(100).optional(),
+  pointsCollectionMechanism: z.enum(['TEN_PERCENT', 'TWENTY_PERCENT', 'THIRTY_PERCENT', 'CUSTOM']).default('TEN_PERCENT'),
 });
 
 // Get reward preferences for a specific project
@@ -19,8 +20,8 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId =(await params).projectId;
-    
+    const projectId = (await params).projectId;
+
     // Get authenticated user from Supabase
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,7 +39,7 @@ export async function GET(
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-    
+
     // Get project preferences
     const preferences = await db.projectPreference.findUnique({
       where: { projectId },
@@ -51,9 +52,9 @@ export async function GET(
         stampsPerCard: true,
       }
     });
-    
+
     if (!preferences) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Preferences not found for this project',
       }, { status: 404 });
     }
@@ -71,8 +72,8 @@ export async function PATCH(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId =(await params).projectId;
-    
+    const projectId = (await params).projectId;
+
     // Get authenticated user from Supabase
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -90,34 +91,35 @@ export async function PATCH(
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-    
+
     // Parse and validate request body
     const body = await req.json();
     const validationResult = rewardPreferencesSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
-      return NextResponse.json({ 
-        error: 'Validation error', 
-        details: validationResult.error.format() 
+      return NextResponse.json({
+        error: 'Validation error',
+        details: validationResult.error.format()
       }, { status: 400 });
     }
-    
-    const { 
-      rewardSystemType, 
-      pointsName, 
-      pointsAbbreviation, 
-      pointsToStampRatio, 
-      pointsExpiryDays, 
-      stampsPerCard 
+
+    const {
+      rewardSystemType,
+      pointsName,
+      pointsAbbreviation,
+      pointsToStampRatio,
+      pointsExpiryDays,
+      stampsPerCard,
+      pointsCollectionMechanism
     } = validationResult.data;
-    
+
     // Check if preferences exist for this project
     const existingPreferences = await db.projectPreference.findUnique({
       where: { projectId }
     });
-    
+
     let preferences;
-    
+
     if (existingPreferences) {
       // Update existing preferences
       preferences = await db.projectPreference.update({
@@ -129,6 +131,7 @@ export async function PATCH(
           ...(pointsToStampRatio && { pointsToStampRatio }),
           ...(pointsExpiryDays !== undefined && { pointsExpiryDays }),
           ...(stampsPerCard && { stampsPerCard }),
+          ...(pointsCollectionMechanism && { pointsCollectionMechanism }),
         }
       });
     } else {
@@ -142,6 +145,7 @@ export async function PATCH(
           ...(pointsToStampRatio && { pointsToStampRatio }),
           ...(pointsExpiryDays !== undefined && { pointsExpiryDays }),
           ...(stampsPerCard && { stampsPerCard }),
+          ...(pointsCollectionMechanism && { pointsCollectionMechanism }),
         }
       });
     }

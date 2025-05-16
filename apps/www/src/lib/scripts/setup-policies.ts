@@ -1,7 +1,6 @@
 import { prisma } from '../prisma';
 import { ACTION_TYPES, casbinEnforcer, RESOURCE_TYPES } from '../casbin/enforcer';
 import { PolicyManager } from '../casbin/policy-manager';
-import { UserRole } from '@prisma/client';
 
 /**
  * Initialize Casbin policies for all organizations and projects
@@ -212,7 +211,6 @@ export async function setupDefaultTokenPolicies() {
       // Create read-only API policy
       await casbinEnforcer.addPolicy('api_readonly', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.READ, project.id);
       await casbinEnforcer.addPolicy('api_readonly', RESOURCE_TYPES.REWARD, ACTION_TYPES.READ, project.id);
-      await casbinEnforcer.addPolicy('api_readonly', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.READ, project.id);
       
       // Create read-write API policy
       await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CUSTOMER, ACTION_TYPES.READ, project.id);
@@ -221,10 +219,7 @@ export async function setupDefaultTokenPolicies() {
       await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.REWARD, ACTION_TYPES.READ, project.id);
       await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.REWARD, ACTION_TYPES.CREATE, project.id);
       await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.REWARD, ACTION_TYPES.UPDATE, project.id);
-      await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.READ, project.id);
-      await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.CREATE, project.id);
-      await casbinEnforcer.addPolicy('api_readwrite', RESOURCE_TYPES.CAMPAIGN, ACTION_TYPES.UPDATE, project.id);
-      
+
       // Create admin API policy
       await casbinEnforcer.addPolicy('api_admin', RESOURCE_TYPES.ALL, ACTION_TYPES.ALL, project.id);
     }

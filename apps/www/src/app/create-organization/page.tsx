@@ -21,23 +21,6 @@ export default function CreateOrganizationPage() {
     setIsClient(true);
   }, []);
 
-  const handleFormSubmit = async (data: CreateOrganizationData) => {
-    try {
-      // The form component will handle the API call,
-      // we just need to refresh the organizations list here
-      const refreshToastId = toast.loading('Refreshing organizations...');
-      await refreshOrganizations();
-      toast.success('Organization list updated', { id: refreshToastId });
-      
-      // Short delay before redirecting to ensure context is updated
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 500);
-    } catch (error) {
-      console.error('Error refreshing organizations:', error);
-      toast.error('Failed to refresh organization list');
-    }
-  };
 
   if (!isClient) {
     return null;
@@ -95,7 +78,7 @@ export default function CreateOrganizationPage() {
                 ? "To get started, please create your first organization." 
                 : "Create a new organization to manage different teams or projects."}
             </p>
-            <OrganizationForm onSubmit={handleFormSubmit} />
+            <OrganizationForm />
           </>
         )}
       </div>

@@ -10,8 +10,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 // Project-specific endpoints
 const PROJECT_API = {
-  LIST: `${API_BASE_URL}/projects`,
-  CREATE: `${API_BASE_URL}/projects`,
+  LIST:  (orgId:string)=> `${API_BASE_URL}/organization/${orgId}/projects`,
+  CREATE: (orgId:string)=> `${API_BASE_URL}/organization/${orgId}/projects`,
   GET: (id: string) => `${API_BASE_URL}/projects/${id}`,
   UPDATE: (id: string) => `${API_BASE_URL}/projects/${id}`,
   DELETE: (id: string) => `${API_BASE_URL}/projects/${id}`,
@@ -29,7 +29,7 @@ export interface ProjectSettings {
  */
 export async function getProjects(): Promise<Project[]> {
   try {
-    const response = await fetch(PROJECT_API.LIST, {
+    const response = await fetch(PROJECT_API.LIST(''), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export async function updateProjectSettings(id: string, settings: ProjectSetting
  */
 export async function createProject(data: { name: string; settings?: Partial<ProjectSettings> }): Promise<Project> {
   try {
-    const response = await fetch(PROJECT_API.CREATE, {
+    const response = await fetch(PROJECT_API.CREATE(''), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

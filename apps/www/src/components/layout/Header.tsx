@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { useUser } from "@/contexts/user-context"
 
 interface Notification {
   id: string
@@ -29,41 +30,15 @@ interface Notification {
   createdAt: string
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "New Customer Joined",
-    message: "A new customer has joined your loyalty program",
-    type: "success",
-    read: false,
-    createdAt: "2023-07-25T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "Trial Ending Soon",
-    message: "Your trial period will end in 3 days",
-    type: "warning",
-    read: false,
-    createdAt: "2023-07-24T15:45:00Z",
-  },
-  {
-    id: "3",
-    title: "Payment Failed",
-    message: "Your last payment attempt failed",
-    type: "error",
-    read: true,
-    createdAt: "2023-07-23T09:15:00Z",
-  },
-]
 
 export function Header() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
+  const { theme } = useTheme()
+  const { updatePreferences } = useUser()
   const { user, loading, signOut } = useAuth()
   const { isLoading: isLoadingOrgs } = useOrganizationContext()
 
-  const unreadNotifications = mockNotifications.filter((notification) => !notification.read)
 
   const handleSignOut = async () => {
     try {
@@ -116,13 +91,13 @@ export function Header() {
                   Projects
                 </Link>
                 <Link
-                  href="/billing"
+                  href="/dashbord/billing"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
                 >
                   Billing
                 </Link>
                 <Link
-                  href="/settings"
+                  href="/dashboard/settings"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
                 >
                   Settings
@@ -158,7 +133,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => updatePreferences({theme: theme === "dark" ? "light" : "dark"})}
               className="text-neutral-500 dark:text-neutral-400"
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
@@ -180,7 +155,7 @@ export function Header() {
                 </Button>
 
                 {/* Notifications */}
-                <div className="relative">
+                {/* <div className="relative">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -260,7 +235,7 @@ export function Header() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
+                </div> */}
 
                 {/* User Profile */}
                 <div className="relative flex items-center justify-center">
@@ -286,7 +261,7 @@ export function Header() {
                         <Link href="/dashboard/profile">Profile</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/settings">Settings</Link>
+                        <Link href="/dashboard/settings">Settings</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-red-500 dark:text-red-400">
@@ -360,13 +335,13 @@ export function Header() {
                       Projects
                     </Link>
                     <Link
-                      href="/billing"
+                      href="/dashboard/billing"
                       className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       Billing
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/dashboard/settings"
                       className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       Settings

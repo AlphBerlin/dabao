@@ -2,19 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
-import { Progress } from "@workspace/ui/components/progress";
 import { useGamify } from "@/hooks/use-gamify";
-import { ApertureIcon as TreasureIcon, Award, Star } from "lucide-react";
 import Link from "next/link";
 import { fadeIn, slideIn } from "@/lib/animations";
 import { useAuth } from "@workspace/auth/contexts/auth-context";
 import { useEffect, useState } from "react";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
 
 export function Navbar() {
   const { user } = useAuth();

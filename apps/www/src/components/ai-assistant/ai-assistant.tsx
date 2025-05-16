@@ -6,13 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { List, AutoSizer, CellMeasurer, CellMeasurerCache } from 'react-virtualized';
 import { 
   createSession, 
-  sendMessage, 
   chat,
   getMessages, 
   deleteSession, 
   getSessions,
-  type Message,
-  type ChatResponse
+  type Message
 } from '@/lib/api/da-assistant';
 
 interface AIAssistantProps {
@@ -25,11 +23,6 @@ interface Session {
   id: string;
   title: string;
   createdAt: string;
-}
-
-interface ThoughtContent {
-  text: string;
-  thoughts?: string;
 }
 
 const MemorizedChatBubble = React.memo(function ChatBubble({ 

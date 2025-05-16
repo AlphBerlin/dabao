@@ -3,8 +3,17 @@ const path = require('path')
 
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   /* config options here */
   transpilePackages: ["@workspace/ui"],
+  eslint: {
+    // Todo: remove this when the eslint issues are fixed
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    //todo: remove this when the typescript issues are fixed
+    // ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       {

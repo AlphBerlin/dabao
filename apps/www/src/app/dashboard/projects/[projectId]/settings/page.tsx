@@ -1,20 +1,43 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import { Separator } from "@workspace/ui/components/separator";
 import { BrandingSettings } from "./components/branding-settings";
 import { ApiTokenSettings } from "./components/api-token-settings";
 import { UserSettings } from "./components/user-settings";
+import { DangerZoneSettings } from "./components/danger-zone-settings";
 import { requirePermission } from "@/lib/auth/server-auth";
 import { ACTION_TYPES, RESOURCE_TYPES } from "@/lib/casbin/enforcer";
+import RewardSystemSettings from "@/components/rewards/reward-system-settings";
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
 
-export default async function ProjectSettingsPage({ params }: { params: { projectId: string } }) {
+export default async function ProjectSettingsPage({
+  params,
+}: {
+  params: { projectId: string };
+}) {
   const { projectId } = await params;
 
   await requirePermission(
-      projectId,
-      RESOURCE_TYPES.PROJECT_SETTINGS,
-      ACTION_TYPES.READ,
-      `/dashboard/projects/${projectId}`  // Redirect to project page if unauthorized
-    );
+    projectId,
+    RESOURCE_TYPES.PROJECT_SETTINGS,
+    ACTION_TYPES.READ,
+    `/dashboard/projects/${projectId}` // Redirect to project page if unauthorized
+  );
+  const project = await db.project.findUnique({
+      where: { id: projectId }, // Fixed: search by ID instead of slug
+      include: {
+        preferences: true,
+      },
+    });
+  
+    if (!project) {
+      notFound();
+    }
   return (
     <div className="min-h-screen bg-background">
       <main className="px-4 sm:px-6 lg:px-8 pb-20 pt-20">
@@ -26,22 +49,31 @@ export default async function ProjectSettingsPage({ params }: { params: { projec
             </p>
           </div>
           <Separator className="my-6" />
-          
+
           <Tabs defaultValue="branding" className="w-full">
-            <TabsList className="w-full md:w-auto grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <TabsList className="w-full md:w-auto grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <TabsTrigger value="branding">Branding</TabsTrigger>
+              <TabsTrigger value="reward-settings">Reward System</TabsTrigger>
               <TabsTrigger value="api-tokens">API Tokens</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="billing">Billing</TabsTrigger>
+              <TabsTrigger value="danger-zone" className="text-destructive">
+                Danger Zone
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="branding">
               <BrandingSettings projectId={projectId} />
             </TabsContent>
+               <TabsContent value="reward-settings" className="space-y-4">
+                <RewardSystemSettings projectId={projectId} preferences={project.preferences} />
+              </TabsContent>
             <TabsContent value="api-tokens">
               <ApiTokenSettings projectId={projectId} />
             </TabsContent>
             <TabsContent value="users">
               <UserSettings projectId={projectId} />
+            </TabsContent>
+            <TabsContent value="danger-zone">
+              <DangerZoneSettings projectId={projectId} projectName={project.name} />
             </TabsContent>
           </Tabs>
         </div>

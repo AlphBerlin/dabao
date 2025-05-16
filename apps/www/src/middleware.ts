@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PolicyManager } from '@/lib/casbin/policy-manager';
+import { domainAuthMiddleware } from '@/middleware/domainAuthMiddleware';
 
 // Flag to track if policies have been initialized
 let policiesInitialized = false;
@@ -19,11 +19,6 @@ const PUBLIC_PATHS = [
   '/manifest.json',
   '/images',
   '/'
-];
-
-// List of API paths that should check for API tokens
-const API_PATHS = [
-  '/api/projects'
 ];
 
 /**
@@ -48,28 +43,29 @@ async function initializePoliciesIfNeeded() {
  * Global middleware for authentication and authorization
  */
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Check if this is an API route that uses domain-based authentication
+  if (
+    pathname.startsWith('/api/public') || 
+    pathname.startsWith('/api/client') ||
+    pathname.includes('/api/projects/') && pathname.includes('/domains/')
+  ) {
+    // For client-facing APIs with domain-based auth
+    return domainAuthMiddleware(request);
+  }
+
   // Initialize policies on first request
   await initializePoliciesIfNeeded();
   
-  const { pathname } = request.nextUrl;
+  const response = NextResponse.next();
   
   // Skip middleware for public paths
   if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-  
-  // Handle API routes that should check for API tokens
-  if (API_PATHS.some(path => pathname.startsWith(path))) {
-    // If the request includes an Authorization header with a Bearer token,
-    // allow it to proceed (actual token validation happens in the API route)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return NextResponse.next();
-    }
+    return response;
   }
   
   // Create Supabase client for session management
-  const response = NextResponse.next();
   const supabase = await createClient();
   
   // Check if user is authenticated
@@ -78,7 +74,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getSession();
   
   // If not authenticated and trying to access a protected route, redirect to login
-  if (!session && !PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+  if (!session) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', encodeURIComponent(request.url));
     return NextResponse.redirect(redirectUrl);
@@ -93,5 +89,9 @@ export const config = {
   matcher: [
     // Match all routes except static files and APIs that handle their own auth
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Include APIs that use domain-based authentication
+    '/api/public/:path*',
+    '/api/client/:path*',
+    '/api/projects/:projectId/domains/:path*',
   ],
 };

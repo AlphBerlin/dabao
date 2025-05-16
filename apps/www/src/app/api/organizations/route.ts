@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { slugify } from '@/lib/utils';
+import { slugify } from '@/lib/utils/index';
 import { UserRole } from '@prisma/client';
 import { createClient } from '@/lib/supabase/server';
 
@@ -31,6 +30,7 @@ export async function POST(request: NextRequest) {
     const result = createOrgSchema.safeParse(body);
     
     if (!result.success) {
+      console.error('Organization validation errors:', result.error.errors);
       return NextResponse.json({ error: result.error.errors }, { status: 400 });
     }
     
@@ -66,27 +66,41 @@ export async function POST(request: NextRequest) {
     }
     
     // Now create the organization with proper user association
-    const organization = await prisma.organization.create({
-      data: {
-        name,
-        slug,
-        ownerId: user.id, // Use our internal user ID, not the Supabase ID
-        billingEmail: billingEmail || user.email,
-        settings: {
-          type,
-          plan,
-          createdAt: new Date().toISOString(),
-        },
-        users: {
-          create: {
-            userId: user.id,
-            role: UserRole.OWNER,
-          },
-        },
-      },
+    console.log('Creating organization with data:', {
+      name,
+      slug,
+      ownerId: user.id,
+      userEmail: user.email,
+      billingEmail: billingEmail || user.email
     });
     
-    return NextResponse.json(organization, { status: 201 });
+    try {
+      const organization = await prisma.organization.create({
+        data: {
+          name,
+          slug,
+          ownerId: user.id, // Use our internal user ID, not the Supabase ID
+          billingEmail: billingEmail || user.email,
+          settings: {
+            type,
+            plan,
+            createdAt: new Date().toISOString(),
+          },
+          users: {
+            create: {
+              userId: user.id,
+              role: UserRole.OWNER,
+            },
+          },
+        },
+      });
+      
+      console.log('Organization created successfully:', organization.id);
+      return NextResponse.json(organization, { status: 201 });
+    } catch (createError) {
+      console.error('Failed to create organization in database:', createError);
+      throw createError;
+    }
   } catch (error) {
     console.error('Error creating organization:', error);
     return NextResponse.json({ 
@@ -96,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get the authenticated user from Supabase
     const supabase = await createClient();

@@ -19,11 +19,6 @@ interface TelegramSendPhotoParams {
   reply_markup?: any;
 }
 
-interface TelegramGetChatMemberParams {
-  chat_id: string | number;
-  user_id?: number;
-}
-
 interface TelegramInlineKeyboardButton {
   text: string;
   url?: string;

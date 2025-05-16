@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { casbinEnforcer, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
+import { ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
 import { PolicyManager } from '@/lib/casbin/policy-manager';
 import { AuthTokenService } from '@/lib/services/auth-token-service';
 
@@ -19,13 +19,6 @@ const createApiTokenSchema = z.object({
     errorMap: () => ({ message: "Scope must be one of: read, write, admin" }),
   }),
   expiresInDays: z.number().int().nonnegative().optional(),
-});
-
-// Schema for creating a custom policy
-const createPolicyTypeSchema = z.object({
-  name: z.string().min(1, "Policy name is required"),
-  resources: z.array(z.string()).min(1, "At least one resource is required"),
-  actions: z.array(z.string()).min(1, "At least one action is required"),
 });
 
 /**
@@ -170,81 +163,5 @@ export async function POST(
   } catch (error) {
     console.error("Error creating auth token:", error);
     return NextResponse.json({ error: "Failed to create auth token" }, { status: 500 });
-  }
-}
-
-/**
- * POST /api/projects/[projectId]/authtokens/policytypes
- * Create a new policy type for tokens
- */
-export async function POST(
-  req: NextRequest,
-  { params, nextUrl }: { params: { projectId: string }, nextUrl: URL }
-) {
-  // Only handle if the path includes 'policytypes'
-  if (!nextUrl.pathname.endsWith('/policytypes')) {
-    return undefined; // Let the other POST handler handle it
-  }
-  
-  try {
-    const projectId = (await params).projectId;
-    
-    // Get authenticated user from Supabase
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Find user in database
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseUserId: user.id },
-      select: { id: true }
-    });
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has permission to manage policies
-    const canManagePolicies = await PolicyManager.canUserAccessInProject(
-      dbUser.id,
-      RESOURCE_TYPES.POLICY,
-      ACTION_TYPES.MANAGE,
-      projectId
-    );
-
-    if (!canManagePolicies) {
-      return NextResponse.json({ error: 'Insufficient permissions to create policy types' }, { status: 403 });
-    }
-
-    // Parse and validate request body
-    const body = await req.json();
-    const validationResult = createPolicyTypeSchema.safeParse(body);
-    
-    if (!validationResult.success) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: validationResult.error.format() 
-      }, { status: 400 });
-    }
-    
-    const { name, resources, actions } = validationResult.data;
-    
-    // Create the policy type
-    const success = await AuthTokenService.createPolicyType(projectId, name, resources, actions);
-    
-    if (success) {
-      return NextResponse.json({ 
-        message: "Policy type created successfully",
-        policyType: { name, resources, actions, domain: projectId }
-      });
-    } else {
-      return NextResponse.json({ error: "Failed to create policy type" }, { status: 500 });
-    }
-  } catch (error) {
-    console.error("Error creating policy type:", error);
-    return NextResponse.json({ error: "Failed to create policy type" }, { status: 500 });
   }
 }

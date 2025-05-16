@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { hasOrganizations, getUserOrganizations, Organization } from '../api';
+import { getUserOrganizations, Organization } from '../api';
 
 interface UseOrganizationOptions {
   redirectTo?: string;

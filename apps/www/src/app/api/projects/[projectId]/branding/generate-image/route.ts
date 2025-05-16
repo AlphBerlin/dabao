@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
 import { hasProjectAccess } from "@/lib/auth/project-access";
 import { z } from "zod";
 

@@ -1,6 +1,14 @@
 "use client";
 
 import { ReactNode } from "react";
+import { UserProvider } from "@/contexts/user-context";
+import { useThemePreference } from "@/hooks/use-theme-preference";
+
+// Component to sync theme with user preferences
+function ThemeSync() {
+  useThemePreference();
+  return null;
+}
 
 interface ProvidersProps {
   children: ReactNode;
@@ -18,5 +26,10 @@ export function Providers({
   children, 
   organizationData
 }: ProvidersProps) {
-  return children;
+  return (
+    <UserProvider>
+      <ThemeSync />
+      {children}
+    </UserProvider>
+  );
 }

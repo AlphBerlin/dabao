@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     await bot.handleUpdate(update);
   } catch (err) {
-    // console.error(`Error handling update for project ${settings.projectId}:`, err);
+    console.error(`Error handling update for project:`, err);
   }
 
   // 5️⃣ acknowledge immediately

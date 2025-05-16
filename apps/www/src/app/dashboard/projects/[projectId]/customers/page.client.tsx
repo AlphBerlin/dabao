@@ -11,6 +11,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
+import { IssuePointsDialog, ClaimPointsDialog } from "@/components/points";
 import {
   Table,
   TableBody,
@@ -48,17 +49,18 @@ import { format } from "date-fns";
 // Types
 interface Customer {
   id: string;
+  projectId: string;
   name: string | null;
   email: string;
   phone: string | null;
   externalId: string | null;
-  totalPoints: number;
-  lastActive: string | null;
-  _count: {
-    rewards: number;
-    activities: number;
-    referrals: number;
-  };
+  metadata: any | null;
+  createdAt: string;
+  updatedAt: string;
+  pointsBalance?: number; // Optional because we might not fetch it initially
+  customerMemberships?: Array<{
+    pointsBalance: number;
+  }>;
 }
 
 export default function CustomersPage({projectId}: { projectId: string }) {
@@ -68,7 +70,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
   // Parse search params
   const currentPage = Number(searchParams.get("page") || "1");
   const searchQuery = searchParams.get("search") || "";
-  const pageSize = 10;
+  const pageSize = 20; // Updated to match API page size
 
   // State
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export default function CustomersPage({projectId}: { projectId: string }) {
     const fetchCustomers = async () => {
       try {
         setLoading(true);
-        const url = `/api/projects/${projectId}/customers?page=${currentPage}&limit=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}`;
+        const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}&include=customerMemberships`;
         
         const response = await fetch(url);
         if (!response.ok) {
@@ -90,8 +92,16 @@ export default function CustomersPage({projectId}: { projectId: string }) {
         }
         
         const data = await response.json();
-        setCustomers(data.customers);
-        setTotalCount(data.totalCount);
+        
+        // Process customers to include points balance
+        const processedCustomers = data.data.map((customer: Customer) => {
+          // Calculate points balance from memberships if available
+          const pointsBalance = customer.customerMemberships?.[0]?.pointsBalance || 0;
+          return { ...customer, pointsBalance };
+        });
+        
+        setCustomers(processedCustomers);
+        setTotalCount(data.meta.total);
       } catch (error) {
         console.error("Error loading customers:", error);
       } finally {
@@ -146,6 +156,26 @@ export default function CustomersPage({projectId}: { projectId: string }) {
     }
   };
   
+  // Function to refresh customer data after points are issued/claimed
+  const refreshCustomerData = async () => {
+    try {
+      const url = `/api/projects/${projectId}/customers?page=${currentPage}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ""}&include=customerMemberships`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        const processedCustomers = data.data.map((c: Customer) => {
+          return {
+            ...c,
+            pointsBalance: c.customerMemberships?.[0]?.pointsBalance || 0
+          };
+        });
+        setCustomers(processedCustomers);
+      }
+    } catch (error) {
+      console.error("Error refreshing customers:", error);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -164,12 +194,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
             )}
             Export
           </Button>
-          <Button asChild>
+          {/* <Button asChild>
             <a href={`/dashboard/projects/${projectId}/customers/new`}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Customer
             </a>
-          </Button>
+          </Button> */}
         </div>
       </div>
       
@@ -192,12 +222,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
               </Button>
             </form>
             
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
               </Button>
-            </div>
+            </div> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -219,9 +249,9 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Last Active</TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Updated At</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -251,25 +281,13 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{customer.totalPoints?.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground font-mono">{customer.id.substring(0, 8)}...</div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">{customer._count.activities}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Award className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">{customer._count.rewards}</span>
-                          </div>
-                        </div>
+                        {format(new Date(customer.createdAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
-                        {customer.lastActive 
-                          ? format(new Date(customer.lastActive), "MMM d, yyyy")
-                          : "Never"
-                        }
+                        {format(new Date(customer.updatedAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -280,24 +298,47 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
+                            {/* <DropdownMenuItem asChild>
                               <a href={`/dashboard/projects/${projectId}/customers/${customer.id}`}>
                                 <User className="mr-2 h-4 w-4" />
                                 View Profile
                               </a>
+                            </DropdownMenuItem> */}
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <IssuePointsDialog
+                                projectId={projectId}
+                                customerId={customer.id}
+                                customerName={customer.name || customer.email.split("@")[0]!}
+                                trigger={
+                                  <div className="flex items-center w-full">
+                                    <Award className="mr-2 h-4 w-4" />
+                                    Issue Points
+                                  </div>
+                                }
+                                onSuccess={refreshCustomerData}
+                              />
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <a href={`/dashboard/projects/${projectId}/points?customer=${customer.id}`}>
-                                <Award className="mr-2 h-4 w-4" />
-                                Issue Points
-                              </a>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <ClaimPointsDialog
+                                projectId={projectId}
+                                customerId={customer.id}
+                                customerName={customer.name || customer.email.split("@")[0]!}
+                                currentBalance={customer.pointsBalance || 0}
+                                trigger={
+                                  <div className="flex items-center w-full">
+                                    <Award className="mr-2 h-4 w-4" />
+                                    Redeem Points
+                                  </div>
+                                }
+                                onSuccess={refreshCustomerData}
+                              />
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
+                            {/* <DropdownMenuItem asChild>
                               <a href={`/dashboard/projects/${projectId}/customers/${customer.id}/edit`}>
                                 Edit Customer
                               </a>
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -315,12 +356,12 @@ export default function CustomersPage({projectId}: { projectId: string }) {
                   ? `No customers match the search term "${searchQuery}"`
                   : "Start by adding your first customer to the loyalty program"}
               </p>
-              <Button asChild>
+              {/* <Button asChild>
                 <a href={`/dashboard/projects/${projectId}/customers/new`}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Customer
                 </a>
-              </Button>
+              </Button> */}
             </div>
           )}
           

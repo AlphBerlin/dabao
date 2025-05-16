@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs';
 import RewardSystemSettings from '@/components/rewards/reward-system-settings';
@@ -49,17 +49,12 @@ export default async function RewardsPage({
         </p>
       </div>
 
-      <Tabs defaultValue="settings" className="space-y-4">
+      <Tabs defaultValue="tiers" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="settings">Reward System</TabsTrigger>
           <TabsTrigger value="tiers">Membership Tiers</TabsTrigger>
           <TabsTrigger value="vouchers">Vouchers</TabsTrigger>
           <TabsTrigger value="rules">Redemption Rules</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="settings" className="space-y-4">
-          <RewardSystemSettings projectId={project.id} preferences={project.preferences} />
-        </TabsContent>
+        </TabsList>    
         
         <TabsContent value="tiers" className="space-y-4">
           <MembershipTiersList projectId={project.id} rewardSystemType={project.preferences?.rewardSystemType || 'POINTS'} />

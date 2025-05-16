@@ -211,7 +211,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* Notification Preferences */}
-          <Card className="mb-8">
+          {/* <Card className="mb-8">
             <CardContent className="pt-6">
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-6">Notification Preferences</h2>
 
@@ -251,7 +251,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Security */}
           <Card className="mb-8">

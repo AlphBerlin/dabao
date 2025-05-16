@@ -1,22 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { cn } from "@workspace/ui/lib/utils";
 import {
-  ChevronLeft,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  Sidebar,
+  SidebarRail,
+} from "@workspace/ui/components/sidebar";
+import {
   Home,
   Users,
-  Award,
   Gift,
   Megaphone,
-  BarChart3,
   Settings,
   Puzzle,
-  Smartphone,
-  Layers,
   Bell,
 } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
+import { isFeatureEnabled } from "@/config/features";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 
 interface Project {
@@ -30,159 +36,162 @@ interface ProjectSidebarProps {
   project: Project | null;
   pathname: string;
   loading: boolean;
+  sidebarId?: string;
 }
 
-export function ProjectSidebar({ project, pathname, loading }: ProjectSidebarProps) {
+export default function ProjectSidebar({ project, pathname, loading }: ProjectSidebarProps) {
   if (loading) {
     return (
-      <div className="max-h-screen w-64 border-r p-6 flex flex-col">
-        <div className="flex items-center mb-6">
-          <Skeleton className="h-9 w-9 rounded-md mr-3" />
-          <Skeleton className="h-5 w-32" />
-        </div>
-        <div className="space-y-6">
-          <div className="space-y-2">
+      <Sidebar collapsible="icon" variant='inset' className="sticky hidden lg:flex top-0 h-svh border-l">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Skeleton className="h-10 w-full" />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <Skeleton className="h-10 w-full mb-2" />
+            <Skeleton className="h-10 w-full mb-2" />
+            <Skeleton className="h-10 w-full mb-2" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div>
+          </SidebarGroup>
+          
+          <SidebarGroup>
             <Skeleton className="h-4 w-16 mb-3" />
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-        </div>
-      </div>
+            <Skeleton className="h-10 w-full mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <Skeleton className="h-9 w-full" />
+        </SidebarFooter>
+      </Sidebar>
     );
   }
 
   return (
-    <div className="h-screen w-64 border-r p-6 flex flex-col">
-      <Link
-        href="/dashboard/projects"
-        className="flex items-center text-muted-foreground hover:text-foreground transition mb-6"
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        <span>Back to Projects</span>
-      </Link>
+    <Sidebar collapsible="none" variant='inset' className="sticky hidden lg:flex top-0 h-svh border-l">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/dashboard/projects">
+                {project?.logoUrl ? (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+                    <img
+                      src={project.logoUrl}
+                      alt={project.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-primary/10 text-primary flex aspect-square size-8 items-center justify-center rounded-lg">
+                    {project?.name ? project.name.charAt(0).toUpperCase() : 'P'}
+                  </div>
+                )}
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{project?.name || 'Project'}</span>
+                  <span className="truncate text-xs text-muted-foreground">Back to projects</span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-      {project ? (
-        <div className="flex items-center mb-6">
-          {project.logoUrl ? (
-            <div className="h-9 w-9 rounded-md overflow-hidden mr-3">
-              <img
-                src={project.logoUrl}
-                alt={project.name}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="h-9 w-9 rounded-md bg-primary/10 text-primary flex items-center justify-center mr-3">
-              {project.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <h2 className="font-semibold truncate">{project.name}</h2>
-        </div>
-      ) : (
-        <div className="h-9 mb-6"></div>
-      )}
-
-      <nav className="space-y-6 flex-1">
-        <div className="space-y-1">
-          <NavLink
-            href={`/dashboard/projects/${project?.id}`}
-            icon={<Home className="h-4 w-4 mr-3" />}
-            isActive={pathname === `/dashboard/projects/${project?.id}`}
-          >
-            Overview
-          </NavLink>
-          <NavLink
-            href={`/dashboard/projects/${project?.id}/customers`}
-            icon={<Users className="h-4 w-4 mr-3" />}
-            isActive={pathname.includes(`/dashboard/projects/${project?.id}/customers`)}
-          >
-            Customers
-          </NavLink>
-          <NavLink
-            href={`/dashboard/projects/${project?.id}/rewards`}
-            icon={<Gift className="h-4 w-4 mr-3" />}
-            isActive={pathname.includes(`/dashboard/projects/${project?.id}/rewards`)}
-          >
-            Rewards
-          </NavLink>
-          <NavLink
-            href={`/dashboard/projects/${project?.id}/campaigns`}
-            icon={<Megaphone className="h-4 w-4 mr-3" />}
-            isActive={pathname.includes(`/dashboard/projects/${project?.id}/campaigns`)}
-          >
-            Campaigns
-          </NavLink>
-        </div>
-
-        <div>
-          <h3 className="text-xs font-medium text-muted-foreground mb-3">ADVANCED</h3>
-          <div className="space-y-1">
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                isActive={pathname === `/dashboard/projects/${project?.id}`}
+                asChild
+              >
+                <Link href={`/dashboard/projects/${project?.id}`}>
+                  <Home className="size-4" />
+                  <span>Overview</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                isActive={pathname.includes(`/dashboard/projects/${project?.id}/customers`)}
+                asChild
+              >
+                <Link href={`/dashboard/projects/${project?.id}/customers`}>
+                  <Users className="size-4" />
+                  <span>Customers</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                isActive={pathname.includes(`/dashboard/projects/${project?.id}/rewards`)}
+                asChild
+              >
+                <Link href={`/dashboard/projects/${project?.id}/rewards`}>
+                  <Gift className="size-4" />
+                  <span>Rewards</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            {/* Campaigns menu item - conditionally rendered based on feature flag */}
+            {isFeatureEnabled('enableCampaigns') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  isActive={pathname.includes(`/dashboard/projects/${project?.id}/campaigns`)}
+                  asChild
+                >
+                  <Link href={`/dashboard/projects/${project?.id}/campaigns`}>
+                    <Megaphone className="size-4" />
+                    <span>Campaigns</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+          </SidebarMenu>
+        </SidebarGroup>
         
-            <NavLink
-              href={`/dashboard/projects/${project?.id}/integrations`}
-              icon={<Puzzle className="h-4 w-4 mr-3" />}
-              isActive={pathname.includes(`/dashboard/projects/${project?.id}/integrations`)}
+        <SidebarGroup>
+          <SidebarGroupLabel>Advanced</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                isActive={pathname.includes(`/dashboard/projects/${project?.id}/integrations`)}
+                asChild
+              >
+                <Link href={`/dashboard/projects/${project?.id}/integrations`}>
+                  <Puzzle className="size-4" />
+                  <span>Integrations</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              isActive={pathname.includes(`/dashboard/projects/${project?.id}/settings`)}
+              asChild
             >
-              Integrations
-            </NavLink>
-            <NavLink
-              href={`/dashboard/projects/${project?.id}/notifications`}
-              icon={<Bell className="h-4 w-4 mr-3" />}
-              isActive={pathname.includes(`/dashboard/projects/${project?.id}/notifications`)}
-            >
-              Notifications
-            </NavLink>
-          </div>
-        </div>
-      </nav>
-
-      <div className="mt-6 pt-6 border-t">
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          size="sm"
-          asChild
-        >
-          <Link href={`/dashboard/projects/${project?.id}/settings`}>
-            <Settings className="h-4 w-4 mr-2" />
-            Project Settings
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface NavLinkProps {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  isActive: boolean;
-}
-
-function NavLink({ href, icon, children, isActive }: NavLinkProps) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex items-center h-10 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-        isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-      )}
-    >
-      {icon}
-      {children}
-    </Link>
+              <Link href={`/dashboard/projects/${project?.id}/settings`}>
+                <Settings className="size-4" />
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+            <SidebarRail />
+      
+    </Sidebar>
   );
 }

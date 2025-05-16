@@ -9,6 +9,7 @@ import { AuthForm } from "@workspace/auth/components/auth/auth-form"
 import { InputField } from "@workspace/auth/components/auth/input-field"
 import { Button } from "@workspace/auth/components/ui/button"
 import { ArrowLeft, Mail, Sparkles } from "lucide-react"
+import { forgotPassword } from "@workspace/auth/lib/actions/auth"
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -37,8 +38,14 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const { error: resetError } = await forgotPassword({
+        email,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (resetError) {
+        throw new Error(resetError.message);
+      }
 
       // Show success state
       setIsSubmitted(true)
@@ -47,8 +54,8 @@ export default function ForgotPasswordPage() {
       setTimeout(() => {
         setAchievementShown(true)
       }, 1000)
-    } catch (error) {
-      setError("Something went wrong. Please try again.")
+    } catch (error: any) {
+      setError(error.message || "Something went wrong. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -87,7 +94,6 @@ export default function ForgotPasswordPage() {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 <Sparkles className="h-3 w-3" />
-                <span>+5 XP</span>
               </motion.div>
             )}
 

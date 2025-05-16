@@ -1,8 +1,9 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth/server-auth";
-import  CampaignsPage  from "./page.client";
+import CampaignsPage from "./page.client";
 import { RESOURCE_TYPES, ACTION_TYPES } from "@/lib/casbin/enforcer";
+import { featureFlags } from "@/config/features";
 
 interface CampaignsProps {
   params: {
@@ -17,6 +18,11 @@ export const metadata: Metadata = {
 
 export default async function Campaigns({ params }: CampaignsProps) {
   const { projectId } = await params;
+
+  // Check feature flag - redirect if campaigns feature is disabled
+  if (!featureFlags.enableCampaigns) {
+    redirect(`/dashboard/projects/${projectId}`);
+  }
 
   // Server-side authorization check - users need READ permission for campaigns
   await requirePermission(

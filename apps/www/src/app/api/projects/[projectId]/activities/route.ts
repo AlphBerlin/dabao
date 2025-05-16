@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hasProjectAccess } from "@/lib/auth/project-access";
 
 export async function GET(
   request: Request,
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const projectId = (await params).projectId;
+    const { projectId } = await params;
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "week"; // day, week, month
     const limit = Number(searchParams.get("limit") || "50");
-    
+
     // Verify project exists
     const project = await db.project.findUnique({
       where: { id: projectId },
@@ -24,8 +23,8 @@ export async function GET(
 
     // Calculate date range based on period
     const now = new Date();
-    let startDate = new Date();
-    
+    const startDate = new Date();
+
     switch (period) {
       case "day":
         startDate.setDate(now.getDate() - 1);

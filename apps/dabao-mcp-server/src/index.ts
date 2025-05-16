@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { string, z } from "zod";
 import * as dotenv from "dotenv";
 import { prisma } from "./lib/prisma.js";
 import { customerService } from "./services/customerService.js";
@@ -9,14 +9,6 @@ import { voucherService } from "./services/voucherService.js";
 import { tierService } from "./services/tierService.js";
 import { campaignService } from "./services/campaignService.js";
 import { telegramService } from "./services/telegramService.js";
-import { imageService } from "./services/imageService.js";
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import { GoogleGenAI } from "@google/genai";
 import * as fs from "node:fs";
 import * as path from "path";
 import * as os from "os";
@@ -44,7 +36,7 @@ server.tool(
   async ({ email, projectId }) => {
     try {
       const customer = await customerService.findCustomerByEmail(email, projectId);
-      
+
       if (!customer) {
         return {
           content: [
@@ -58,10 +50,10 @@ server.tool(
 
       // Get points balance
       const pointsBalance = await customerService.getCustomerPoints(customer.id);
-      
+
       // Get customer's tier
-      const membershipInfo = customer.customerMemberships.length > 0 
-        ? customer.customerMemberships[0] 
+      const membershipInfo = customer.customerMemberships.length > 0
+        ? customer.customerMemberships[0]
         : null;
 
       const formattedResponse = `
@@ -109,7 +101,7 @@ server.tool(
   async ({ customerId, limit = 5 }) => {
     try {
       const activities = await customerService.getCustomerActivity(customerId, limit);
-      
+
       if (activities.length === 0) {
         return {
           content: [
@@ -162,7 +154,7 @@ server.tool(
   async ({ projectId }) => {
     try {
       const project = await projectService.getProjectById(projectId);
-      
+
       if (!project) {
         return {
           content: [
@@ -228,7 +220,7 @@ server.tool(
   async ({ projectId }) => {
     try {
       const tiers = await projectService.getProjectMembershipTiers(projectId);
-      
+
       if (tiers.length === 0) {
         return {
           content: [
@@ -284,7 +276,7 @@ server.tool(
   async ({ projectId }) => {
     try {
       const campaigns = await projectService.getActiveProjectCampaigns(projectId);
-      
+
       if (campaigns.length === 0) {
         return {
           content: [
@@ -298,7 +290,7 @@ server.tool(
 
       const formattedCampaigns = campaigns.map(campaign => {
         const rewards = campaign.rewards.map(cr => cr.reward.name).join(", ");
-        
+
         return `
 Campaign: ${campaign.name}
 Type: ${campaign.type}
@@ -343,7 +335,7 @@ server.tool(
   async ({ projectId }) => {
     try {
       const vouchers = await projectService.getProjectAvailableVouchers(projectId);
-      
+
       if (vouchers.length === 0) {
         return {
           content: [
@@ -357,16 +349,16 @@ server.tool(
 
       const formattedVouchers = vouchers.map(voucher => {
         return `
-Voucher: ${voucher.name} (${voucher.code})
-${voucher.description ? `Description: ${voucher.description}` : ""}
-Type: ${voucher.discountType}
-Value: ${voucher.discountValue} ${voucher.discountType === "PERCENTAGE" ? "%" : ""}
-${voucher.minimumSpend ? `Minimum Spend: $${voucher.minimumSpend}` : "No minimum spend"}
-${voucher.usageLimit ? `Usage Limit: ${voucher.usageLimit}` : "No usage limit"}
-${voucher.requiredPoints ? `Required Points: ${voucher.requiredPoints}` : ""}
-${voucher.requiredStamps ? `Required Stamps: ${voucher.requiredStamps}` : ""}
-Valid Until: ${voucher.endDate.toLocaleDateString()}
---------------------`.trim();
+              Voucher: ${voucher.name} (${voucher.code})
+              ${voucher.description ? `Description: ${voucher.description}` : ""}
+              Type: ${voucher.discountType}
+              Value: ${voucher.discountValue} ${voucher.discountType === "PERCENTAGE" ? "%" : ""}
+              ${voucher.minimumSpend ? `Minimum Spend: $${voucher.minimumSpend}` : "No minimum spend"}
+              ${voucher.usageLimit ? `Usage Limit: ${voucher.usageLimit}` : "No usage limit"}
+              ${voucher.requiredPoints ? `Required Points: ${voucher.requiredPoints}` : ""}
+              ${voucher.requiredStamps ? `Required Stamps: ${voucher.requiredStamps}` : ""}
+              Valid Until: ${voucher.endDate.toLocaleDateString()}
+              --------------------`.trim();
       });
 
       return {
@@ -412,12 +404,12 @@ server.tool(
     requiredPoints: z.number().optional().describe("Points required to redeem voucher"),
     requiredStamps: z.number().optional().describe("Stamps required to redeem voucher"),
   },
-  async ({ 
-    projectId, 
-    code, 
-    name, 
-    description, 
-    discountType, 
+  async ({
+    projectId,
+    code,
+    name,
+    description,
+    discountType,
     discountValue,
     minimumSpend,
     usageLimit,
@@ -430,7 +422,7 @@ server.tool(
     try {
       // Check for duplicate code
       const existingVoucher = await voucherService.getVoucherByCode(code, projectId);
-      
+
       if (existingVoucher) {
         return {
           content: [
@@ -441,7 +433,7 @@ server.tool(
           ]
         };
       }
-      
+
       const voucher = await voucherService.createVoucher({
         projectId,
         code,
@@ -458,7 +450,7 @@ server.tool(
         requiredPoints,
         requiredStamps,
       });
-      
+
       return {
         content: [
           {
@@ -493,7 +485,7 @@ server.tool(
   async ({ projectId, onlyActive = true, onlyFuture = false }) => {
     try {
       const vouchers = await voucherService.getAllProjectVouchers(projectId, { onlyActive, onlyFuture });
-      
+
       if (vouchers.length === 0) {
         return {
           content: [
@@ -504,7 +496,7 @@ server.tool(
           ]
         };
       }
-      
+
       const formattedVouchers = vouchers.map(voucher => {
         return `
 Voucher: ${voucher.name} (${voucher.code})
@@ -517,7 +509,7 @@ ${voucher.requiredPoints ? `Points Required: ${voucher.requiredPoints}` : ""}
 ${voucher.requiredStamps ? `Stamps Required: ${voucher.requiredStamps}` : ""}
 `.trim();
       });
-      
+
       return {
         content: [
           {
@@ -552,7 +544,7 @@ server.tool(
   async ({ code, customerId, projectId }) => {
     try {
       const validation = await voucherService.validateVoucher(code, customerId, projectId);
-      
+
       if (!validation.valid) {
         return {
           content: [
@@ -563,9 +555,9 @@ server.tool(
           ]
         };
       }
-      
+
       const voucher = validation.voucher!;
-      
+
       return {
         content: [
           {
@@ -603,7 +595,7 @@ server.tool(
   async ({ voucherId, customerId, orderId }) => {
     try {
       const redemption = await voucherService.redeemVoucher(voucherId, customerId, orderId);
-      
+
       return {
         content: [
           {
@@ -645,10 +637,10 @@ server.tool(
     pointsMultiplier: z.number().optional().describe("Points multiplier for this tier"),
     autoUpgrade: z.boolean().optional().describe("Auto upgrade customers to this tier when eligible"),
   },
-  async ({ 
-    projectId, 
-    name, 
-    description, 
+  async ({
+    projectId,
+    name,
+    description,
     level,
     pointsThreshold,
     stampsThreshold,
@@ -672,7 +664,7 @@ server.tool(
         pointsMultiplier: pointsMultiplier || 1.0,
         autoUpgrade: autoUpgrade || false
       });
-      
+
       return {
         content: [
           {
@@ -705,7 +697,7 @@ server.tool(
   async ({ projectId }) => {
     try {
       const tiers = await tierService.getAllProjectTiers(projectId);
-      
+
       if (tiers.length === 0) {
         return {
           content: [
@@ -716,13 +708,13 @@ server.tool(
           ]
         };
       }
-      
+
       const formattedTiers = tiers.map(tier => {
         const requirements = [];
         if (tier.pointsThreshold) requirements.push(`${tier.pointsThreshold} points`);
         if (tier.stampsThreshold) requirements.push(`${tier.stampsThreshold} stamps`);
         if (tier.spendThreshold) requirements.push(`$${tier.spendThreshold} spend`);
-        
+
         return `
 Tier: ${tier.name} (Level ${tier.level})
 ${tier.description ? `Description: ${tier.description}` : ""}
@@ -732,7 +724,7 @@ ${tier.subscriptionFee ? `Subscription Fee: $${tier.subscriptionFee}` : "No subs
 Auto Upgrade: ${tier.autoUpgrade ? "Yes" : "No"}
 `.trim();
       });
-      
+
       return {
         content: [
           {
@@ -772,7 +764,7 @@ server.tool(
         stampsBalance,
         startDate: new Date()
       });
-      
+
       return {
         content: [
           {
@@ -806,9 +798,9 @@ server.tool(
   async ({ customerId, projectId }) => {
     try {
       const eligibility = await tierService.checkTierEligibility(customerId, projectId);
-      
+
       const currentTierName = eligibility.currentTier ? eligibility.currentTier.name : "No tier";
-      
+
       if (eligibility.eligibleTiers.length === 0) {
         return {
           content: [
@@ -823,9 +815,9 @@ Total Stamps: ${eligibility.totalStamps}`
           ]
         };
       }
-      
+
       const eligibleTierNames = eligibility.eligibleTiers.map(tier => tier.name).join(", ");
-      
+
       return {
         content: [
           {
@@ -837,10 +829,10 @@ Total Spent: $${eligibility.totalSpent}
 Total Stamps: ${eligibility.totalStamps}
 
 Customer is eligible for upgrade to: ${eligibleTierNames}`
-            }
-          ]
-        };
-      
+          }
+        ]
+      };
+
     } catch (error) {
       console.error("Error checking tier eligibility:", error);
       return {
@@ -877,10 +869,10 @@ server.tool(
     }).optional().describe("Telegram campaign settings"),
     rewardIds: z.array(z.string()).optional().describe("IDs of rewards to include in the campaign"),
   },
-  async ({ 
-    projectId, 
-    name, 
-    description, 
+  async ({
+    projectId,
+    name,
+    description,
     type,
     startDate,
     endDate,
@@ -891,7 +883,7 @@ server.tool(
     try {
       // Prepare rewards data if provided
       const rewards = rewardIds ? rewardIds.map(id => ({ rewardId: id })) : undefined;
-      
+
       // Prepare telegram campaign data if settings provided
       const telegramCampaign = telegramSettings ? {
         messageTemplate: telegramSettings.messageTemplate,
@@ -899,7 +891,7 @@ server.tool(
         scheduledSendDate: telegramSettings.scheduledSendDate ? new Date(telegramSettings.scheduledSendDate) : undefined,
         channelId: telegramSettings.channelId,
       } : undefined;
-      
+
       const campaign = await campaignService.createCampaign({
         projectId,
         name,
@@ -913,7 +905,7 @@ server.tool(
         telegramCampaign,
         rewards,
       });
-      if(!campaign) {
+      if (!campaign) {
         return {
           content: [
             {
@@ -923,10 +915,10 @@ server.tool(
           ]
         };
       }
-      
+
       const hasTelegram = campaign.telegramCampaign ? "Yes" : "No";
       const rewardsCount = campaign.rewards?.length || 0;
-      
+
       return {
         content: [
           {
@@ -968,7 +960,7 @@ server.tool(
   async ({ projectId, onlyActive = true, type }) => {
     try {
       const campaigns = await campaignService.getAllProjectCampaigns(projectId, { onlyActive, type });
-      
+
       if (campaigns.length === 0) {
         return {
           content: [
@@ -979,19 +971,19 @@ server.tool(
           ]
         };
       }
-      
-      const formattedCampaigns = campaigns.map((campaign:any) => {
-        if(!campaign) {
+
+      const formattedCampaigns = campaigns.map((campaign: any) => {
+        if (!campaign) {
           return "Campaign not found.";
         }
-        const telegramInfo = campaign.telegramCampaign 
+        const telegramInfo = campaign.telegramCampaign
           ? `\nTelegram: Yes (${campaign.telegramCampaign.status || 'PENDING'})`
           : "\nTelegram: No";
-          
+
         const rewards = campaign.rewards.length > 0
-          ? `\nRewards: ${campaign.rewards.map((r:any) => r.reward.name).join(", ")}`
+          ? `\nRewards: ${campaign.rewards.map((r: any) => r.reward.name).join(", ")}`
           : "\nRewards: None";
-          
+
         return `
 Campaign: ${campaign.name}
 ${campaign.description ? `Description: ${campaign.description}` : ""}
@@ -1001,7 +993,7 @@ Dates: ${campaign.startDate.toLocaleDateString()} - ${campaign.endDate ? campaig
 Points: ${campaign.pointsMultiplier || 1}x${telegramInfo}${rewards}
 `.trim();
       });
-      
+
       return {
         content: [
           {
@@ -1039,7 +1031,7 @@ server.tool(
         scheduledSendDate: new Date(scheduledSendDate),
         targetAudience,
       });
-      
+
       return {
         content: [
           {
@@ -1085,7 +1077,7 @@ server.tool(
         telegramMessageId,
         metadata,
       });
-      
+
       return {
         content: [
           {
@@ -1124,7 +1116,7 @@ server.tool(
     try {
       const metrics = await campaignService.getCampaignMetrics(campaignId);
       const campaign = await campaignService.getCampaignById(campaignId);
-      
+
       if (!campaign) {
         return {
           content: [
@@ -1135,15 +1127,15 @@ server.tool(
           ]
         };
       }
-      
+
       let engagementTypes = "";
       if (Object.keys(metrics.engagementsByType).length > 0) {
-        engagementTypes = "\nEngagement Breakdown:\n" + 
+        engagementTypes = "\nEngagement Breakdown:\n" +
           Object.entries(metrics.engagementsByType)
             .map(([type, count]) => `  - ${type}: ${count}`)
             .join("\n");
       }
-      
+
       return {
         content: [
           {
@@ -1178,21 +1170,18 @@ server.tool(
   "Configure Telegram settings for a project",
   {
     projectId: z.string().describe("Project ID"),
-    botToken: z.string().optional().describe("Telegram bot token"),
+    botToken: z.string().describe("Telegram bot token"),
+    botUsername: z.string().describe("Telegram Username "),
     webhookUrl: z.string().optional().describe("Webhook URL for Telegram bot"),
-    channelIds: z.array(z.string()).optional().describe("Channel IDs to use with the bot"),
-    analyticsEnabled: z.boolean().optional().describe("Enable analytics for Telegram"),
   },
-  async ({ projectId, botToken, webhookUrl, channelIds, analyticsEnabled = true }) => {
+  async ({ projectId, botToken, webhookUrl, botUsername }) => {
     try {
       const settings = await telegramService.upsertProjectTelegramSettings(projectId, {
+        botUsername,
         botToken,
         webhookUrl,
-        channelIds,
-        isActive: true,
-        analyticsEnabled,
-      });
-      
+      })
+
       return {
         content: [
           {
@@ -1237,11 +1226,7 @@ server.tool(
         includeMessages: includeDetails,
         includeInteractions: includeDetails,
       });
-      
-      const interactionTypesText = Object.entries(analytics.interactions.byType)
-        .map(([type, count]) => `  - ${type}: ${count}`)
-        .join("\n");
-      
+
       return {
         content: [
           {
@@ -1258,11 +1243,7 @@ Users:
 Messages:
   - Total: ${analytics.messages.total}
   - Incoming: ${analytics.messages.incoming}
-  - Outgoing: ${analytics.messages.outgoing}
-
-Interactions:
-  - Total: ${analytics.interactions.total}
-${interactionTypesText ? interactionTypesText : "  - No interaction data available"}`
+  - Outgoing: ${analytics.messages.outgoing}`
           }
         ]
       };
@@ -1290,7 +1271,7 @@ server.tool(
   async ({ telegramCampaignId }) => {
     try {
       const performance = await telegramService.getTelegramCampaignPerformance(telegramCampaignId);
-      
+
       return {
         content: [
           {
@@ -1302,12 +1283,10 @@ Messages:
   - Viewed: ${performance.performance.messagesViewed}
   - Clicked: ${performance.performance.messagesClicked}
   - Unique Users Interacted: ${performance.performance.uniqueUsersInteracted}
-  - Engagements: ${performance.performance.engagements}
   
 Rates:
   - Open Rate: ${performance.metrics.openRate.toFixed(2)}%
-  - Click Rate: ${performance.metrics.clickRate.toFixed(2)}%
-  - Conversion Rate: ${performance.metrics.conversionRate.toFixed(2)}%`
+  - Click Rate: ${performance.metrics.clickRate.toFixed(2)}%`
           }
         ]
       };
@@ -1342,7 +1321,7 @@ server.tool(
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
       });
-      
+
       if (activeUsers.length === 0) {
         return {
           content: [
@@ -1353,14 +1332,14 @@ server.tool(
           ]
         };
       }
-      
+
       const formattedUsers = activeUsers.map((user, index) => {
-        const userData = user.user ? 
+        const userData = user.user ?
           `Username: ${user.user.username || "N/A"}
 Name: ${[user.user.firstName, user.user.lastName].filter(Boolean).join(" ") || "N/A"}
 ${user.user.customerId ? `Linked Customer: Yes` : `Linked Customer: No`}` :
           "User details not available";
-        
+
         return `
 ${index + 1}. Telegram User ID: ${user.telegramUserId}
 ${userData}
@@ -1369,7 +1348,7 @@ Interactions: ${user.interactionCount}
 Total Activity: ${user.totalActivity}
 `.trim();
       });
-      
+
       return {
         content: [
           {
@@ -1397,7 +1376,7 @@ function getUserDesktopPath(): string {
   try {
     // Try to get the desktop path in a cross-platform way
     const userHomeDir = os.homedir();
-    
+
     if (process.platform === 'win32') {
       // Windows: Use USERPROFILE environment variable or fallback to homedir
       return path.join(process.env.USERPROFILE || userHomeDir, 'Desktop');
@@ -1432,10 +1411,10 @@ function getUserDesktopPath(): string {
 function getImageStorageDir(): string {
   const desktopPath = getUserDesktopPath();
   const storageDir = path.join(desktopPath, 'AI-Generated-Images');
-  
+
   // Log the directory being used
   console.log(`Storage directory for current OS (${process.platform}):`, storageDir);
-  
+
   return storageDir;
 }
 
@@ -1443,12 +1422,12 @@ function getImageStorageDir(): string {
 function normalizeFilePath(filePath: string): string {
   // Remove common prefixes that might come from different environments
   filePath = filePath.replace(/^(\/app\/|\/root\/|\\root\\)/, '');
-  
+
   // Convert to absolute path if relative
   if (!path.isAbsolute(filePath)) {
     filePath = path.join(getImageStorageDir(), filePath);
   }
-  
+
   // Normalize path for current OS
   return path.normalize(filePath);
 }

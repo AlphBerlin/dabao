@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { PlayCircle, ChevronDown } from "lucide-react";
-import { fadeIn, parallaxStar, slideUp, bounce, scrollToSection } from "@/lib/animations";
+import { fadeIn, slideUp, bounce, scrollToSection } from "@/lib/animations";
 import { useEffect, useState, useMemo } from "react";
 
 // Generate stars data outside of component render
@@ -18,18 +18,6 @@ const generateStarsData = (count: number) => {
 };
 
 export function Hero() {
-  // Store animation state with a default of true to match server rendering
-  const [isAnimating, setIsAnimating] = useState(true);
-  
-  // Generate star positions only once using useMemo
-  const starsData = useMemo(() => generateStarsData(20), []);
-
-  // Only toggle animations after component mounts (client-side only)
-  useEffect(() => {
-    // No state change needed since we start with true
-    // This ensures server and client render the same initial state
-  }, []);
-
   // Scroll to the next section when clicking the chevron
   const handleScrollToDemo = (e: React.MouseEvent) => {
     e.preventDefault();

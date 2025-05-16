@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth/server-auth";
-import { ApiKeysPage } from "@/components/api-keys-page";
+// import { ApiKeysPage } from "@/components/api-keys-page";
 import { RESOURCE_TYPES, ACTION_TYPES } from "@/lib/casbin/enforcer";
 
 interface ApiKeysProps {
@@ -28,7 +28,8 @@ export default async function ApiKeys({ params }: ApiKeysProps) {
 
   try {
     // Once we've confirmed authorization, render the page
-    return <ApiKeysPage projectId={projectId} />;
+    // return <ApiKeysPage projectId={projectId} />;
+    return <div>API Keys Page for Project {projectId}</div>; // Placeholder for actual component
   } catch (error) {
     console.error("Error loading API keys page:", error);
     return notFound();

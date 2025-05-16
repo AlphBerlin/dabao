@@ -1,24 +1,27 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
 import { useRouter } from "next/navigation";
 import { Organization, User } from "@prisma/client";
+import { UserPreferences } from "@/hooks/use-user-preferences";
 
 // Define the user context interface
 interface UserContextType {
   user: User | null;
   organizations: Organization[];
+  preferences: UserPreferences | null;
   isLoading: boolean;
   error: string | null;
   setUser: (user: User | null) => void;
   refreshUser: () => Promise<void>;
+  updatePreferences: (newPreferences: Partial<UserPreferences>) => Promise<boolean>;
 }
 
 // Create default context with safe fallbacks
 const defaultUserContext: UserContextType = {
   user: null,
   organizations: [],
+  preferences: null,
   isLoading: false,
   error: null,
   setUser: () => {
@@ -27,6 +30,10 @@ const defaultUserContext: UserContextType = {
   refreshUser: async () => {
     console.warn("UserProvider not initialized");
     return Promise.resolve();
+  },
+  updatePreferences: async () => {
+    console.warn("UserProvider not initialized");
+    return Promise.resolve(false);
   }
 };
 
@@ -38,6 +45,7 @@ interface UserProviderProps {
   children: React.ReactNode;
   initialUser?: User | null;
   initialOrganizations?: Organization[];
+  initialPreferences?: UserPreferences | null;
 }
 
 /**
@@ -47,9 +55,11 @@ export function UserProvider({
   children,
   initialUser = null,
   initialOrganizations = [],
+  initialPreferences = null,
 }: UserProviderProps) {
   const [user, setUserState] = useState<User | null>(initialUser);
   const [organizations, setOrganizations] = useState<Organization[]>(initialOrganizations);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(initialPreferences);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -78,6 +88,9 @@ export function UserProvider({
       if (data.organizations) {
         setOrganizations(data.organizations);
       }
+      
+      // Fetch user preferences
+      await fetchUserPreferences();
 
       return data;
     } catch (err) {
@@ -86,6 +99,22 @@ export function UserProvider({
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Fetch user preferences
+  const fetchUserPreferences = async () => {
+    try {
+      const response = await fetch("/api/user/preferences");
+      
+      if (response.ok) {
+        const preferencesData = await response.json();
+        setPreferences(preferencesData);
+        return preferencesData;
+      }
+    } catch (err) {
+      console.error("Failed to fetch user preferences:", err);
+    }
+    return null;
   };
 
   // Load user data on mount
@@ -107,25 +136,47 @@ export function UserProvider({
     return fetchUserData();
   };
 
-  return (
-    <UserContext.Provider
-      value={{
-        user,
-        organizations,
-        isLoading,
-        error,
-        setUser,
-        refreshUser,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
-  );
+  // Update user preferences
+  const updatePreferences = async (newPreferences: Partial<UserPreferences>): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPreferences),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update preferences: ${response.status}`);
+      }
+      
+      const updatedPreferences = await response.json();
+      setPreferences(prev => ({ ...prev, ...updatedPreferences }));
+      return true;
+    } catch (err) {
+      console.error("Failed to update user preferences:", err);
+      return false;
+    }
+  };
+
+  // Create the context value object
+  const contextValue = {
+    user,
+    organizations,
+    preferences,
+    isLoading,
+    error,
+    setUser,
+    refreshUser,
+    updatePreferences
+  };
+
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 }
 
 /**
- * Hook to use the user context
- * @returns User context containing user data, organizations, and helper functions
+ * Custom hook to use the user context
  */
 export function useUser() {
   const context = useContext(UserContext);

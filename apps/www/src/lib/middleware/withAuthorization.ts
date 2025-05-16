@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { casbinEnforcer, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/casbin/enforcer';
+import { casbinEnforcer } from '@/lib/casbin/enforcer';
 import { AuthTokenService } from '@/lib/services/auth-token-service';
 
 export type HandlerWithProject = (
@@ -119,13 +119,6 @@ export function withOrgAuthorization(
     try {
       // Initialize Casbin enforcer if needed
       await casbinEnforcer.init();
-
-      // Get organization ID from header or cookie
-      const orgId = req.headers.get('x-org-id') || req.cookies.get('orgId')?.value;
-      
-      if (!orgId) {
-        return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
-      }
 
       // Get authenticated user from Supabase
       const supabase = await createClient();

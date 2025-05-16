@@ -3,7 +3,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card';
@@ -14,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@workspace/ui/components/dialog';
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
@@ -46,8 +44,7 @@ interface BotMenuDesignerProps {
   onSave: (data: any) => void;
 }
 
-const BotMenuDesigner: React.FC<BotMenuDesignerProps> = ({ 
-  projectId, 
+const BotMenuDesigner: React.FC<BotMenuDesignerProps> = ({  
   initialData, 
   onSave 
 }) => {

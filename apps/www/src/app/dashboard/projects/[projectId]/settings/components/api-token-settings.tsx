@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -22,7 +21,6 @@ interface ApiTokenSettingsProps {
 }
 
 export function ApiTokenSettings({ projectId }: ApiTokenSettingsProps) {
-  const router = useRouter();
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTokenName, setNewTokenName] = useState("");

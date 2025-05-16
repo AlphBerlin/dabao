@@ -67,17 +67,6 @@ export async function POST(req: NextRequest) {
       organization: dbUser.organizations[0]!.organization
     });
 
-    // Set the organization ID cookie
-    response.cookies.set('orgId', organizationId, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-
-    // Set the x-org-id header in the response
-    response.headers.set('x-org-id', organizationId);
-
     return response;
   } catch (error) {
     console.error('Error updating user organization context:', error);
@@ -98,30 +87,37 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database with all their organizations
+    // Get user from database
     const dbUser = await db.user.findUnique({
-      where: { supabaseUserId: supabaseUser.id },
-      include: {
-        organizations: {
-          include: {
-            organization: true
-          }
-        }
-      }
+      where: { supabaseUserId: supabaseUser.id }
     });
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // Extract organizations from the user's memberships
-    const organizations = dbUser.organizations.map(membership => membership.organization);
-
-    // Return the user and their organizations
-    return NextResponse.json({ 
-      user: dbUser,
-      organizations
+    
+    // Get user organizations
+    const userOrgs = await db.userOrganization.findMany({
+      where: { userId: dbUser.id },
+      include: { organization: true }
     });
+    
+    // Get user preferences
+    const userPreferences = await db.userPreference.findUnique({
+      where: { userId: dbUser.id }
+    });
+    
+    // Extract organizations from the user's memberships
+    const organizations = userOrgs.map(org => org.organization);
+    
+    // Create response
+    const response = NextResponse.json({ 
+      user: dbUser,
+      organizations,
+      preferences: userPreferences
+    });
+    
+    return response;
   } catch (error) {
     console.error('Error fetching user context:', error);
     return NextResponse.json({ error: 'Failed to fetch user context' }, { status: 500 });

@@ -1,18 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Bell, 
-  Search, 
+import {
+  Bell,
+  Search,
   Settings,
   HelpCircle,
   User,
   LogOut,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  PanelLeft,
+  PanelRight,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
 import AIAssistant from "@/components/ai-assistant/ai-assistant";
 import { useUser } from "@/contexts/user-context";
 import { useAuth } from "@workspace/auth/contexts/auth-context";
+import { SidebarTrigger, useSidebar } from "@workspace/ui/components/sidebar";
 
 interface Project {
   id: string;
@@ -40,13 +42,12 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const {user} = useUser();
-  const {signOut} = useAuth();
-  
+  const { user } = useUser();
+  const { signOut } = useAuth();
+  const { toggleSidebar } = useSidebar();
   // For debugging purposes
   const DEBUG_MODE = process.env.NODE_ENV === "development";
-  const mcpServerUrl = process.env.NEXT_PUBLIC_DA_ASSISTANT_URL || "http://localhost:50051";
-  
+
   if (loading) {
     return (
       <header className="h-16 border-b px-6 flex items-center justify-between">
@@ -61,7 +62,7 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
       </header>
     );
   }
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Implement project-wide search functionality
@@ -70,30 +71,22 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
 
   return (
     <>
-      <header className="h-16 border-b px-6 flex items-center justify-between">
-        <form onSubmit={handleSearch} className="w-full max-w-md">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={`Search in ${project?.name || 'project'}...`}
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </form>
-        
+      <header className="h-16 border-b px-6 flex items-center justify-between w-full">
         <div className="flex items-center space-x-4">
-        
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-          </Button>
-          
+          {project?.name && (
+            <span className="font-medium text-lg hidden md:block">
+              {project.name}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <MessageSquare className="h-5 w-5" onClick={() => toggleSidebar()} />
+
           <Button variant="ghost" size="icon" aria-label="Help">
             <HelpCircle className="h-5 w-5" />
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
@@ -108,8 +101,8 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <a 
-                  href="/dashboard/profile" 
+                <a
+                  href="/dashboard/profile"
                   className="cursor-pointer w-full flex items-center no-underline"
                 >
                   <User className="mr-2 h-4 w-4" />
@@ -117,8 +110,8 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a 
-                  href="/dashboard/settings" 
+                <a
+                  href="/dashboard/settings"
                   className="cursor-pointer w-full flex items-center no-underline"
                 >
                   <Settings className="mr-2 h-4 w-4" />
@@ -127,10 +120,10 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild variant="destructive">
-                <a 
+                <a
                   onClick={() => {
                     signOut();
-                  }} 
+                  }}
                   className="cursor-pointer w-full flex items-center text-red-500 hover:text-red-600 no-underline"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -141,11 +134,11 @@ export function ProjectHeader({ project, loading }: ProjectHeaderProps) {
           </DropdownMenu>
         </div>
       </header>
-        <AIAssistant 
-          userId={user!.id}
-          initialTitle="Help Session"
-          onClose={() => {}}
-        />
+      <AIAssistant
+        userId={user!.id}
+        initialTitle="Help Session"
+        onClose={() => {}}
+      />
     </>
   );
 }
