@@ -148,6 +148,27 @@ enum EmailTemplateStatus {
   @@schema("dabao_tenant")
 }
 
+// Domain Type enum for distinguishing between domain types
+enum DomainType {
+  PRIMARY
+  SUBDOMAIN
+  CUSTOM_DOMAIN
+  ALIAS
+
+  @@schema("dabao_tenant")
+}
+
+// Client Status enum for tracking client access status
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  EXPIRED
+
+  @@schema("dabao_tenant")
+}
+
 // -----------------------------
 // Control-plane models (Organization & Admin)
 // -----------------------------
@@ -256,6 +277,8 @@ model Project {
   emailTemplates          EmailTemplate[] // Add relation to EmailTemplate
   emailCampaigns          EmailCampaign[] // Add relation to EmailCampaign
   emailLogs               EmailLog[] // Add relation to EmailLog
+  // Domain management relations
+  domains                 ProjectDomain[]
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -1052,6 +1075,31 @@ model EmailLog {
   customer        Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@map("email_logs")
+  @@schema("dabao_tenant")
+}
+
+// ProjectDomain model for managing domains and subdomains
+model ProjectDomain {
+  id                String     @id @default(cuid())
+  projectId         String     @map("project_id")
+  domain            String     @unique
+  type              DomainType @default(SUBDOMAIN)
+  isPrimary         Boolean    @default(false) @map("is_primary")
+  isVerified        Boolean    @default(false) @map("is_verified")
+  verificationToken String?    @map("verification_token")
+  verifiedAt        DateTime?  @map("verified_at")
+  dnsSettings       Json?      @map("dns_settings") // DNS settings like CNAME, A records
+  sslEnabled        Boolean    @default(false) @map("ssl_enabled") 
+  sslCertificate    String?    @map("ssl_certificate")
+  sslExpiresAt      DateTime?  @map("ssl_expires_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, domain])
+  @@map("project_domains")
   @@schema("dabao_tenant")
 }
 

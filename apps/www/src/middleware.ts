@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { domainAuthMiddleware } from '@/middleware/domainAuthMiddleware';
+
 // Flag to track if policies have been initialized
 let policiesInitialized = false;
 
@@ -18,6 +20,7 @@ const PUBLIC_PATHS = [
   '/images',
   '/'
 ];
+
 /**
  * Initialize policies if not already done
  * Note: This is now a stub function as Prisma can't run in Edge Runtime
@@ -40,10 +43,21 @@ async function initializePoliciesIfNeeded() {
  * Global middleware for authentication and authorization
  */
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Check if this is an API route that uses domain-based authentication
+  if (
+    pathname.startsWith('/api/public') || 
+    pathname.startsWith('/api/client') ||
+    pathname.includes('/api/projects/') && pathname.includes('/domains/')
+  ) {
+    // For client-facing APIs with domain-based auth
+    return domainAuthMiddleware(request);
+  }
+
   // Initialize policies on first request
   await initializePoliciesIfNeeded();
   
-  const { pathname } = request.nextUrl;
   const response = NextResponse.next();
   
   // Skip middleware for public paths
@@ -75,5 +89,9 @@ export const config = {
   matcher: [
     // Match all routes except static files and APIs that handle their own auth
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Include APIs that use domain-based authentication
+    '/api/public/:path*',
+    '/api/client/:path*',
+    '/api/projects/:projectId/domains/:path*',
   ],
 };
