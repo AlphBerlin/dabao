@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
   // Create response object
@@ -25,11 +26,9 @@ export async function middleware(request: NextRequest) {
   // Skip auth redirects for auth-related pages
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth/');
   
-  // Check if this is the home page (landing page)
-  const isHomePage = request.nextUrl.pathname === '/';
-  
   try {
     // Make fetch request to domain resolution API
+    // This is more efficient than importing Prisma in middleware (which can cause issues)
     const domainInfoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/domains/resolve?domain=${domain}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -72,19 +71,42 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith(route)
     );
     
-    // For protected routes, check authentication
+    // Check if this is the home page (landing page)
+    const isHomePage = request.nextUrl.pathname === '/';
+    
     if (isProtectedRoute) {
       // Update the session using Supabase middleware
       // This will handle redirects if no user is found
       return updateSession(request);
     }
     
-    // For the home page, check if the user is authenticated and redirect if needed
+    // For the home page, check if the user is already authenticated
+    // If yes, redirect them to the app dashboard
     if (isHomePage) {
-      // Use the updateSession function to check authentication and handle redirect
-      // But we need to create a custom handler that redirects to /app instead of login
-      const authRedirectURL = new URL('/app', request.url);
-      return await updateSession(request, authRedirectURL);
+      // Create Supabase client to check auth status
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            },
+          },
+        }
+      );
+      
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If authenticated, redirect to app dashboard
+      if (session) {
+        const appUrl = new URL('/app', request.url);
+        return NextResponse.redirect(appUrl);
+      }
     }
     
     // For unprotected routes, just pass along the project context
