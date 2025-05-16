@@ -16,7 +16,7 @@ export interface ProjectContext {
  * This extracts the values from headers set by middleware
  */
 export async function getServerProjectContext(): Promise<ProjectContext | null> {
-  const headersList = headers();
+  const headersList = await headers();
   
   const projectId = headersList.get('x-project-id');
   const projectSlug = headersList.get('x-project-slug');

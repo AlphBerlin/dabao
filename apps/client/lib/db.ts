@@ -28,7 +28,7 @@ if (process.env.NODE_ENV !== 'production') {
  */
 export async function getProjectDB() {
   // Get project ID from headers
-  const headersList = headers();
+  const headersList = await headers();
   const projectId = headersList.get('x-project-id');
 
   if (!projectId) {
