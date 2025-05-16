@@ -35,9 +35,9 @@ export const GET = withAuthorization(
         projectId,
         ...(search ? {
           OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: search, mode: 'insensitive' } }
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { phone: { contains: search, mode: 'insensitive' as const } }
           ]
         } : {})
       };
@@ -85,7 +85,12 @@ export const POST = withAuthorization(
       
       // Parse and validate request body
       const body = await req.json();
-      const validationResult = customerSchema.safeParse(body);
+      // Update schema to include supabaseUserId
+      const extendedCustomerSchema = customerSchema.extend({
+        supabaseUserId: z.string().optional(),
+      });
+      
+      const validationResult = extendedCustomerSchema.safeParse(body);
       
       if (!validationResult.success) {
         return NextResponse.json({
@@ -94,7 +99,7 @@ export const POST = withAuthorization(
         }, { status: 400 });
       }
       
-      const { email, name, phone, ...otherData } = validationResult.data;
+      const { email, name, phone, supabaseUserId, ...otherData } = validationResult.data;
       
       // Check if customer with this email already exists
       const existingCustomer = await prisma.customer.findFirst({
@@ -108,6 +113,19 @@ export const POST = withAuthorization(
       });
       
       if (existingCustomer) {
+        // If customer exists and we have a supabaseUserId to link, update the customer
+        if (supabaseUserId && !existingCustomer.supabaseUserId) {
+          const updatedCustomer = await prisma.customer.update({
+            where: {
+              id: existingCustomer.id
+            },
+            data: {
+              supabaseUserId
+            }
+          });
+          return NextResponse.json(updatedCustomer);
+        }
+        
         return NextResponse.json({
           error: "Customer with this email already exists"
         }, { status: 409 });
@@ -120,6 +138,7 @@ export const POST = withAuthorization(
           email,
           name,
           phone,
+          ...(supabaseUserId ? { supabaseUserId } : {}),
           ...otherData
         }
       });

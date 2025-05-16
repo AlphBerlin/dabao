@@ -22,6 +22,9 @@ export async function middleware(request: NextRequest) {
   // For API routes, we still need to set project context but don't need to redirect
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
   
+  // Skip auth redirects for auth-related pages
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/auth/');
+  
   try {
     // Make fetch request to domain resolution API
     // This is more efficient than importing Prisma in middleware (which can cause issues)
@@ -61,9 +64,31 @@ export async function middleware(request: NextRequest) {
     res.headers.set('x-project-slug', domainInfo.projectSlug || '');
     res.headers.set('x-domain', domain);
     
-    // Update session if using auth
-    // return await updateSession(request);
-    return res;
+    // Update session with Supabase
+    const response = await updateSession(request);
+    
+    // Copy over the project context headers to the new response
+    Object.entries(res.headers).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    // Check authentication status for protected routes
+    const { data: { session } } = await response.json();
+    
+    // If unauthenticated and trying to access a protected route, redirect to login
+    if (!session && !isAuthRoute && !isApiRoute) {
+      // Optional: Define protected routes that require auth
+      const protectedRoutes = ['/account', '/orders', '/profile', '/rewards'];
+      const isProtectedRoute = protectedRoutes.some(route => 
+        request.nextUrl.pathname.startsWith(route)
+      );
+      
+      if (isProtectedRoute) {
+        return NextResponse.redirect(new URL('/auth/login', request.url));
+      }
+    }
+    
+    return response;
   } catch (error) {
     console.error('Error in middleware:', error);
     

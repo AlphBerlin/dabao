@@ -9,7 +9,6 @@ datasource db {
   schemas  = ["public", "dabao_tenant"]
 }
 
-
 model Project {
   id             String   @id @default(cuid())
   name           String
@@ -26,11 +25,12 @@ model Project {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Domain management relations
-  domains                 ProjectDomain[]
-  customers               Customer[]
-  rewards                Reward[]
-  membershipTiers       MembershipTier[]
-  vouchers               Voucher[]
+  domains         ProjectDomain[]
+  customers       Customer[]
+  rewards         Reward[]
+  membershipTiers MembershipTier[]
+  vouchers        Voucher[]
+  brandingSettings BrandingSettings?
 
   @@map("projects")
   @@schema("dabao_tenant")
@@ -45,6 +45,7 @@ enum DomainType {
 
   @@schema("dabao_tenant")
 }
+
 // Reward type enum
 enum RewardType {
   POINTS
@@ -68,32 +69,32 @@ model ProjectDomain {
   verificationToken String?    @map("verification_token")
   verifiedAt        DateTime?  @map("verified_at")
   dnsSettings       Json?      @map("dns_settings") // DNS settings like CNAME, A records
-  sslEnabled        Boolean    @default(false) @map("ssl_enabled") 
+  sslEnabled        Boolean    @default(false) @map("ssl_enabled")
   sslCertificate    String?    @map("ssl_certificate")
   sslExpiresAt      DateTime?  @map("ssl_expires_at")
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
   // Relations
-  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, domain])
   @@map("project_domains")
   @@schema("dabao_tenant")
 }
 
-
 // Customer model for the loyalty program
 model Customer {
-  id         String   @id @default(cuid())
-  projectId  String   @map("project_id")
-  name       String?
-  email      String
-  phone      String?
-  externalId String?  @map("external_id")
-  metadata   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  projectId      String   @map("project_id")
+  name           String?
+  email          String
+  phone          String?
+  supabaseUserId String?  @map("supabase_user_id")
+  externalId     String?  @map("external_id")
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
   project             Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -109,7 +110,6 @@ model Customer {
   @@map("customers")
   @@schema("dabao_tenant")
 }
-
 
 // CustomerReward model for tracking rewards claimed by customers
 model CustomerReward {
@@ -318,5 +318,24 @@ model CustomerPointsTransaction {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@map("customer_points_transactions")
+  @@schema("dabao_tenant")
+}
+
+model BrandingSettings {
+  id             String  @id @default(cuid())
+  projectId      String  @unique @map("project_id")
+  name           String
+  logo           String?
+  favicon        String?
+  mascot         String?
+  customDomain   String? @map("custom_domain")
+  primaryColor   String  @default("#6366F1") @map("primary_color")
+  secondaryColor String  @default("#4F46E5") @map("secondary_color")
+  accentColor    String  @default("#F43F5E") @map("accent_color")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("branding_settings")
   @@schema("dabao_tenant")
 }

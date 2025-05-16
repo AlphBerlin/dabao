@@ -361,15 +361,17 @@ model AuthToken {
 
 // Customer model for the loyalty program
 model Customer {
-  id         String   @id @default(cuid())
-  projectId  String   @map("project_id")
-  name       String?
-  email      String
-  phone      String?
-  externalId String?  @map("external_id")
-  metadata   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id             String  @id @default(cuid())
+  projectId      String  @map("project_id")
+  name           String?
+  email          String
+  phone          String?
+  externalId     String? @map("external_id")
+  supabaseUserId String? @map("supabase_user_id")
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   project             Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1089,14 +1091,14 @@ model ProjectDomain {
   verificationToken String?    @map("verification_token")
   verifiedAt        DateTime?  @map("verified_at")
   dnsSettings       Json?      @map("dns_settings") // DNS settings like CNAME, A records
-  sslEnabled        Boolean    @default(false) @map("ssl_enabled") 
+  sslEnabled        Boolean    @default(false) @map("ssl_enabled")
   sslCertificate    String?    @map("ssl_certificate")
   sslExpiresAt      DateTime?  @map("ssl_expires_at")
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
   // Relations
-  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, domain])
   @@map("project_domains")

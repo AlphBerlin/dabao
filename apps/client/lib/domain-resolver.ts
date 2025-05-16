@@ -4,7 +4,7 @@
  */
 import { cache } from 'react';
 import { headers } from 'next/headers';
-import { db } from './db';
+import { db } from '@/lib/db';
 
 /**
  * Interface for project context
@@ -35,11 +35,8 @@ export const getProjectFromDomain = cache(async (domain: string): Promise<Projec
       },
       include: {
         project: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            branding: true,
+          include: {
+            brandingSettings: true,
           }
         }
       }
